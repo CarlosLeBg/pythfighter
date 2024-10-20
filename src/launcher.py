@@ -13,7 +13,7 @@ class GameLauncher:
         self.controllers = self.detect_controllers()
         self.selected_option = 0
         self.options = ["Start Game", "Controller Settings", "Keyboard Settings", "Exit"]
-        
+
     def detect_controllers(self):
         pygame.joystick.init()
         controllers = []
@@ -24,12 +24,12 @@ class GameLauncher:
         return controllers
 
     def draw_menu(self):
-        self.screen.fill((0, 0, 0))
+        self.screen.fill((50, 50, 50))  # Change to a dark gray background
         title_text = self.font.render("Welcome to Pyth Fighter", True, (255, 255, 255))
         self.screen.blit(title_text, (200, 50))
 
         for index, option in enumerate(self.options):
-            color = (255, 255, 255) if index != self.selected_option else (255, 0, 0)
+            color = (255, 0, 0) if index == self.selected_option else (255, 255, 255)
             option_text = self.font.render(option, True, color)
             self.screen.blit(option_text, (350, 150 + index * 50))
 
@@ -54,6 +54,9 @@ class GameLauncher:
                         self.selected_option = (self.selected_option + 1) % len(self.options)
                     elif event.key == pygame.K_RETURN:
                         self.select_option()
+                elif event.type == pygame.JOYBUTTONDOWN:
+                    if self.selected_option == 0:  # Start Game
+                        self.start_game()  # Call to start the game
 
             self.draw_menu()
             self.clock.tick(30)
@@ -63,16 +66,20 @@ class GameLauncher:
 
     def select_option(self):
         if self.selected_option == 0:  # Start Game
-            print("Starting the game...")
-            # Appeler main.py ou le code de jeu ici
+            self.start_game()
         elif self.selected_option == 1:  # Controller Settings
-            print("Open Controller Settings...")
-            # Ouvrir les paramètres de la manette
+            print("Open Controller Settings...")  # Placeholder
         elif self.selected_option == 2:  # Keyboard Settings
-            print("Open Keyboard Settings...")
-            # Ouvrir les paramètres du clavier
+            print("Open Keyboard Settings...")  # Placeholder
         elif self.selected_option == 3:  # Exit
             self.running = False
+
+    def start_game(self):
+        try:
+            import main  # Assure que main.py est dans le même répertoire
+            main.main()  # Démarre le jeu
+        except Exception as e:
+            print(f"Erreur lors du démarrage du jeu : {e}")
 
 if __name__ == "__main__":
     launcher = GameLauncher()

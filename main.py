@@ -1,26 +1,47 @@
-import pygame
-pygame.init()
+import os
+import sys
+import subprocess
 
-#generer la fenetre
-pygame.display.set_caption("pythfighter")
-screen = pygame.display.set_mode((1920, 1080))
+# Vérifie et installe automatiquement pygame si nécessaire
+try:
+    import pygame
+except ImportError:
+    print("Pygame non installé. Installation en cours...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pygame"])
+    import pygame
 
-#importer l'arriere plan
-background=pygame.image.load('nomdufichier.jpg')
+def main():
+    # Initialisation de pygame
+    pygame.init()
 
-running = True
+    # Générer la fenêtre
+    pygame.display.set_caption("Pyth Fighter")
+    screen = pygame.display.set_mode((1920, 1080))
 
-#boucle pour que la fenetre reste eveillé
-while running:
+    # Importer l'arrière-plan
+    try:
+        background = pygame.image.load('background.png')
+    except pygame.error as e:
+        print(f"Erreur lors du chargement de l'image d'arrière-plan : {e}")
+        pygame.quit()
+        sys.exit()
 
-    #arrriere plan
-    screen.blit(background,(400,300))
-    pygame.display.flip()
+    running = True
 
-    #si le joueur ferme cette fentre
-    for event in pygame.event.get():
-        #que l'evenement est fermeture de fenetre
-        if event.type == pygame.QUIT:
-            running = False
-            pygame.quit()
-            print("Fermeture du jeu")
+    # Boucle principale du jeu
+    while running:
+        # Gestion des événements
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:  # Si le joueur ferme la fenêtre
+                running = False
+
+        # Affichage de l'arrière-plan
+        screen.blit(background, (0, 0))
+        pygame.display.flip()
+
+    # Fermeture propre de pygame
+    pygame.quit()
+    print("Fermeture du jeu")
+
+if __name__ == "__main__":
+    main()

@@ -1,14 +1,18 @@
 import pygame
 
 class Character(pygame.sprite.Sprite):
-    def __init__(self, name, health, attack, velocity, image_file, start_x, start_y):
+    def __init__(self, name, health, attack, velocity, color, start_x, start_y):
         super().__init__()
         self.name = name
         self.max_health = health
         self.health = health
         self.attack = attack
         self.velocity = velocity
-        self.image = pygame.image.load(image_file).convert_alpha()
+
+        # Créer une surface colorée pour le personnage
+        self.image = pygame.Surface((50, 50))
+        self.image.fill(color)
+        
         self.rect = self.image.get_rect()
         self.rect.x = start_x
         self.rect.y = start_y
@@ -32,8 +36,8 @@ class Tank(Character):
             health=150,
             attack=12,
             velocity=5,
-            image_file='src/tank_image.png',
-            start_x=1000,
+            color=(255, 0, 0),  # Rouge
+            start_x=100,
             start_y=200
         )
 
@@ -44,8 +48,8 @@ class Assassin(Character):
             health=100,
             attack=9,
             velocity=10,
-            image_file='src/assassin_image.png',
-            start_x=1000,
+            color=(0, 255, 0),  # Vert
+            start_x=200,
             start_y=200
         )
 
@@ -56,7 +60,7 @@ class Sorcier(Character):
             health=90,
             attack=15,
             velocity=7,
-            image_file='src/sorcier_image.png',
-            start_x=1000,
+            color=(0, 0, 255),  # Bleu
+            start_x=300,
             start_y=200
         )

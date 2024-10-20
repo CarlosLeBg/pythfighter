@@ -1,5 +1,7 @@
 import pygame
-from characters import Tank, Assassin, Sorcier
+from characters import Tank, Assassin
+from keyboard_controls import KeyboardControls
+from controller_controls import ControllerControls
 
 class Game:
     def __init__(self):
@@ -13,14 +15,11 @@ class Game:
         self.characters.add(self.player1)
         self.characters.add(self.player2)
         self.load_assets()
+        self.keyboard_controls = KeyboardControls(self.player1)
+        self.controller_controls = ControllerControls(self.player2)
 
     def load_assets(self):
-        try:
-            self.background = pygame.image.load('src/background.png')
-        except pygame.error as e:
-            print(f"Erreur lors du chargement de l'image d'arrière-plan : {e}")
-            pygame.quit()
-            sys.exit()
+        pass  # Pas d'assets pour l'instant
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -29,23 +28,8 @@ class Game:
 
     def handle_controls(self):
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            self.player1.move(-1, 0)
-        if keys[pygame.K_RIGHT]:
-            self.player1.move(1, 0)
-        if keys[pygame.K_UP]:
-            self.player1.move(0, -1)
-        if keys[pygame.K_DOWN]:
-            self.player1.move(0, 1)
-
-        if keys[pygame.K_a]:
-            self.player2.move(-1, 0)
-        if keys[pygame.K_d]:
-            self.player2.move(1, 0)
-        if keys[pygame.K_w]:
-            self.player2.move(0, -1)
-        if keys[pygame.K_s]:
-            self.player2.move(0, 1)
+        self.keyboard_controls.update(keys)
+        self.controller_controls.update()
 
     def run(self):
         while self.running:
@@ -59,6 +43,6 @@ class Game:
         self.characters.update()
 
     def draw(self):
-        self.screen.blit(self.background, (0, 0))
+        self.screen.fill((0, 0, 0))  # Effacer l'écran avec une couleur noire
         self.characters.draw(self.screen)
         pygame.display.flip()

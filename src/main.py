@@ -1,11 +1,9 @@
 import pygame
-from game import Game
+from launcher import GameLauncher
 
 def main():
-    pygame.init()
-    game = Game()
-    game.run()
-    pygame.quit()
+    launcher = GameLauncher()
+    launcher.run()
 
 if __name__ == "__main__":
     main()

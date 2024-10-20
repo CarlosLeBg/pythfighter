@@ -3,15 +3,16 @@ import sys
 import subprocess
 import pygame
 
-# Vérifie et installe automatiquement pygame si nécessaire
-try:
-    import pygame
-except ImportError:
-    print("Pygame non installé. Installation en cours...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pygame"])
-    import pygame
+def check_pygame_installation():
+    try:
+        import pygame
+    except ImportError:
+        print("Pygame non installé. Installation en cours...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "pygame"])
+        import pygame
 
 def main():
+    check_pygame_installation()
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
     pygame.display.set_caption("Pyth Fighter")

@@ -24,16 +24,11 @@ Dans Pyth Fighter, les joueurs choisissent parmi une sélection de combattants, 
 ### Étapes d'installation
 1. Clonez le dépôt du projet :
    ```bash
-   git clone https://github.com/votre-utilisateur/Pyth-Fighter.git
-   cd Pyth-Fighter
+   git clone https://github.com/CarlosLeBg/pythfighter
+   cd pythfighter
    ```
 
-2. Installez les dépendances nécessaires :
-   ```bash
-   pip install pygame
-   ```
-
-3. Lancez le jeu :
+2. Lancez le jeu :
    ```bash
    python main.py
    ```
@@ -66,14 +61,5 @@ L'objectif est de diminuer la barre de santé de votre adversaire à zéro avant
    - **Vitesse** : 7
    - **Style de jeu** : Attaques puissantes à distance, excellent pour contrôler le rythme du combat.
 
-## Contributions
-Les contributions sont les bienvenues ! Si vous souhaitez contribuer au projet :
-1. Forkez ce dépôt.
-2. Créez une nouvelle branche (`git checkout -b feature/nouvelle-fonctionnalité`).
-3. Apportez vos modifications et validez-les (`git commit -am 'Ajout d'une nouvelle fonctionnalité'`).
-4. Poussez votre branche (`git push origin feature/nouvelle-fonctionnalité`).
-5. Créez une Pull Request.
-
----
 
 Merci d'avoir pris le temps d'explorer Pyth Fighter ! Que le meilleur combattant gagne !

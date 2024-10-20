@@ -8,7 +8,6 @@ Pyth Fighter est un jeu de combat en 2D inspiré de Street Fighter, développé 
 - [Installation](#installation)
 - [Comment jouer](#comment-jouer)
 - [Personnages](#personnages)
-- [Contributions](#contributions)
 
 ## Introduction
 Dans Pyth Fighter, les joueurs choisissent parmi une sélection de combattants, chacun avec ses propres statistiques et compétences. L'objectif est de réduire la santé de l'adversaire à zéro à l'aide de stratégies et de mouvements bien pensés.

@@ -11,7 +11,7 @@ class Character(pygame.sprite.Sprite):
         self.color = color
         
         self.image = pygame.Surface((50, 50))
-        self.image.fill(self.color)  # Utilisation de la couleur pour représenter le personnage
+        self.image.fill(self.color)
         self.rect = self.image.get_rect()
         self.rect.x = start_x
         self.rect.y = start_y
@@ -20,71 +20,30 @@ class Character(pygame.sprite.Sprite):
         self.rect.x += x_offset * self.velocity
         self.rect.y += y_offset * self.velocity
 
-    def take_damage(self, damage):
-        self.health -= damage
-        if self.health < 0:
-            self.health = 0
-            print(f"{self.name} a été éliminé.")
+    def attack_target(self, target):
+        target.health -= self.attack
+        if target.health < 0:
+            target.health = 0
 
-    def is_alive(self):
-        return self.health > 0
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
 
 class Tank(Character):
     def __init__(self):
-        super().__init__(
-            name="Tank",
-            health=120,
-            attack=10,
-            velocity=4,
-            color=(255, 0, 0),  # Rouge
-            start_x=100,
-            start_y=200
-        )
+        super().__init__("Tank", 120, 8, 4, (255, 0, 0), 100, 300)
 
 class Assassin(Character):
     def __init__(self):
-        super().__init__(
-            name="Assassin",
-            health=100,
-            attack=8,
-            velocity=12,
-            color=(0, 255, 0),  # Vert
-            start_x=200,
-            start_y=200
-        )
+        super().__init__("Assassin", 80, 15, 6, (0, 255, 0), 300, 300)
 
 class Sorcier(Character):
     def __init__(self):
-        super().__init__(
-            name="Sorcier",
-            health=90,
-            attack=12,
-            velocity=6,
-            color=(0, 0, 255),  # Bleu
-            start_x=300,
-            start_y=200
-        )
+        super().__init__("Sorcier", 70, 12, 5, (0, 0, 255), 500, 300)
 
 class Mage(Character):
     def __init__(self):
-        super().__init__(
-            name="Mage",
-            health=80,
-            attack=15,
-            velocity=5,
-            color=(128, 0, 128),  # Violet
-            start_x=400,
-            start_y=200
-        )
+        super().__init__("Mage", 75, 10, 5, (128, 0, 128), 700, 300)
 
 class Archer(Character):
     def __init__(self):
-        super().__init__(
-            name="Archer",
-            health=90,
-            attack=10,
-            velocity=7,
-            color=(0, 128, 0),  # Vert foncé
-            start_x=500,
-            start_y=200
-        )
+        super().__init__("Archer", 65, 14, 7, (0, 128, 0), 900, 300)

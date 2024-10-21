@@ -2,79 +2,66 @@ import pygame
 from character import Tank, Assassin, Sorcier, Mage, Archer
 
 class Game:
-    def __init__(self):
-        self.screen = pygame.display.set_mode((800, 600))
-        pygame.display.set_caption("Pyth Fighter")
+    def __init__(self, player1_character, player2_character):
+        self.screen = pygame.display.set_mode((1000, 600))
+        pygame.display.set_caption("Pyth Fighter - Arena")
         self.clock = pygame.time.Clock()
         self.running = True
-        self.characters = [Tank(), Assassin(), Sorcier(), Mage(), Archer()]
-        self.selected_character = None
-        self.start_time = pygame.time.get_ticks()
-        self.time_limit = 120
-        self.combo_counter = 0
+        self.player1 = player1_character
+        self.player2 = player2_character
+        self.all_sprites = pygame.sprite.Group(self.player1, self.player2)
 
     def run(self):
-        self.show_character_selection()
-        self.game_loop()
-
-    def show_character_selection(self):
-        while self.selected_character is None:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-            
-            self.screen.fill((50, 50, 50))
-            font = pygame.font.SysFont("Arial", 30)
-            title_surface = font.render("Sélectionnez votre personnage", True, (255, 255, 255))
-            self.screen.blit(title_surface, (200, 50))
-
-            for i, character in enumerate(self.characters):
-                character_surface = font.render(character.name, True, (255, 255, 255))
-                self.screen.blit(character_surface, (200, 100 + i * 50))
-
-                # Détection de sélection
-                keys = pygame.key.get_pressed()
-                if keys[pygame.K_1] and i == 0:
-                    self.selected_character = character
-                elif keys[pygame.K_2] and i == 1:
-                    self.selected_character = character
-                elif keys[pygame.K_3] and i == 2:
-                    self.selected_character = character
-                elif keys[pygame.K_4] and i == 3:
-                    self.selected_character = character
-                elif keys[pygame.K_5] and i == 4:
-                    self.selected_character = character
-
-            pygame.display.flip()
-
-    def game_loop(self):
         while self.running:
-            self.check_time()
             self.handle_events()
-            self.screen.fill((0, 0, 0))
-            self.draw_health_bar(self.selected_character)
-            pygame.display.flip()
+            self.update()
+            self.draw()
             self.clock.tick(60)
-
-    def check_time(self):
-        elapsed_time = (pygame.time.get_ticks() - self.start_time) / 1000
-        if elapsed_time > self.time_limit:
-            self.end_game()
 
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
 
-    def draw_health_bar(self, character):
+    def update(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_w]:
+            self.player1.move(0, -1)
+        if keys[pygame.K_s]:
+            self.player1.move(0, 1)
+        if keys[pygame.K_a]:
+            self.player1.move(-1, 0)
+        if keys[pygame.K_d]:
+            self.player1.move(1, 0)
+
+        if keys[pygame.K_UP]:
+            self.player2.move(0, -1)
+        if keys[pygame.K_DOWN]:
+            self.player2.move(0, 1)
+        if keys[pygame.K_LEFT]:
+            self.player2.move(-1, 0)
+        if keys[pygame.K_RIGHT]:
+            self.player2.move(1, 0)
+
+        # Collision detection
+        if pygame.sprite.collide_rect(self.player1, self.player2):
+            self.player1.attack_target(self.player2)
+            self.player2.attack_target(self.player1)
+
+    def draw(self):
+        self.screen.fill((30, 30, 30))
+        pygame.draw.rect(self.screen, (255, 255, 255), pygame.Rect(100, 50, 800, 500), 5)
+        self.all_sprites.draw(self.screen)
+        self.display_health_bars()
+        pygame.display.flip()
+
+    def display_health_bars(self):
+        self.draw_health_bar(self.player1, (50, 550))
+        self.draw_health_bar(self.player2, (700, 550))
+
+    def draw_health_bar(self, character, position):
         health_percentage = character.health / character.max_health
         bar_width = 200
         bar_height = 20
-        pygame.draw.rect(self.screen, (255, 0, 0), (character.rect.x, character.rect.y - 20, bar_width, bar_height))
-        pygame.draw.rect(self.screen, (0, 255, 0), (character.rect.x, character.rect.y - 20, bar_width * health_percentage, bar_height))
-
-    def end_game(self):
-        print("Le temps est écoulé !")
-        pygame.quit()
-        sys.exit()
+        pygame.draw.rect(self.screen, (255, 0, 0), (*position, bar_width, bar_height))
+        pygame.draw.rect(self.screen, (0, 255, 0), (*position, bar_width * health_percentage, bar_height))

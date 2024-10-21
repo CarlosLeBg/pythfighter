@@ -3,6 +3,7 @@ from launcher import Launcher
 
 def main():
     pygame.init()
+    pygame.font.init()
     launcher = Launcher()
     launcher.run()
     pygame.quit()

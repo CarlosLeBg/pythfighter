@@ -10,10 +10,19 @@ class Character(pygame.sprite.Sprite, ABC):
         self.attack_power = attack
         self.velocity = velocity
         self.color = color
+        self.rect = pygame.Rect(start_x, start_y, 50, 50)
+        self.image = None
+        self.animation_frames = []
+        self.current_frame = 0
+        self.animation_speed = 0.2
+        self.animation_time = 0
 
-        self.image = pygame.Surface((50, 50))
-        self.image.fill(self.color)
-        self.rect = self.image.get_rect(topleft=(start_x, start_y))
+    def load_sprite(self, sprite_sheet_path):
+        sprite_sheet = pygame.image.load(sprite_sheet_path).convert_alpha()
+        for i in range(4):  # Assuming 4 frames of animation
+            frame = sprite_sheet.subsurface((i * 50, 0, 50, 50))
+            self.animation_frames.append(frame)
+        self.image = self.animation_frames[0]
 
     def move(self, x_offset, y_offset):
         self.rect.x += x_offset * self.velocity
@@ -35,8 +44,11 @@ class Character(pygame.sprite.Sprite, ABC):
         pass
 
     def update(self):
-        # Add any common update logic here
-        pass
+        self.animation_time += 1
+        if self.animation_time >= self.animation_speed * 60:  # 60 FPS
+            self.animation_time = 0
+            self.current_frame = (self.current_frame + 1) % len(self.animation_frames)
+            self.image = self.animation_frames[self.current_frame]
 
 class Tank(Character):
     def __init__(self):

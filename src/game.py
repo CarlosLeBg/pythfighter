@@ -2,6 +2,7 @@ import pygame
 import numpy as np
 from pygame_gui import UIManager
 from pygame_gui.elements import UIButton
+from character import *
 
 class Game:
     def __init__(self, player1, player2):
@@ -88,6 +89,8 @@ class Game:
         pygame.draw.rect(self.screen, (255, 0, 0), (930, 20, 300, 20))
         pygame.draw.rect(self.screen, (0, 255, 0), (930, 20, 300 * (self.player2.health / self.player2.max_health), 20))
 
-    def start_combat(self):
-        self.ui_manager.clear_and_reset()
-        self.running = True
+    def start_game(self):
+        player1 = Archer()  # or your other character class
+        player2 = Tank()    # or another character class
+        game = Game(player1, player2)
+        game.run()

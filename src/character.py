@@ -6,11 +6,11 @@ class Character(pygame.sprite.Sprite):
         self.name = name
         self.max_health = health
         self.health = health
-        self.attack = attack
+        self.attack_power = attack
         self.velocity = velocity
         self.color = color
-        
-        self.image = pygame.Surface((50, 50))
+
+        self.image = pygame.Surface((50, 50))  # Represent characters as colored squares
         self.image.fill(self.color)
         self.rect = self.image.get_rect()
         self.rect.x = start_x
@@ -20,30 +20,63 @@ class Character(pygame.sprite.Sprite):
         self.rect.x += x_offset * self.velocity
         self.rect.y += y_offset * self.velocity
 
-    def attack_target(self, target):
-        target.health -= self.attack
-        if target.health < 0:
-            target.health = 0
+    def take_damage(self, damage):
+        self.health -= damage
+        if self.health < 0:
+            self.health = 0  # Prevent negative health
 
-    def draw(self, screen):
-        screen.blit(self.image, self.rect)
+    def is_alive(self):
+        return self.health > 0
+
+    def perform_attack(self, target):
+        if target.is_alive():
+            target.take_damage(self.attack_power)
+            print(f"{self.name} attacks {target.name} for {self.attack_power} damage!")
 
 class Tank(Character):
     def __init__(self):
-        super().__init__("Tank", 120, 8, 4, (255, 0, 0), 100, 300)
+        super().__init__(
+            name="Tank",
+            health=200,
+            attack=10,
+            velocity=4,
+            color=(0, 128, 255),  # Blue color
+            start_x=100,
+            start_y=300
+        )
 
 class Assassin(Character):
     def __init__(self):
-        super().__init__("Assassin", 80, 15, 6, (0, 255, 0), 300, 300)
+        super().__init__(
+            name="Assassin",
+            health=100,
+            attack=15,
+            velocity=8,
+            color=(255, 0, 0),  # Red color
+            start_x=200,
+            start_y=300
+        )
 
-class Sorcier(Character):
+class Sorcerer(Character):
     def __init__(self):
-        super().__init__("Sorcier", 70, 12, 5, (0, 0, 255), 500, 300)
+        super().__init__(
+            name="Sorcerer",
+            health=90,
+            attack=12,
+            velocity=6,
+            color=(128, 0, 128),  # Purple color
+            start_x=300,
+            start_y=300
+        )
 
-class Mage(Character):
+class Archer:
     def __init__(self):
-        super().__init__("Mage", 75, 10, 5, (128, 0, 128), 700, 300)
+        self.health = 100
+        self.attack_damage = 10
+        self.rect = pygame.Rect(0, 0, 50, 50)  # Example size and position
+        self.image = pygame.Surface((50, 50))
+        self.image.fill((0, 255, 0))  # Green color for the archer
 
-class Archer(Character):
-    def __init__(self):
-        super().__init__("Archer", 65, 14, 7, (0, 128, 0), 900, 300)
+    def perform_attack(self, opponent):
+        opponent.health -= self.attack_damage
+        print(f"Archer attacks! Opponent's health is now {opponent.health}")

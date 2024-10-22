@@ -1,6 +1,8 @@
 import pygame
 from abc import ABC, abstractmethod
 
+
+
 class Character(pygame.sprite.Sprite, ABC):
     def __init__(self, name, health, attack, velocity, color, start_x, start_y):
         super().__init__()

@@ -2,7 +2,7 @@ import tkinter as tk
 import os
 
 def launch_other_script():
-    os.system("python ./main.py")  # Lancement du script main.py dans le dossier parent
+    os.system("python ./pythfighter/main.py")  # Lancement du script main.py dans le sous-dossier pythfighter
 
 def looop():
     root = tk.Tk()
@@ -15,7 +15,7 @@ def looop():
     logo_path = os.path.join(".", "src", "assets", "logo.png")
     logo = tk.PhotoImage(file=logo_path)
 
-    logo = logo.subsample(2, 2)  # Redimensionner l'image
+    logo = logo.subsample(2, 2)  # Redimensionner l'image si nécessaire
 
     logom = tk.Label(root, image=logo)
     logom.pack(pady=(10, 0))

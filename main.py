@@ -1,6 +1,5 @@
-import tkinter as tk
-from tkinter import *
+from launcher import *
 
-root = tk.Tk()
+root = tk.Tk("Launcher")
 root.geometry()
-root.show()
+root.mainloop()

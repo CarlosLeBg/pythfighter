@@ -45,6 +45,7 @@ class PythFighterLauncher:
 
     def launch_game(self):
         self.status_var.set("Lancement du jeu...")
+        self.launch_button.config(state=tk.DISABLED)  # Désactive le bouton lors du lancement
         self.master.after(100, self._run_game)
 
     def _run_game(self):
@@ -55,6 +56,8 @@ class PythFighterLauncher:
             self.status_var.set(f"Erreur lors du lancement : {e}")
         except Exception as e:
             self.status_var.set(f"Erreur inconnue : {e}")
+        finally:
+            self.launch_button.config(state=tk.NORMAL)  # Réactive le bouton après le lancement
 
     def show_help(self):
         help_text = (

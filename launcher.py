@@ -1,8 +1,8 @@
 import tkinter as tk
+import os
 
 def launch_other_script():
-    # Commande pour lancer un autre script Python
-    pass
+    os.system("python ./main.py")  # Lancement du script main.py dans le dossier parent
 
 def looop():
     root = tk.Tk()
@@ -11,10 +11,11 @@ def looop():
     root.geometry("500x600")
     root.resizable(False, False)
 
-    logo = tk.PhotoImage(file=r"C:\Users\carla\Downloads\pythfighter\src\assets\logo.png")
+    # Chemin relatif de l'image par rapport au script launcher.py
+    logo_path = os.path.join(".", "src", "assets", "logo.png")
+    logo = tk.PhotoImage(file=logo_path)
 
-    # Redimensionnement de l'image en la forçant dans une taille spécifique
-    logo = logo.subsample(2, 2)  # Redimensionne en divisant la taille de l'image par 2
+    logo = logo.subsample(2, 2)  # Redimensionner l'image
 
     logom = tk.Label(root, image=logo)
     logom.pack(pady=(10, 0))

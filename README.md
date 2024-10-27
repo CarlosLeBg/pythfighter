@@ -1,64 +1,93 @@
-# Pyth Fighter
+# 🥊 Pyth Fighter
 
-Pyth Fighter est un jeu de combat en 2D inspiré de Street Fighter, développé en Python avec Pygame. Plongez dans une expérience de combat immersive où des personnages aux capacités uniques s'affrontent dans des duels intenses.
+Bienvenue dans Pyth Fighter, un jeu de combat en 2D inspiré des grands classiques comme Street Fighter ! Préparez-vous à des combats épiques avec des personnages aux pouvoirs uniques.
 
-## Table des matières
-- [Introduction](#introduction)
-- [Fonctionnalités](#fonctionnalités)
-- [Installation](#installation)
-- [Comment jouer](#comment-jouer)
-- [Personnages](#personnages)
+## ✨ Ce qui rend Pyth Fighter spécial
 
-## Introduction
-Dans Pyth Fighter, les joueurs choisissent parmi une sélection de combattants, chacun avec ses propres statistiques et compétences. L'objectif est de réduire la santé de l'adversaire à zéro à l'aide de stratégies et de mouvements bien pensés.
+- Des combats intenses en 2D avec des graphismes colorés et dynamiques
+- Affrontez vos amis sur le même écran ou défiez l'ordinateur
+- Des combattants uniques avec leurs propres styles et capacités spéciales
+- Des combos dévastateurs à découvrir
+- Une prise en main rapide, mais une maîtrise qui demande du temps !
 
-## Fonctionnalités
-- **Graphismes 2D dynamiques** : Profitez de visuels colorés et animés qui donnent vie au combat.
-- **Personnages variés** : Choisissez parmi plusieurs combattants, chacun offrant une expérience de jeu unique grâce à des statistiques distinctes.
-- **Contrôles intuitifs** : Les commandes sont conçues pour être faciles à apprendre, permettant aux joueurs de se concentrer sur la stratégie.
-- **Modes de jeu** : Combattez en solo contre l'IA ou défiez un ami en mode multijoueur local.
+## 🎮 Installation du jeu
 
-## Installation
+C'est super simple :
 
-### Étapes d'installation
-1. Clonez le dépôt du projet :
-   ```bash
-   git clone https://github.com/CarlosLeBg/pythfighter
-   cd pythfighter
-   ```
+1. Téléchargez le jeu :
+```bash
+git clone https://github.com/CarlosLeBg/pythfighter
+cd pythfighter
+```
 
-2. Lancez le jeu :
-   ```bash
-   python main.py
-   ```
+2. Installez ce qu'il faut :
+```bash
+pip install -r requirements.txt
+```
 
-## Comment jouer
-- **Déplacement** : Utilisez les touches fléchées pour contrôler votre personnage.
-- **Attaque** : Appuyez sur les touches désignées (par exemple, `A`, `S`, `D`) pour effectuer des attaques.
-- **Défense** : Appuyez sur `W` pour bloquer les attaques de votre adversaire.
+3. Et c'est parti !
+```bash
+python main.py
+```
 
-L'objectif est de diminuer la barre de santé de votre adversaire à zéro avant que la vôtre ne s'épuise.
+## 🕹️ Les commandes
 
-## Personnages
-### Liste des personnages jouables
+### Joueur 1
+- Flèches directionnelles pour bouger
+- A : Coup rapide
+- S : Coup moyen
+- D : Coup puissant
+- W : Pour se protéger
+- E : Pouvoir spécial
 
-1. **Tank**
-   - **Santé** : 150
-   - **Attaque** : 12
-   - **Vitesse** : 5
-   - **Style de jeu** : Défense solide et attaques puissantes, idéal pour les joueurs tactiques.
+### Joueur 2
+- ZQSD pour bouger
+- J : Coup rapide
+- K : Coup moyen
+- L : Coup puissant
+- I : Pour se protéger
+- O : Pouvoir spécial
 
-2. **Assassin**
-   - **Santé** : 100
-   - **Attaque** : 9
-   - **Vitesse** : 10
-   - **Style de jeu** : Rapide et agile, parfait pour les joueurs cherchant à éviter les attaques ennemies.
+## 🦸‍♂️ Les Combattants
 
-3. **Sorcier**
-   - **Santé** : 90
-   - **Attaque** : 15
-   - **Vitesse** : 7
-   - **Style de jeu** : Attaques puissantes à distance, excellent pour contrôler le rythme du combat.
+### Tank "Iron Guardian" 
+Un véritable mur ambulant !
+- Force de frappe : ⚔️⚔️⚔️
+- Résistance : ❤️❤️❤️❤️❤️
+- Vitesse : 🏃‍♂️
+- Super pouvoir : "Mur d'acier" - Devient quasi invincible pendant quelques secondes
 
+### Assassin "Shadow Swift"
+Rapide comme l'éclair !
+- Force de frappe : ⚔️⚔️
+- Résistance : ❤️❤️❤️
+- Vitesse : 🏃‍♂️🏃‍♂️🏃‍♂️
+- Super pouvoir : "Lames fantômes" - Crée des doubles qui attaquent en même temps
 
-Merci d'avoir pris le temps d'explorer Pyth Fighter ! Que le meilleur combattant gagne !
+### Sorcier "Arcane Master"
+Le maître des attaques à distance !
+- Force de frappe : ⚔️⚔️⚔️⚔️
+- Résistance : ❤️❤️
+- Vitesse : 🏃‍♂️🏃‍♂️
+- Super pouvoir : "Nova arcanique" - Une explosion magique qui touche tout autour de lui
+
+## 🎯 Les coups spéciaux secrets
+
+Essayez ces combinaisons :
+- "Dragon de feu" : ↓ ↘ → + Coup puissant
+- "Boule d'énergie" : ← → + Coup moyen
+- "Super Attaque" : ↓ ↓ + Pouvoir spécial (quand votre barre spéciale est pleine !)
+
+## 🔧 Options
+
+Vous pouvez ajuster :
+- Le volume de la musique et des effets
+- La difficulté de l'ordinateur
+- Les touches
+- La taille de l'écran
+
+---
+
+Développé avec passion par CarlosLeBg, Repo , Benjou , TimTim le Flitzz 🎮
+
+Des bugs ? Des idées ? Contactez-moi sur Discord : @CarlosLeBg

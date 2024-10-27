@@ -26,7 +26,7 @@ class PythFighterLauncher:
 
         self.launch_button = tk.Button(
             self.button_frame, text="Lancer le jeu", command=self.launch_game,
-            font=("Arial", 16, "bold"), bg="#444", fg="white", relief="flat", padx=20, pady=10
+            font=("Sans-Serif", 16, "bold"), bg="#444", fg="white", relief="flat", padx=20, pady=10
         )
         self.launch_button.grid(row=0, column=0, padx=10)
 

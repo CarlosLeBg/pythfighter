@@ -60,7 +60,7 @@ class PythFighterLauncher:
     def load_logo(self, logo_path):
         try:
             image = Image.open(logo_path)
-            return ImageTk.PhotoImage(image.resize((250, 125), Image.ANTIALIAS))
+            return ImageTk.PhotoImage(image.resize((250, 125)))
         except Exception as e:
             logger.error(f"Erreur lors du chargement du logo : {e}")
             return None

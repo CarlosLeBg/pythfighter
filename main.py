@@ -8,6 +8,30 @@ from PIL import Image, ImageTk
 from loguru import logger
 import config
 
+class HTTPHandler:
+    def __init__(self, url):
+        self.url = url
+
+    def get_json(self):
+        """Effectue une requête GET et renvoie les données JSON avec gestion des erreurs HTTP."""
+        try:
+            response = requests.get(self.url)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as http_err:
+            logger.error(f"Erreur HTTP : {http_err}")
+            messagebox.showerror("Erreur HTTP", f"Erreur lors de la requête : {http_err}")
+        except requests.exceptions.ConnectionError:
+            logger.error("Erreur réseau : Impossible de se connecter.")
+            messagebox.showerror("Erreur réseau", "Impossible de se connecter au serveur. Vérifiez votre connexion internet.")
+        except requests.exceptions.Timeout:
+            logger.error("Délai d'attente dépassé.")
+            messagebox.showerror("Erreur de connexion", "La connexion a expiré. Réessayez plus tard.")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Erreur de requête : {e}")
+            messagebox.showerror("Erreur inconnue", "Une erreur inconnue est survenue.")
+        return None
+
 class PythFighterLauncher:
     def __init__(self, master):
         self.master = master
@@ -21,32 +45,7 @@ class PythFighterLauncher:
         self.logo_label = tk.Label(master, image=self.logo, bg="#222")
         self.logo_label.pack(pady=(20, 10))
 
-        self.button_frame = tk.Frame(master, bg="#222")
-        self.button_frame.pack(pady=20, padx=20)
-
-        self.launch_button = tk.Button(
-            self.button_frame, text="Lancer le jeu", command=self.launch_game,
-            font=("Sans-Serif", 16, "bold"), bg="#444", fg="white", relief="flat", padx=20, pady=10
-        )
-        self.launch_button.grid(row=0, column=0, padx=10)
-
-        self.check_updates_button = tk.Button(
-            self.button_frame, text="Vérifier les mises à jour", command=self.check_updates,
-            font=("Arial", 16, "bold"), bg="#444", fg="white", relief="flat", padx=20, pady=10
-        )
-        self.check_updates_button.grid(row=0, column=1, padx=10)
-
-        self.help_button = tk.Button(
-            self.button_frame, text="Aide", command=self.show_help,
-            font=("Arial", 16, "bold"), bg="#444", fg="white", relief="flat", padx=20, pady=10
-        )
-        self.help_button.grid(row=0, column=2, padx=10)
-
-        self.launch_button.bind("<Enter>", self.animate_button_in)
-        self.launch_button.bind("<Leave>", self.animate_button_out)
-        self.help_button.bind("<Enter>", self.animate_button_in)
-        self.help_button.bind("<Leave>", self.animate_button_out)
-
+        self.create_buttons()
         self.status_var = tk.StringVar(value="Prêt à lancer le jeu.")
         self.status_label = tk.Label(master, textvariable=self.status_var, font=("Arial", 12), bg="#222", fg="white")
         self.status_label.pack(pady=20)
@@ -64,6 +63,35 @@ class PythFighterLauncher:
         except Exception as e:
             logger.error(f"Erreur lors du chargement du logo : {e}")
             return None
+
+    def create_buttons(self):
+        """Création et configuration des boutons principaux avec effets de survol."""
+        self.button_frame = tk.Frame(self.master, bg="#222")
+        self.button_frame.pack(pady=20, padx=20)
+
+        button_config = {
+            "font": ("Sans-Serif", 16, "bold"),
+            "bg": "#444", "fg": "white", "relief": "flat", "padx": 20, "pady": 10
+        }
+
+        self.launch_button = tk.Button(
+            self.button_frame, text="Lancer le jeu", command=self.launch_game, **button_config
+        )
+        self.launch_button.grid(row=0, column=0, padx=10)
+
+        self.check_updates_button = tk.Button(
+            self.button_frame, text="Vérifier les mises à jour", command=self.check_updates, **button_config
+        )
+        self.check_updates_button.grid(row=0, column=1, padx=10)
+
+        self.help_button = tk.Button(
+            self.button_frame, text="Aide", command=self.show_help, **button_config
+        )
+        self.help_button.grid(row=0, column=2, padx=10)
+
+        for button in [self.launch_button, self.check_updates_button, self.help_button]:
+            button.bind("<Enter>", self.animate_button_in)
+            button.bind("<Leave>", self.animate_button_out)
 
     def launch_game(self):
         self.status_var.set("Lancement du jeu...")
@@ -85,19 +113,19 @@ class PythFighterLauncher:
             self.launch_button.config(state=tk.NORMAL)
 
     def check_updates(self):
-        try:
-            response = requests.get(config.REPO_URL)
-            response.raise_for_status()
-            latest_version = response.json().get("tag_name", "0.0")
+        http_handler = HTTPHandler(config.REPO_URL)
+        data = http_handler.get_json()
+        
+        if data:
+            latest_version = data.get("tag_name", "0.0")
             logger.info(f"Vérification des mises à jour : version actuelle : {latest_version}")
 
             if latest_version != config.CURRENT_VERSION:
-                messagebox.showinfo("Mise à jour disponible", f"Une nouvelle version ({latest_version}) est disponible!")
+                messagebox.showinfo("Mise à jour disponible", f"Nouvelle version ({latest_version}) disponible!")
+                self.status_var.set("Nouvelle mise à jour disponible.")
             else:
                 messagebox.showinfo("Pas de mise à jour", "Vous avez la dernière version.")
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Erreur lors de la vérification des mises à jour : {e}")
-            messagebox.showerror("Erreur", "Erreur lors de la vérification des mises à jour.")
+                self.status_var.set("Aucune mise à jour disponible.")
 
     def show_help(self):
         help_text = (

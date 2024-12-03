@@ -36,7 +36,7 @@ class PythFighterLauncher:
     def __init__(self, master):
         self.master = master
         self.master.title("Launcher du jeu PythFighter")
-        self.master.geometry("500x600")
+        self.master.geometry("1920x1080")
         self.master.configure(bg="#222")
         self.master.minsize(400, 500)
 

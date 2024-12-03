@@ -134,6 +134,7 @@ class PythFighterLauncher:
             "Cliquez sur 'Lancer le jeu' pour démarrer.\n"
             "Cliquez sur 'Vérifier les mises à jour' pour vérifier les dernières versions.\n"
             "Si vous avez besoin d'aide supplémentaire, consultez la documentation du jeu."
+            "CARLOS IS SO BESTTTTTT"
         )
         messagebox.showinfo("Aide", help_text)
 

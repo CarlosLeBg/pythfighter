@@ -7,6 +7,7 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 from loguru import logger
 import config
+import autoinstaller
 
 class HTTPHandler:
     def __init__(self, url):

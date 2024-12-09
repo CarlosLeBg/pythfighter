@@ -10,28 +10,51 @@ import config
 
 class HTTPHandler:
     def __init__(self, url):
+        """
+        Initialise l'instance HTTPHandler avec une URL.
+        :param url: L'URL cible pour effectuer les requêtes.
+        """
         self.url = url
 
     def get_json(self):
-        """Effectue une requête GET et renvoie les données JSON avec gestion des erreurs HTTP."""
+        """
+        Effectue une requête GET et renvoie les données JSON tout en gérant les erreurs HTTP.
+        :return: Les données JSON obtenues ou None en cas d'erreur.
+        """
         try:
-            response = requests.get(self.url)
-            response.raise_for_status()
+            # Effectuer la requête GET
+            response = requests.get(self.url, timeout=10)  # Timeout explicite pour éviter les blocages
+            response.raise_for_status()  # Lève une exception pour les codes d'état HTTP d'erreur
+            
+            # Retourne les données JSON en cas de succès
             return response.json()
+        
         except requests.exceptions.HTTPError as http_err:
-            logger.error(f"Erreur HTTP : {http_err}")
+            # Gère les erreurs HTTP spécifiques
+            logger.error(f"Erreur HTTP : {http_err} (Code : {http_err.response.status_code})")
             messagebox.showerror("Erreur HTTP", f"Erreur lors de la requête : {http_err}")
+
         except requests.exceptions.ConnectionError:
+            # Gère les erreurs de connexion réseau
             logger.error("Erreur réseau : Impossible de se connecter.")
             messagebox.showerror("Erreur réseau", "Impossible de se connecter au serveur. Vérifiez votre connexion internet.")
-        except requests.exceptions.Timeout:
-            logger.error("Délai d'attente dépassé.")
-            messagebox.showerror("Erreur de connexion", "La connexion a expiré. Réessayez plus tard.")
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Erreur de requête : {e}")
-            messagebox.showerror("Erreur inconnue", "Une erreur inconnue est survenue.")
-        return None
 
+        except requests.exceptions.Timeout:
+            # Gère les délais d'attente dépassés
+            logger.error("Délai d'attente dépassé lors de la tentative de connexion.")
+            messagebox.showerror("Erreur de connexion", "La connexion a expiré. Réessayez plus tard.")
+
+        except requests.exceptions.JSONDecodeError as json_err:
+            # Gère les erreurs lors de l'analyse des données JSON
+            logger.error(f"Erreur de décodage JSON : {json_err}")
+            messagebox.showerror("Erreur de données", "La réponse reçue n'est pas au format JSON valide.")
+
+        except requests.exceptions.RequestException as req_err:
+            # Gère toutes les autres erreurs de requête
+            logger.error(f"Erreur de requête : {req_err}")
+            messagebox.showerror("Erreur inconnue", "Une erreur inconnue est survenue lors de la requête.")
+
+        return None
 class PythFighterLauncher:
     def __init__(self, master):
         self.master = master

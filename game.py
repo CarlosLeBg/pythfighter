@@ -1,40 +1,46 @@
-import main
-from main import *
-import pygame 
+import pygame
 from player import Thunderstrike
 
 class Game:
     def __init__(self):
-        #générer notre joueur
+        # Générer notre joueur
         self.player = Thunderstrike()
 
+# Initialiser Pygame
 pygame.init()
-#generation de fenetre de jeu
+
+# Génération de la fenêtre de jeu
 pygame.display.set_caption("Pythfighter")
-screen=pygame.display.set_mode((1920, 1080))
+screen = pygame.display.set_mode((1920, 1080))
 
-#importation du fond du jeu
-background=pygame.image.load('assets/Pixilart_App.jpg')
+# Importation du fond du jeu
+try:
+    background = pygame.image.load('assets/Pixilart_App.jpg')
+except pygame.error as e:
+    print(f"Erreur lors du chargement de l'image de fond : {e}")
+    pygame.quit()
+    exit()
 
-#charger notre jeu
-game= Game()
+# Charger notre jeu
+game = Game()
 
+# Boucle principale
 running = True
 while running:
-    
-    #appliquation du background du jeu
-    screen.blit(background, (0,0))
-    
-    #appliquer image du joueur
+    # Appliquer le background du jeu
+    screen.blit(background, (0, 0))
+
+    # Appliquer l'image du joueur
     screen.blit(game.player.image, game.player.rect)
-    
-    #mettre à jour l'écran
+
+    # Mettre à jour l'écran
     pygame.display.flip()
-    
-    # si le joueur ferme la fenetre
+
+    # Gestion des événements
     for event in pygame.event.get():
-        #fermeture de jeu
         if event.type == pygame.QUIT:
             running = False
-            pygame.quit()
-            print("fermeture")
+
+# Quitter Pygame proprement
+pygame.quit()
+print("Fermeture du jeu")

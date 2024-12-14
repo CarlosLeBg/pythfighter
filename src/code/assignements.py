@@ -6,57 +6,38 @@ class DualSense:
         self.controller = DualSenseController()
         self.controller.activate()
 
-        self.L1 = False
-        self.R1 = False
-        self.L2 = 0
-        self.R2 = 0
-        self.L3 = False
-        self.R3 = False
-        self.cross = False
-        self.circle = False
-        self.square = False
-        self.triangle = False
-        self.up = False
-        self.down = False
-        self.left = False
-        self.right = False
-        self.options = False
-        self.create = False
-        self.ps = False
-        self.touchpad = False
-        
-        self.left_stick_x = 0
-        self.left_stick_y = 0
-        self.right_stick_x = 0
-        self.right_stick_y = 0
+        self.buttons = {
+            'L1': False, 'R1': False, 'L3': False, 'R3': False,
+            'cross': False, 'circle': False, 'square': False, 'triangle': False,
+            'up': False, 'down': False, 'left': False, 'right': False,
+            'options': False, 'create': False, 'ps': False, 'touchpad': False
+        }
+
+        self.triggers = {'L2': 0, 'R2': 0}
+        self.sticks = {'left_x': 0, 'left_y': 0, 'right_x': 0, 'right_y': 0}
 
         self._setup_callbacks()
 
     def _setup_callbacks(self):
-        self.controller.btn_l1.on_change(lambda v: setattr(self, 'L1', v))
-        self.controller.btn_r1.on_change(lambda v: setattr(self, 'R1', v))
-        self.controller.btn_l3.on_change(lambda v: setattr(self, 'L3', v))
-        self.controller.btn_r3.on_change(lambda v: setattr(self, 'R3', v))
-        self.controller.btn_cross.on_change(lambda v: setattr(self, 'cross', v))
-        self.controller.btn_circle.on_change(lambda v: setattr(self, 'circle', v))
-        self.controller.btn_square.on_change(lambda v: setattr(self, 'square', v))
-        self.controller.btn_triangle.on_change(lambda v: setattr(self, 'triangle', v))
-        self.controller.btn_up.on_change(lambda v: setattr(self, 'up', v))
-        self.controller.btn_down.on_change(lambda v: setattr(self, 'down', v))
-        self.controller.btn_left.on_change(lambda v: setattr(self, 'left', v))
-        self.controller.btn_right.on_change(lambda v: setattr(self, 'right', v))
-        self.controller.btn_options.on_change(lambda v: setattr(self, 'options', v))
-        self.controller.btn_create.on_change(lambda v: setattr(self, 'create', v))
-        self.controller.btn_ps.on_change(lambda v: setattr(self, 'ps', v))
-        self.controller.btn_touchpad.on_change(lambda v: setattr(self, 'touchpad', v))
+        for btn in self.buttons:
+            getattr(self.controller, f'btn_{btn}').on_change(lambda v, btn=btn: self._update_button(btn, v))
 
-        self.controller.left_trigger.on_change(lambda v: setattr(self, 'L2', v))
-        self.controller.right_trigger.on_change(lambda v: setattr(self, 'R2', v))
+        for trg in self.triggers:
+            getattr(self.controller, f'{trg.lower()}').on_change(lambda v, trg=trg: self._update_trigger(trg, v))
 
-        self.controller.left_stick_x.on_change(lambda v: setattr(self, 'left_stick_x', v))
-        self.controller.left_stick_y.on_change(lambda v: setattr(self, 'left_stick_y', v))
-        self.controller.right_stick_x.on_change(lambda v: setattr(self, 'right_stick_x', v))
-        self.controller.right_stick_y.on_change(lambda v: setattr(self, 'right_stick_y', v))
+        for stick in self.sticks:
+            getattr(self.controller, f'{stick.replace("_", "_stick_")}').on_change(
+                lambda v, stick=stick: self._update_stick(stick, v)
+            )
+
+    def _update_button(self, button, value):
+        self.buttons[button] = value
+
+    def _update_trigger(self, trigger, value):
+        self.triggers[trigger] = value
+
+    def _update_stick(self, stick, value):
+        self.sticks[stick] = value
 
     def set_led(self, r, g, b):
         self.controller.lightbar.set_color(r, g, b)
@@ -70,16 +51,14 @@ class DualSense:
 
 if __name__ == "__main__":
     pad = DualSense()
-    
     try:
         while True:
-            if pad.cross:
+            if pad.buttons['cross']:
                 pad.rumble(100, 100)
-            if pad.L1:
+            if pad.buttons['L1']:
                 pad.set_led(255, 0, 0)
-            if pad.ps:
+            if pad.buttons['ps']:
                 break
             sleep(0.016)
-    
     finally:
         pad.stop()

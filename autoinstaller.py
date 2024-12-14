@@ -2,10 +2,12 @@ import subprocess
 import sys
 
 def install(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+    subprocess.run([sys.executable, "-m", "pip", "install", package], check=True)
 
-# Liste des bibliothèques à installer
-libraries = ["pygame","loguru"]
+libraries = ["pygame", "loguru", "colorama", "httpx", "faker"]
 
 for lib in libraries:
-    install(lib)
+    try:
+        install(lib)
+    except subprocess.CalledProcessError:
+        print(f"Failed to install {lib}")

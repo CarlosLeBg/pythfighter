@@ -1,5 +1,66 @@
-from time import sleep
 from dualsense_controller import DualSenseController
+from time import sleep
+
+class DualSense:
+    def __init__(self):
+        self.controller = DualSenseController()
+        self.controller.activate()
+
+        self.buttons = {
+            'L1': False, 'R1': False, 'L3': False, 'R3': False,
+            'cross': False, 'circle': False, 'square': False, 'triangle': False,
+            'up': False, 'down': False, 'left': False, 'right': False,
+            'options': False, 'create': False, 'ps': False, 'touchpad': False
+        }
+
+        self.triggers = {'L2': 0, 'R2': 0}
+        self.sticks = {'left_x': 0, 'left_y': 0, 'right_x': 0, 'right_y': 0}
+
+        self._setup_callbacks()
+
+    def _setup_callbacks(self):
+        for btn in self.buttons:
+            getattr(self.controller, f'btn_{btn}').on_change(lambda v, btn=btn: self._update_button(btn, v))
+
+        for trg in self.triggers:
+            getattr(self.controller, f'{trg.lower()}').on_change(lambda v, trg=trg: self._update_trigger(trg, v))
+
+        for stick in self.sticks:
+            getattr(self.controller, f'{stick.replace("_", "_stick_")}').on_change(
+                lambda v, stick=stick: self._update_stick(stick, v)
+            )
+
+    def _update_button(self, button, value):
+        self.buttons[button] = value
+
+    def _update_trigger(self, trigger, value):
+        self.triggers[trigger] = value
+
+    def _update_stick(self, stick, value):
+        self.sticks[stick] = value
+
+    def set_led(self, r, g, b):
+        self.controller.lightbar.set_color(r, g, b)
+
+    def rumble(self, left=0, right=0):
+        self.controller.left_rumble.set(left)
+        self.controller.right_rumble.set(right)
+
+    def stop(self):
+        self.controller.deactivate()
+
+    def manage_controller(self):
+        try:
+            while True:
+                if self.buttons['cross']:
+                    self.rumble(100, 100)
+                if self.buttons['L1']:
+                    self.set_led(255, 0, 0)
+                if self.buttons['ps']:
+                    break
+                sleep(0.016)
+        finally:
+            self.stop()
 
 def list_devices():
     devices = DualSenseController.enumerate_devices()
@@ -15,14 +76,6 @@ def activate_controller():
 def stop_controller(controller):
     controller.deactivate()
 
-controller = activate_controller()
-
-controller.btn_cross.on_down(lambda: controller.rumble(255, 255))
-controller.btn_cross.on_up(lambda: controller.rumble(0, 0))
-controller.btn_ps.on_down(lambda: stop_controller(controller))
-
-try:
-    while True:
-        sleep(0.001)
-except KeyboardInterrupt:
-    stop_controller(controller)
+if __name__ == "__main__":
+    dualsense = DualSense()
+    dualsense.manage_controller()

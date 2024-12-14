@@ -10,6 +10,7 @@ class Thunderstrike(pygame.sprite.Sprite):
         self.attack = 10
         self.velocity= 5
         self.image = pygame.image.load()
+        self.rect =self.image.get.rect()
         
 pygame.init()
 #generation de fenetre de jeu
@@ -18,12 +19,16 @@ screen=pygame.display.set_mode((1920, 1080))
 
 #importation du fond du jeu
 background=pygame.image.load('assets/Pixilart_App.jpg')
-running = True
+#charger le joueur
+player=Thunderstrike()
 
+running = True
 while running:
     
     #appliquation du background du jeu
     screen.blit(background, (0,0))
+    
+    #appliquer image du joueur
     
     #mettre à jour l'écran
     pygame.display.flip()

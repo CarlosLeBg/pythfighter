@@ -5,15 +5,13 @@ class Game:
     def __init__(self):
         self.player = Thunderstrike()
 
-class Thunderstrike(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
-        self.health = 100
-        self.max_health = 100
-        self.attack = 10
-        self.velocity = 5
-        self.image = pygame.image.load('assets/player_image.png')  # Assurez-vous que le chemin de l'image est correct
-        self.rect = self.image.get_rect()
+def damage(self, amount):
+    #infliger dégats
+    self.health -=amount
+    #vérifier si un nouveau nb de pt de vie inférieur ou égal à 0
+    if self.health <= 0:
+        self.rect.x = 1000
+        self.health = self.max_health
 
 pygame.init()
 
@@ -39,9 +37,11 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
+    #actualiser barre de vie du joueur
+    game.player.update_health_bar(screen)
+            
+
 pygame.quit()
-<<<<<<< HEAD
 print("Fermeture du jeu")
-=======
 print("Fermeture du jeu")
->>>>>>> 4cbb1d559d6f785b60f608b0f9155873abff85c9
+

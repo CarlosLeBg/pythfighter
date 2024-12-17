@@ -40,4 +40,8 @@ while running:
             running = False
 
 pygame.quit()
+<<<<<<< HEAD
 print("Fermeture du jeu")
+=======
+print("Fermeture du jeu")
+>>>>>>> 4cbb1d559d6f785b60f608b0f9155873abff85c9

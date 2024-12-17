@@ -1,5 +1,5 @@
 import pygame
-from player import Thunderstrike
+from player import *
 
 class Game:
     def __init__(self):

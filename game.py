@@ -43,5 +43,3 @@ while running:
 
 pygame.quit()
 print("Fermeture du jeu")
-print("Fermeture du jeu")
-

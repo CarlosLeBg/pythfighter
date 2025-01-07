@@ -6,9 +6,9 @@ class Game:
         self.player = Thunderstrike()
 
 def damage(self, amount):
-    #infliger dégats
+    # infliger dégats
     self.health -=amount
-    #vérifier si un nouveau nb de pt de vie inférieur ou égal à 0
+    # vérifier si un nouveau nb de pt de vie inférieur ou égal à 0
     if self.health <= 0:
         self.rect.x = 1000
         self.health = self.max_health

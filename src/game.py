@@ -1,5 +1,3 @@
-import main
-from main import *
 import pygame 
 
 class Thunderstrike(pygame.sprite.Sprite):
@@ -18,7 +16,7 @@ pygame.display.set_caption("Pythfighter")
 screen=pygame.display.set_mode((1920, 1080))
 
 #importation du fond du jeu
-background=pygame.image.load('assets/Pixilart_App.jpg')
+background=pygame.image.load('assets/logo-bg.png')
 #charger le joueur
 player=Thunderstrike()
 

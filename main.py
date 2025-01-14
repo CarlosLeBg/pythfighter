@@ -124,7 +124,11 @@ class PythFighterLauncher:
 
     def _run_game(self):
         try:
+<<<<<<< HEAD
             subprocess.run(["python", "./src/selector.py"], check=True)
+=======
+            subprocess.run(["python", "src\selector.py"], check=True)
+>>>>>>> 262a6dcf0cc1baac9f76634fcace8c2b6b1f8204
             self.status_var.set("Jeu lancé avec succès!")
             logger.info("Jeu lancé avec succès.")
         except subprocess.CalledProcessError as e:

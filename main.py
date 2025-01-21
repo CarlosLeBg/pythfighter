@@ -80,8 +80,18 @@ class PythFighterLauncher:
             return
 
         try:
+<<<<<<< HEAD
             # Exécution du script avec subprocess
             subprocess.run([sys.executable, script_path], check=True)
+=======
+<<<<<<< HEAD
+            subprocess.run(["python", "./src/selector.py"], check=True)
+=======
+            subprocess.run(["python", "src\selector.py"], check=True)
+>>>>>>> 262a6dcf0cc1baac9f76634fcace8c2b6b1f8204
+            self.status_var.set("Jeu lancé avec succès!")
+            logger.info("Jeu lancé avec succès.")
+>>>>>>> 19ac534929c337f191edad8fb168c2e8e5b3b484
         except subprocess.CalledProcessError as e:
             logger.error(f"Erreur lors du lancement : {e}")
             messagebox.showerror("Erreur", f"Une erreur s'est produite lors du lancement du jeu.\n{e}")

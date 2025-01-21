@@ -1,180 +1,130 @@
-import tkinter as tk
 import os
-import subprocess
-import requests
-import logging
+import sys
+import tkinter as tk
 from tkinter import messagebox
-from PIL import Image, ImageTk
-from loguru import logger
-import config
-import autoinstaller
+from tkinter.font import Font
+import subprocess
+import logging
 
-class HTTPHandler:
-    def __init__(self, url):
-        """
-        Initialise l'instance HTTPHandler avec une URL.
-        :param url: L'URL cible pour effectuer les requêtes.
-        """
-        self.url = url
+# Configuration du logger
+def setup_logger():
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    return logger
 
-    def get_json(self):
-        """
-        Effectue une requête GET et renvoie les données JSON tout en gérant les erreurs HTTP.
-        :return: Les données JSON obtenues ou None en cas d'erreur.
-        """
-        try:
-            # Effectuer la requête GET
-            response = requests.get(self.url, timeout=10)  # Timeout explicite pour éviter les blocages
-            response.raise_for_status()  # Lève une exception pour les codes d'état HTTP d'erreur
-            
-            # Retourne les données JSON en cas de succès
-            return response.json()
-        
-        except requests.exceptions.HTTPError as http_err:
-            # Gère les erreurs HTTP spécifiques
-            logger.error(f"Erreur HTTP : {http_err} (Code : {http_err.response.status_code})")
-            messagebox.showerror("Erreur HTTP", f"Erreur lors de la requête : {http_err}")
+logger = setup_logger()
 
-        except requests.exceptions.ConnectionError:
-            # Gère les erreurs de connexion réseau
-            logger.error("Erreur réseau : Impossible de se connecter.")
-            messagebox.showerror("Erreur réseau", "Impossible de se connecter au serveur. Vérifiez votre connexion internet.")
-
-        except requests.exceptions.Timeout:
-            # Gère les délais d'attente dépassés
-            logger.error("Délai d'attente dépassé lors de la tentative de connexion.")
-            messagebox.showerror("Erreur de connexion", "La connexion a expiré. Réessayez plus tard.")
-
-        except requests.exceptions.JSONDecodeError as json_err:
-            # Gère les erreurs lors de l'analyse des données JSON
-            logger.error(f"Erreur de décodage JSON : {json_err}")
-            messagebox.showerror("Erreur de données", "La réponse reçue n'est pas au format JSON valide.")
-
-        except requests.exceptions.RequestException as req_err:
-            # Gère toutes les autres erreurs de requête
-            logger.error(f"Erreur de requête : {req_err}")
-            messagebox.showerror("Erreur inconnue", "Une erreur inconnue est survenue lors de la requête.")
-
-        return None
 class PythFighterLauncher:
-    def __init__(self, master):
-        self.master = master
-        self.master.title("Launcher du jeu PythFighter")
-        self.master.geometry("1920x1080")
-        self.master.configure(bg="#222")
-        self.master.minsize(400, 500)
+    def __init__(self):
+        # Configuration de la fenêtre principale
+        self.root = tk.Tk()
+        self.root.title("PythFighter Launcher")
+        self.root.geometry("400x300")
+        self.root.configure(bg="#2c3e50")
+        self.root.resizable(False, False)
 
-        self.setup_logger()
-        self.logo = self.load_logo(config.LOGO_PATH)
-        self.logo_label = tk.Label(master, image=self.logo, bg="#222")
-        self.logo_label.pack(pady=(20, 10))
+        # Configuration des polices
+        self.title_font = Font(family="Helvetica", size=20, weight="bold")
+        self.button_font = Font(family="Helvetica", size=12)
 
-        self.create_buttons()
-        self.status_var = tk.StringVar(value="Prêt à lancer le jeu.")
-        self.status_label = tk.Label(master, textvariable=self.status_var, font=("Arial", 12), bg="#222", fg="white")
-        self.status_label.pack(pady=20)
+        # Création des éléments de l'interface
+        self.create_widgets()
 
-        self.master.protocol("WM_DELETE_WINDOW", self.confirm_exit)
+    def create_widgets(self):
+        # Titre principal
+        title_label = tk.Label(self.root, text="PythFighter", font=self.title_font, fg="white", bg="#2c3e50")
+        title_label.pack(pady=20)
 
-    def setup_logger(self):
-        logger.add("launcher.log", rotation="1 MB")
-        logger.info("Lancement du launcher PythFighter.")
-
-    def load_logo(self, logo_path):
-        try:
-            image = Image.open(logo_path)
-            return ImageTk.PhotoImage(image.resize((250, 125)))
-        except Exception as e:
-            logger.error(f"Erreur lors du chargement du logo : {e}")
-            return None
-
-    def create_buttons(self):
-        """Création et configuration des boutons principaux avec effets de survol."""
-        self.button_frame = tk.Frame(self.master, bg="#222")
-        self.button_frame.pack(pady=20, padx=20)
-
-        button_config = {
-            "font": ("Sans-Serif", 16, "bold"),
-            "bg": "#444", "fg": "white", "relief": "flat", "padx": 20, "pady": 10
-        }
-
+        # Bouton de lancement
         self.launch_button = tk.Button(
-            self.button_frame, text="Lancer le jeu", command=self.launch_game, **button_config
+            self.root,
+            text="Lancer le jeu",
+            font=self.button_font,
+            bg="#16a085",
+            fg="white",
+            activebackground="#1abc9c",
+            activeforeground="white",
+            command=self.run_game
         )
-        self.launch_button.grid(row=0, column=0, padx=10)
+        self.launch_button.pack(pady=20)
 
-        self.check_updates_button = tk.Button(
-            self.button_frame, text="Vérifier les mises à jour", command=self.check_updates, **button_config
+        # Animations sur le bouton
+        self.launch_button.bind("<Enter>", lambda e: self.animate_button(self.launch_button, True))
+        self.launch_button.bind("<Leave>", lambda e: self.animate_button(self.launch_button, False))
+
+        # Bouton pour quitter
+        quit_button = tk.Button(
+            self.root,
+            text="Quitter",
+            font=self.button_font,
+            bg="#c0392b",
+            fg="white",
+            activebackground="#e74c3c",
+            activeforeground="white",
+            command=self.root.quit
         )
-        self.check_updates_button.grid(row=0, column=1, padx=10)
+        quit_button.pack(pady=10)
 
-        self.help_button = tk.Button(
-            self.button_frame, text="Aide", command=self.show_help, **button_config
-        )
-        self.help_button.grid(row=0, column=2, padx=10)
+    def run_game(self):
+        # Chemin du fichier selector.py
+        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src", "selector.py")
+        logger.info("Lancement du jeu...")
 
-        for button in [self.launch_button, self.check_updates_button, self.help_button]:
-            button.bind("<Enter>", self.animate_button_in)
-            button.bind("<Leave>", self.animate_button_out)
+        if not os.path.exists(script_path):
+            logger.error(f"Fichier introuvable : {script_path}")
+            messagebox.showerror("Erreur", f"Impossible de trouver le fichier : {script_path}")
+            return
 
-    def launch_game(self):
-        self.status_var.set("Lancement du jeu...")
-        self.launch_button.config(state=tk.DISABLED)
-        self.master.after(100, self._run_game)
-
-    def _run_game(self):
         try:
-            subprocess.run(["python", "src\selector.py"], check=True)
-            self.status_var.set("Jeu lancé avec succès!")
-            logger.info("Jeu lancé avec succès.")
+            # Exécution du script avec subprocess
+            subprocess.run([sys.executable, script_path], check=True)
         except subprocess.CalledProcessError as e:
-            self.status_var.set(f"Erreur lors du lancement : {e}")
             logger.error(f"Erreur lors du lancement : {e}")
+            messagebox.showerror("Erreur", f"Une erreur s'est produite lors du lancement du jeu.\n{e}")
         except Exception as e:
-            self.status_var.set(f"Erreur inconnue : {e}")
-            logger.error(f"Erreur inconnue : {e}")
-        finally:
-            self.launch_button.config(state=tk.NORMAL)
+            logger.error(f"Erreur inattendue : {e}")
+            messagebox.showerror("Erreur", f"Une erreur inattendue s'est produite.\n{e}")
 
-    def check_updates(self):
-        http_handler = HTTPHandler(config.REPO_URL)
-        data = http_handler.get_json()
-        
-        if data:
-            latest_version = data.get("tag_name", "0.0")
-            logger.info(f"Vérification des mises à jour : version actuelle : {latest_version}")
+    def animate_button(self, button, hover):
+        # Animation du bouton (changement de couleur au survol)
+        try:
+            bg_start = button["bg"]
+            bg_end = "#1abc9c" if hover else "#16a085"
+            new_bg = self.interpolate_color(bg_start, bg_end, 0.3 if hover else 1)
+            button.configure(bg=new_bg)
+        except Exception as e:
+            logger.warning(f"Erreur dans l'animation du bouton : {e}")
 
-            if latest_version != config.CURRENT_VERSION:
-                messagebox.showinfo("Mise à jour disponible", f"Nouvelle version ({latest_version}) disponible!")
-                self.status_var.set("Nouvelle mise à jour disponible.")
-            else:
-                messagebox.showinfo("Pas de mise à jour", "Vous avez la dernière version.")
-                self.status_var.set("Aucune mise à jour disponible.")
+    @staticmethod
+    def interpolate_color(start, end, factor):
+        def hex_to_rgb(hex_color):
+            if not hex_color.startswith("#") or len(hex_color) != 7:
+                return (255, 255, 255)  # Blanc par défaut
+            return tuple(int(hex_color[i:i + 2], 16) for i in (1, 3, 5))
 
-    def show_help(self):
-        help_text = (
-            "PythFighter Launcher\n\n"
-            "Utilisez ce launcher pour lancer le jeu PythFighter.\n"
-            "Cliquez sur 'Lancer le jeu' pour démarrer.\n"
-            "Cliquez sur 'Vérifier les mises à jour' pour vérifier les dernières versions.\n"
-            "Si vous avez besoin d'aide supplémentaire, consultez la documentation du jeu."
+        def rgb_to_hex(rgb_color):
+            return "#{:02x}{:02x}{:02x}".format(*rgb_color)
+
+        start_rgb = hex_to_rgb(start)
+        end_rgb = hex_to_rgb(end)
+        blended_rgb = tuple(
+            int(start_rgb[i] + (end_rgb[i] - start_rgb[i]) * factor) for i in range(3)
         )
-        messagebox.showinfo("Aide", help_text)
+        return rgb_to_hex(blended_rgb)
 
-    def confirm_exit(self):
-        if messagebox.askyesno("Quitter", "Êtes-vous sûr de vouloir quitter ?"):
-            logger.info("Fermeture du launcher.")
-            self.master.quit()
+    def run(self):
+        logger.info("Lancement du launcher PythFighter.")
+        self.root.mainloop()
 
-    def animate_button_in(self, event):
-        event.widget.config(bg="#666", relief="raised", highlightbackground="#555")
-        event.widget['font'] = ("Arial", 18, "bold")
-
-    def animate_button_out(self, event):
-        event.widget.config(bg="#444", relief="flat")
-        event.widget['font'] = ("Arial", 16, "bold")
-
+# Point d'entrée
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = PythFighterLauncher(root)
-    root.mainloop()
+    try:
+        launcher = PythFighterLauncher()
+        launcher.run()
+    except Exception as e:
+        logger.critical(f"Erreur critique : {e}")
+        sys.exit(1)

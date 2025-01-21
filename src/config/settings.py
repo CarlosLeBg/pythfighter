@@ -12,6 +12,7 @@ class GameSettings:
     SOUNDS_DIR = BASE_DIR / os.getenv('SOUNDS_PATH', 'assets/sounds/')
     IMAGES_DIR = BASE_DIR / os.getenv('IMAGES_PATH', 'assets/images/')
     FONTS_DIR = BASE_DIR / os.getenv('FONTS_PATH', 'assets/fonts/')
+    LOGO_PATH =  'assets/logo-bg.png'
 
     # Configuration de l'écran
     SCREEN_WIDTH = int(os.getenv('SCREEN_WIDTH', 1920))

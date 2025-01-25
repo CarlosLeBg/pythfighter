@@ -1,10 +1,11 @@
 import os
 import sys
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, Toplevel
 from tkinter.font import Font
 import subprocess
 import logging
+from tkinter.ttk import Style
 
 # Configuration du logger
 def setup_logger():
@@ -23,51 +24,71 @@ class PythFighterLauncher:
         # Configuration de la fenêtre principale
         self.root = tk.Tk()
         self.root.title("PythFighter Launcher")
-        self.root.geometry("400x300")
-        self.root.configure(bg="#2c3e50")
-        self.root.resizable(False, False)
+        self.root.geometry("1280x720")
+        self.root.configure(bg="#181825")
+        self.root.attributes("-fullscreen", True)
 
         # Configuration des polices
-        self.title_font = Font(family="Helvetica", size=20, weight="bold")
-        self.button_font = Font(family="Helvetica", size=12)
+        self.title_font = Font(family="Verdana", size=60, weight="bold")
+        self.button_font = Font(family="Verdana", size=20)
+        self.text_font = Font(family="Verdana", size=14)
 
         # Création des éléments de l'interface
         self.create_widgets()
 
     def create_widgets(self):
         # Titre principal
-        title_label = tk.Label(self.root, text="PythFighter", font=self.title_font, fg="white", bg="#2c3e50")
-        title_label.pack(pady=20)
+        title_label = tk.Label(self.root, text="PythFighter", font=self.title_font, fg="#E4E4E7", bg="#181825")
+        title_label.pack(pady=50)
+
+        # Style des boutons
+        button_style = {
+            "font": self.button_font,
+            "bg": "#3B82F6",
+            "fg": "white",
+            "activebackground": "#2563EB",
+            "activeforeground": "white",
+            "relief": "flat",
+            "cursor": "hand2",
+            "bd": 0,
+            "highlightthickness": 0
+        }
 
         # Bouton de lancement
         self.launch_button = tk.Button(
             self.root,
             text="Lancer le jeu",
-            font=self.button_font,
-            bg="#16a085",
-            fg="white",
-            activebackground="#1abc9c",
-            activeforeground="white",
-            command=self.run_game
+            command=self.run_game,
+            **button_style
         )
-        self.launch_button.pack(pady=20)
+        self.launch_button.pack(pady=20, ipadx=50, ipady=20)
 
-        # Animations sur le bouton
-        self.launch_button.bind("<Enter>", lambda e: self.animate_button(self.launch_button, True))
-        self.launch_button.bind("<Leave>", lambda e: self.animate_button(self.launch_button, False))
+        # Bouton pour afficher l'aide
+        help_button = tk.Button(
+            self.root,
+            text="Aide",
+            command=self.show_help,
+            **button_style
+        )
+        help_button.pack(pady=15, ipadx=50, ipady=20)
+
+        # Bouton pour afficher les crédits
+        credits_button = tk.Button(
+            self.root,
+            text="Crédits",
+            command=self.show_credits,
+            **button_style
+        )
+        credits_button.pack(pady=15, ipadx=50, ipady=20)
 
         # Bouton pour quitter
         quit_button = tk.Button(
             self.root,
             text="Quitter",
-            font=self.button_font,
-            bg="#c0392b",
-            fg="white",
-            activebackground="#e74c3c",
-            activeforeground="white",
-            command=self.root.quit
+            command=self.root.quit,
+            **button_style
         )
-        quit_button.pack(pady=10)
+        quit_button.pack(pady=15, ipadx=50, ipady=20)
 
     def run_game(self):
         # Chemin du fichier selector.py
@@ -80,18 +101,8 @@ class PythFighterLauncher:
             return
 
         try:
-<<<<<<< HEAD
-            # Exécution du script avec subprocess
             subprocess.run([sys.executable, script_path], check=True)
-=======
-<<<<<<< HEAD
-            subprocess.run(["python", "./src/selector.py"], check=True)
-=======
-            subprocess.run(["python", "src\selector.py"], check=True)
->>>>>>> 262a6dcf0cc1baac9f76634fcace8c2b6b1f8204
-            self.status_var.set("Jeu lancé avec succès!")
             logger.info("Jeu lancé avec succès.")
->>>>>>> 19ac534929c337f191edad8fb168c2e8e5b3b484
         except subprocess.CalledProcessError as e:
             logger.error(f"Erreur lors du lancement : {e}")
             messagebox.showerror("Erreur", f"Une erreur s'est produite lors du lancement du jeu.\n{e}")
@@ -99,32 +110,74 @@ class PythFighterLauncher:
             logger.error(f"Erreur inattendue : {e}")
             messagebox.showerror("Erreur", f"Une erreur inattendue s'est produite.\n{e}")
 
-    def animate_button(self, button, hover):
-        # Animation du bouton (changement de couleur au survol)
-        try:
-            bg_start = button["bg"]
-            bg_end = "#1abc9c" if hover else "#16a085"
-            new_bg = self.interpolate_color(bg_start, bg_end, 0.3 if hover else 1)
-            button.configure(bg=new_bg)
-        except Exception as e:
-            logger.warning(f"Erreur dans l'animation du bouton : {e}")
+    def show_help(self):
+        help_window = Toplevel(self.root)
+        help_window.title("Aide")
+        help_window.geometry("800x600")
+        help_window.configure(bg="#1F2937")
 
-    @staticmethod
-    def interpolate_color(start, end, factor):
-        def hex_to_rgb(hex_color):
-            if not hex_color.startswith("#") or len(hex_color) != 7:
-                return (255, 255, 255)  # Blanc par défaut
-            return tuple(int(hex_color[i:i + 2], 16) for i in (1, 3, 5))
-
-        def rgb_to_hex(rgb_color):
-            return "#{:02x}{:02x}{:02x}".format(*rgb_color)
-
-        start_rgb = hex_to_rgb(start)
-        end_rgb = hex_to_rgb(end)
-        blended_rgb = tuple(
-            int(start_rgb[i] + (end_rgb[i] - start_rgb[i]) * factor) for i in range(3)
+        help_label = tk.Label(
+            help_window, 
+            text=(
+                "Bienvenue dans l'aide de PythFighter!\n\n"
+                "- Cliquez sur 'Lancer le jeu' pour commencer.\n"
+                "- Utilisez les flèches pour naviguer dans le jeu.\n"
+                "- Consultez les crédits pour plus d'informations."
+            ), 
+            font=self.text_font, 
+            fg="#D1D5DB", 
+            bg="#1F2937", 
+            justify="left",
+            wraplength=700
         )
-        return rgb_to_hex(blended_rgb)
+        help_label.pack(pady=20, padx=20)
+
+        close_button = tk.Button(
+            help_window,
+            text="Fermer",
+            font=self.button_font,
+            bg="#EF4444",
+            fg="white",
+            activebackground="#B91C1C",
+            activeforeground="white",
+            command=help_window.destroy
+        )
+        close_button.pack(pady=20, ipadx=20, ipady=10)
+
+    def show_credits(self):
+        credits_window = Toplevel(self.root)
+        credits_window.title("Crédits")
+        credits_window.geometry("800x600")
+        credits_window.configure(bg="#1F2937")
+
+        credits_label = tk.Label(
+            credits_window, 
+            text=(
+                "Crédits de PythFighter\n\n"
+                "Développé par :\n"
+                "- Développeur 1\n"
+                "- Développeur 2\n\n"
+                "Merci d'avoir joué!"
+            ), 
+            font=self.text_font, 
+            fg="#D1D5DB", 
+            bg="#1F2937", 
+            justify="center",
+            wraplength=700
+        )
+        credits_label.pack(pady=20, padx=20)
+
+        close_button = tk.Button(
+            credits_window,
+            text="Fermer",
+            font=self.button_font,
+            bg="#EF4444",
+            fg="white",
+            activebackground="#B91C1C",
+            activeforeground="white",
+            command=credits_window.destroy
+        )
+        close_button.pack(pady=20, ipadx=20, ipady=10)
 
     def run(self):
         logger.info("Lancement du launcher PythFighter.")

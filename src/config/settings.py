@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 class GameSettings:
     # Chemins
     BASE_DIR = Path(__file__).resolve().parent.parent
@@ -51,3 +52,52 @@ class GameSettings:
             int(cls.CARD_WIDTH * cls.UI_SCALE),
             int(cls.CARD_HEIGHT * cls.UI_SCALE)
         )
+
+    @classmethod
+    def calculate_positions(cls, num_cards, center_x=None, center_y=None):
+        """
+        Calcule les positions des cartes sur l'écran.
+        :param num_cards: Nombre total de cartes.
+        :param center_x: Centre horizontal (par défaut, milieu de l'écran).
+        :param center_y: Centre vertical (par défaut, milieu de l'écran).
+        :return: Liste des positions des cartes.
+        """
+        card_width, card_height = cls.get_card_dimensions()
+        total_width = num_cards * card_width + (num_cards - 1) * cls.CARD_SPACING
+        center_x = center_x or cls.SCREEN_WIDTH // 2
+        center_y = center_y or cls.SCREEN_HEIGHT // 2
+
+        start_x = center_x - total_width // 2
+        positions = [
+            (start_x + i * (card_width + cls.CARD_SPACING), center_y - card_height // 2)
+            for i in range(num_cards)
+        ]
+        return positions
+
+    @classmethod
+    def get_ui_element_position(cls, element_width, element_height, position="center"):
+        """
+        Retourne la position pour un élément d'interface.
+        :param element_width: Largeur de l'élément.
+        :param element_height: Hauteur de l'élément.
+        :param position: Position sur l'écran ("center", "top-left", "top-right", etc.).
+        :return: Tuple (x, y) de la position.
+        """
+        if position == "center":
+            x = (cls.SCREEN_WIDTH - element_width) // 2
+            y = (cls.SCREEN_HEIGHT - element_height) // 2
+        elif position == "top-left":
+            x = 0
+            y = 0
+        elif position == "top-right":
+            x = cls.SCREEN_WIDTH - element_width
+            y = 0
+        elif position == "bottom-left":
+            x = 0
+            y = cls.SCREEN_HEIGHT - element_height
+        elif position == "bottom-right":
+            x = cls.SCREEN_WIDTH - element_width
+            y = cls.SCREEN_HEIGHT - element_height
+        else:
+            raise ValueError("Position non reconnue.")
+        return x, y

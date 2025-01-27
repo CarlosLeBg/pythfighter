@@ -1,5 +1,5 @@
 class Fighter:
-    def __init__(self, name, speed, damage, abilities, style, stats, description, combo_tips, lore, color):
+    def __init__(self, name, speed, damage, abilities, style, stats, description, combo_tips, lore, color, special_ability, weakness):
         self.name = name
         self.speed = speed
         self.damage = damage
@@ -9,64 +9,81 @@ class Fighter:
         self.description = description
         self.combo_tips = combo_tips
         self.lore = lore
-        self.color = color  # Ajout de la couleur ici
+        self.color = color
+        self.special_ability = special_ability  # Nouvelle capacité spéciale
+        self.weakness = weakness  # Nouveau point faible
+
 
 class AgileFighter(Fighter):
     def __init__(self):
         super().__init__(
-            "Agile Fighter", speed=10, damage=5,
+            "Menfou (Benjamin)", speed=10, damage=7,
             abilities=["Dodge", "Quick Strike"],
-            style="Agile", stats={"Force": 5, "Défense": 4, "Vitesse": 10},
-            description="A fast and nimble fighter, capable of evading attacks and dealing quick strikes.",
-            combo_tips=["Quick dodge into a counterattack!", "Use Quick Strike after a successful dodge!"],
-            lore="An agile warrior trained in the art of stealth and speed, with roots in the ninja tradition.",
-            color=(0, 200, 255)  # Couleur bleu clair pour Agile Fighter
+            style="Agile", stats={"Force": 7, "Défense": 3, "Vitesse": 10, "Vie": 100},
+            description="Un samouraï rapide et précis, capable d'infliger des dégâts normaux avec une garde légère.",
+            combo_tips=["Esquivez puis contre-attaquez avec une frappe rapide !"],
+            lore="Un samouraï entraîné dans les arts martiaux, Benjamin est rapide comme l'éclair.",
+            color=(0, 200, 255),
+            special_ability="Esquive rapide",
+            weakness="Garde fragile (3 coups suffisent à la briser)"
         )
+
 
 class Tank(Fighter):
     def __init__(self):
         super().__init__(
-            "Tank", speed=4, damage=15,
+            "Tank (Carl)", speed=3, damage=18,
             abilities=["Shield Bash", "Endurance"],
-            style="Defensive", stats={"Force": 10, "Défense": 9, "Vitesse": 4},
-            description="A heavy-hitting fighter with great defense but slower movement.",
-            combo_tips=["Use Shield Bash to create space!", "Endurance helps you take a lot of damage."],
-            lore="A warrior trained to withstand even the toughest blows, often seen on the frontlines.",
-            color=(255, 100, 100)  # Couleur rouge pour Tank
+            style="Defensive", stats={"Force": 10, "Défense": 5, "Vitesse": 3, "Vie": 100},
+            description="Un guerrier lourd et lent, mais infligeant des dégâts massifs et encaissant facilement.",
+            combo_tips=["Utilisez Endurance pour encaisser les coups, puis contre-attaquez !"],
+            lore="Carl est un guerrier puissant et invincible en défense.",
+            color=(255, 100, 100),
+            special_ability="Endurance massive",
+            weakness="Lenteur extrême"
         )
+
 
 class BurstDamage(Fighter):
     def __init__(self):
         super().__init__(
-            "Burst Damage", speed=7, damage=12,
+            "Burst Damage (Moinécha)", speed=7, damage=6,
             abilities=["Flame Burst", "Inferno"],
-            style="Burst", stats={"Force": 8, "Défense": 5, "Vitesse": 7},
-            description="A fiery fighter who unleashes explosive damage in short bursts.",
-            combo_tips=["Use Flame Burst followed by Inferno for massive damage!"],
-            lore="Once a fire mage, this fighter channels their flame-based powers into devastating attacks.",
-            color=(255, 165, 0)  # Couleur orange pour Burst Damage
+            style="Burst", stats={"Force": 6, "Défense": 4, "Vitesse": 7, "Vie": 100},
+            description="Un moine des flammes infligeant des brûlures continues malgré de faibles dégâts directs.",
+            combo_tips=["Utilisez Flame Burst pour appliquer la brûlure, puis suivez avec Inferno pour maximiser les dégâts."],
+            lore="Moinécha a maîtrisé l'art des flammes pour terrasser ses ennemis.",
+            color=(255, 165, 0),
+            special_ability="Applique des brûlures",
+            weakness="Faibles dégâts initiaux"
         )
+
 
 class ThunderStrike(Fighter):
     def __init__(self):
         super().__init__(
-            "Thunder Strike", speed=8, damage=10,
+            "Thunder Strike (Timothy)", speed=8, damage=10,
             abilities=["Lightning Bolt", "Thunderstorm"],
-            style="Elemental", stats={"Force": 7, "Défense": 6, "Vitesse": 8},
-            description="A fighter who harnesses the power of electricity to strike down foes.",
-            combo_tips=["Lightning Bolt stuns enemies, follow up with Thunderstorm!"],
-            lore="Born during a violent thunderstorm, this fighter uses the power of the skies to dominate enemies.",
-            color=(0, 0, 255)  # Couleur bleu pour Thunder Strike
+            style="Elemental", stats={"Force": 7, "Défense": 4, "Vitesse": 8, "Vie": 100},
+            description="Un combattant électrisant, capable de paralyser ses ennemis grâce à un stun aléatoire.",
+            combo_tips=["Utilisez Lightning Bolt pour étourdir, puis enchaînez avec Thunderstorm !"],
+            lore="Timothy canalise la puissance des orages pour anéantir ses adversaires.",
+            color=(0, 0, 255),
+            special_ability="Stun aléatoire",
+            weakness="Dépendance à la chance"
         )
+
 
 class Bruiser(Fighter):
     def __init__(self):
         super().__init__(
-            "Bruiser", speed=7, damage=8,
+            "Bruiser (Rémi)", speed=7, damage=8,
             abilities=["Balanced Strike", "Power Up"],
-            style="Balanced", stats={"Force": 9, "Défense": 7, "Vitesse": 6},
-            description="A balanced fighter with solid stats in all areas, capable of handling any situation.",
-            combo_tips=["Use Balanced Strike to close the distance and Power Up to increase damage."],
-            lore="A versatile warrior, the Bruiser can adapt to any fight and is known for their resilience.",
-            color=(128, 128, 128)  # Couleur gris pour Bruiser (équilibré)
+            style="Balanced", stats={"Force": 9, "Défense": 4, "Vitesse": 7, "Vie": 100},
+            description="Un combattant équilibré avec des statistiques solides dans tous les domaines.",
+            combo_tips=["Activez Power Up avant de frapper avec Balanced Strike pour maximiser l'impact."],
+            lore="Rémi est un guerrier polyvalent, adapté à toutes les situations de combat.",
+            color=(128, 128, 128),
+            special_ability="Équilibre parfait",
+            weakness="Aucune force dominante"
         )

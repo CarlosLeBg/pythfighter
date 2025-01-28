@@ -72,7 +72,7 @@ class DualSense:
             'stick_sensitivity': 0.05,
             'trigger_threshold': 0.1,
             'update_interval': 0.016,
-            'deadzone': 0.05,
+            'deadzone': 0.9,
             'max_retry_attempts': 3,
             'retry_delay': 0.5
         }

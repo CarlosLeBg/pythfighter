@@ -31,7 +31,7 @@ class PositionManager:
         return pygame.Rect(x, y, SETTINGS.CARD_WIDTH, SETTINGS.CARD_HEIGHT)
 
     def get_detail_panel_position(self):
-        return pygame.Rect(self.detail_panel_x, 50, self.detail_panel_width, self.screen_height - 100)
+        return pygame.Rect(self.detail_panel_x, 50, self.detail_panel_width, self.screen_height - 600)
 
     def get_title_position(self):
         return self.screen_width // 2, self.title_y

@@ -22,16 +22,12 @@ class Particle:
 class ParticleSystem:
     def __init__(self):
         self.particles = []
-
-    def emit(self, pos, vel, color, lifetime):
-        self.particles.append(Particle(pos, vel, color, lifetime))
-
-    def update(self):
-        dt = 1 / 60  # Assuming 60 FPS
-        self.particles = [p for p in self.particles if p.age < p.lifetime]
+        
+    def update(self, dt):
         for particle in self.particles:
             particle.update(dt)
-
-    def draw(self, surface):
+        self.particles = [p for p in self.particles if p.age < p.lifetime]
+    
+    def draw(self, screen):
         for particle in self.particles:
-            particle.draw(surface)
+            particle.draw(screen)

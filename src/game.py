@@ -125,13 +125,13 @@ class Fighter:
             pygame.draw.rect(surface, RED, (50, 50, health_bar_width, health_bar_height))
             pygame.draw.rect(surface, GREEN, (50, 50, health_bar_width * (self.health / self.max_health), health_bar_height))
             font = pygame.font.SysFont("Arial", 18)
-            health_text = font.render(f"{self.health}/{self.max_health}", True, WHITE)
+            health_text = font.render(f"{self.health}/{self.max_health}", True, BLACK)
             surface.blit(health_text, (50 + health_bar_width + 10, 50))
         else:
             pygame.draw.rect(surface, RED, (VISIBLE_WIDTH - 250, 50, health_bar_width, health_bar_height))
             pygame.draw.rect(surface, GREEN, (VISIBLE_WIDTH - 250, 50, health_bar_width * (self.health / self.max_health), health_bar_height))
             font = pygame.font.SysFont("Arial", 18)
-            health_text = font.render(f"{self.health}/{self.max_health}", True, WHITE)
+            health_text = font.render(f"{self.health}/{self.max_health}", True, BLACK)
             surface.blit(health_text, (VISIBLE_WIDTH - 250 - health_bar_width - 10, 50))
 
     def use_special_ability(self):

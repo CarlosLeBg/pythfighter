@@ -8,6 +8,14 @@ from dataclasses import dataclass
 from typing import List, Dict, Tuple
 from config.settings import GameSettings
 from config.fighters import AgileFighter, Tank, BurstDamage, ThunderStrike, Bruiser
+
+FIGHTERS = {
+    'AgileFighter': AgileFighter(),
+    'Tank': Tank(),
+    'BurstDamage': BurstDamage(),
+    'ThunderStrike': ThunderStrike(),
+    'Bruiser': Bruiser()
+}
 from position_manager import PositionManager
 from particle_system import ParticleSystem
 

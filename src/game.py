@@ -5,23 +5,24 @@ from config.fighters import AgileFighter, Tank, BurstDamage, ThunderStrike, Brui
 # Initialisation de Pygame
 pygame.init()
 
-# Configuration de la fenêtre
-SCREEN_WIDTH = 1920
-SCREEN_HEIGHT = 1080
-VISIBLE_WIDTH = SCREEN_WIDTH * 0.8  # Ajuster la largeur visible
-VISIBLE_HEIGHT = SCREEN_HEIGHT * 0.8  # Ajuster la hauteur visible
-screen = pygame.display.set_mode((VISIBLE_WIDTH, VISIBLE_HEIGHT))
-pygame.display.set_caption("Brawler")
-
-# Charger l'image de fond et la redimensionner
-bg_image = pygame.image.load("src/assets/backg.jpg")
-bg_image = pygame.transform.scale(bg_image, (VISIBLE_WIDTH, VISIBLE_HEIGHT))
-
 # Définition des couleurs
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
+
+# Taille de l'image de fond
+bg_image = pygame.image.load("src/assets/backg.jpg")  # Utilise backg.jpg
+bg_width, bg_height = bg_image.get_size()
+
+# Configuration de la fenêtre (en fonction de la taille de l'image)
+VISIBLE_WIDTH = 1280  # Zone visible
+VISIBLE_HEIGHT = 720  # Zone visible
+screen = pygame.display.set_mode((VISIBLE_WIDTH, VISIBLE_HEIGHT))
+pygame.display.set_caption("Brawler")
+
+# Forcer le redimensionnement de l'image pour qu'elle occupe toute la fenêtre
+bg_image = pygame.transform.scale(bg_image, (VISIBLE_WIDTH, VISIBLE_HEIGHT))
 
 # Récupération des personnages à partir de la config
 fighter_classes = {
@@ -32,29 +33,37 @@ fighter_classes = {
     "Bruiser": Bruiser
 }
 
+# Sélection des personnages
+selected_fighter_1 = "AgileFighter"
+selected_fighter_2 = "Tank"
+
+fighter_1_data = fighter_classes[selected_fighter_1]()
+fighter_2_data = fighter_classes[selected_fighter_2]()
+
 # Configuration du jeu
 FPS = 60
 clock = pygame.time.Clock()
 
+# Classe Fighter
 class Fighter:
-    def __init__(self, name, speed, damage, abilities, style, stats, description, combo_tips, lore, color, special_ability, weakness):
-        self.name = name
-        self.speed = speed
-        self.damage = damage
-        self.abilities = abilities
-        self.style = style
-        self.stats = stats
-        self.description = description
-        self.combo_tips = combo_tips
-        self.lore = lore
-        self.color = color
-        self.special_ability = special_ability
-        self.weakness = weakness
-
+    def __init__(self, player, x, y, data):
+        self.player = player
+        self.name = data.name
+        self.speed = data.speed
+        self.damage = data.damage
+        self.abilities = data.abilities
+        self.style = data.style
+        self.stats = data.stats
+        self.description = data.description
+        self.combo_tips = data.combo_tips
+        self.lore = data.lore
+        self.color = data.color
+        self.special_ability = data.special_ability
+        self.weakness = data.weakness
         self.health = self.stats["Vie"]
         self.max_health = self.health
-        self.rect = pygame.Rect(0, 0, 80, 180)
-        self.hitbox = pygame.Rect(self.rect.x + 20, self.rect.y + 40, 40, 140)
+        self.rect = pygame.Rect(x, y, 80, 180)
+        self.hitbox = pygame.Rect(x + 20, y + 40, 40, 140)
         self.vel_y = 0
         self.jump = False
         self.attacking = False
@@ -65,7 +74,7 @@ class Fighter:
         dx, dy = 0, 0
         GRAVITY = 0.5
         JUMP_FORCE = -15
-        GROUND_Y = screen_height - 150  # Y du sol ajusté
+        GROUND_Y = screen_height - 150
 
         if not self.attacking and self.alive:
             if self.player == 1:
@@ -89,7 +98,6 @@ class Fighter:
 
         self.rect.x += dx
         self.rect.y += dy
-
         self.rect.x = max(0, min(self.rect.x, screen_width - 80))
         self.rect.y = max(0, self.rect.y)
 
@@ -103,93 +111,81 @@ class Fighter:
             self.attacking = True
             self.attack_cooldown = 20
 
-    def take_damage(self, amount):
-        self.health -= amount
-        if self.health <= 0:
-            self.alive = False
-
-    def draw(self, surface):
-        # Dessiner le personnage sans les bordures
+    def draw(self, surface, show_hitbox=False):
         pygame.draw.rect(surface, self.color, self.rect)
+        pygame.draw.rect(surface, BLACK, self.rect, 3)
+        
+        if show_hitbox:  # Afficher la hitbox si activée par F3
+            pygame.draw.rect(surface, WHITE, self.hitbox, 1)
 
-        # Dessiner la barre de santé sans bordures
+        # Amélioration de la barre de vie
         health_bar_width = 200
         health_bar_height = 20
         if self.player == 1:
             pygame.draw.rect(surface, RED, (50, 50, health_bar_width, health_bar_height))
             pygame.draw.rect(surface, GREEN, (50, 50, health_bar_width * (self.health / self.max_health), health_bar_height))
+            font = pygame.font.SysFont("Arial", 18)
+            health_text = font.render(f"{self.health}/{self.max_health}", True, WHITE)
+            surface.blit(health_text, (50 + health_bar_width + 10, 50))
         else:
-            pygame.draw.rect(surface, RED, (SCREEN_WIDTH - 250, 50, health_bar_width, health_bar_height))
-            pygame.draw.rect(surface, GREEN, (SCREEN_WIDTH - 250, 50, health_bar_width * (self.health / self.max_health), health_bar_height))
+            pygame.draw.rect(surface, RED, (VISIBLE_WIDTH - 250, 50, health_bar_width, health_bar_height))
+            pygame.draw.rect(surface, GREEN, (VISIBLE_WIDTH - 250, 50, health_bar_width * (self.health / self.max_health), health_bar_height))
+            font = pygame.font.SysFont("Arial", 18)
+            health_text = font.render(f"{self.health}/{self.max_health}", True, WHITE)
+            surface.blit(health_text, (VISIBLE_WIDTH - 250 - health_bar_width - 10, 50))
 
-# Sélection des personnages à partir des arguments passés
-selected_fighter_1 = "AgileFighter"
-selected_fighter_2 = "Tank"
+    def use_special_ability(self):
+        # Code spécifique pour utiliser l'abilité spéciale
+        pass
 
-fighter_1_data = fighter_classes[selected_fighter_1]()
-fighter_2_data = fighter_classes[selected_fighter_2]()
+    def collide_with(self, other):
+        return self.hitbox.colliderect(other.hitbox)
 
-fighter_1 = Fighter(**fighter_1_data.__dict__)
-fighter_1.player = 1
-fighter_2 = Fighter(**fighter_2_data.__dict__)
-fighter_2.player = 2
+# Ajustement de la position initiale des combattants
+fighter_1 = Fighter(1, 50, VISIBLE_HEIGHT - 180, fighter_1_data)
+fighter_2 = Fighter(2, VISIBLE_WIDTH - 130, VISIBLE_HEIGHT - 180, fighter_2_data)
 
-# Ajouter un effet d'écran cassé avec des bords colorés
-def draw_broken_screen(surface, width, height):
-    # Cacher les bords avec une couleur (ex: rouge)
-    color = RED  # Tu peux changer cette couleur selon ton envie
-    pygame.draw.rect(surface, color, pygame.Rect(0, 0, width, 10))  # Haut
-    pygame.draw.rect(surface, color, pygame.Rect(0, height - 10, width, 10))  # Bas
-    pygame.draw.rect(surface, color, pygame.Rect(0, 0, 10, height))  # Gauche
-    pygame.draw.rect(surface, color, pygame.Rect(width - 10, 0, 10, height))  # Droite
-
-# Function to check for victory
-def check_victory():
-    if not fighter_1.alive:
-        return 2
-    elif not fighter_2.alive:
-        return 1
-    return None
+# Variable pour afficher les hitboxes avec F3
+show_hitbox = False
 
 # Main game loop
 running = True
 while running:
     clock.tick(FPS)
 
-    # Remplir l'écran avec le fond
+    # Remplir l'écran avec l'arrière-plan redimensionné
     screen.blit(bg_image, (0, 0))
 
-    # Simuler un écran cassé avec des bords colorés
-    draw_broken_screen(screen, VISIBLE_WIDTH, VISIBLE_HEIGHT)
-
     # Remplir le sol
-    pygame.draw.rect(screen, (30, 30, 30), (0, SCREEN_HEIGHT - 150, SCREEN_WIDTH, 150))
+    pygame.draw.rect(screen, (30, 30, 30), (0, VISIBLE_HEIGHT - 150, VISIBLE_WIDTH, 150))
 
     # Déplacer et dessiner les combattants
     keys = pygame.key.get_pressed()
-    fighter_1.move(keys, SCREEN_WIDTH, SCREEN_HEIGHT)
-    fighter_2.move(keys, SCREEN_WIDTH, SCREEN_HEIGHT)
-    fighter_1.draw(screen)
-    fighter_2.draw(screen) # type: ignore
+    fighter_1.move(keys, VISIBLE_WIDTH, VISIBLE_HEIGHT)
+    fighter_2.move(keys, VISIBLE_WIDTH, VISIBLE_HEIGHT)
 
-    # Vérifier la victoire
-    winner = check_victory()
-    if winner:
-        # Afficher le message de victoire
-        font = pygame.font.SysFont(None, 55)
-        win_text = "Player 1 Wins!" if winner == 1 else "Player 2 Wins!"
-        text = font.render(win_text, True, WHITE)
-        screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2 - text.get_height() // 2))
-        pygame.display.update()
-        pygame.time.delay(2000)
-        running = False
+    # Vérification de la collision entre l'attaque et l'adversaire
+    if fighter_1.attacking and fighter_1.collide_with(fighter_2):
+        fighter_2.health -= fighter_1.damage  # Infliger des dégâts à l'ennemi
+        fighter_1.attacking = False
 
-    # Mettre à jour l'affichage
-    pygame.display.update()
+    if fighter_2.attacking and fighter_2.collide_with(fighter_1):
+        fighter_1.health -= fighter_2.damage  # Infliger des dégâts à l'ennemi
+        fighter_2.attacking = False
+
+    # Afficher les combattants
+    fighter_1.draw(screen, show_hitbox)
+    fighter_2.draw(screen, show_hitbox)
 
     # Gérer les événements de la fenêtre
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_F3:  # Activer/Désactiver l'affichage des hitboxes avec F3
+                show_hitbox = not show_hitbox
+
+    # Mettre à jour l'affichage
+    pygame.display.update()
 
 pygame.quit()

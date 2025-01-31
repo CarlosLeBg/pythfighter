@@ -297,6 +297,7 @@ class CharacterSelect:
             clock.tick(FPS)
 
         pygame.quit()
+        sys.exit()
 
 # Run the game
 if __name__ == "__main__":

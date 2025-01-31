@@ -1,8 +1,7 @@
 import pygame
 import sys
+import subprocess
 import time
-import math
-from abc import ABC, abstractmethod
 from math import sin, cos
 from dataclasses import dataclass
 from typing import List, Dict, Tuple
@@ -10,14 +9,14 @@ from config.settings import GameSettings
 from config.fighters import AgileFighter, Tank, BurstDamage, ThunderStrike, Bruiser
 
 FIGHTERS = {
-    'AgileFighter': AgileFighter(),
-    'Tank': Tank(),
-    'BurstDamage': BurstDamage(),
-    'ThunderStrike': ThunderStrike(),
-    'Bruiser': Bruiser()
+    "AgileFighter": AgileFighter(),
+    "Tank": Tank(),
+    "BurstDamage": BurstDamage(),
+    "ThunderStrike": ThunderStrike(),
+    "Bruiser": Bruiser()
 }
 from position_manager import PositionManager
-from particle_system import ParticleSystem
+import threading
 
 SETTINGS = GameSettings()
 SCREEN_WIDTH = SETTINGS.SCREEN_WIDTH
@@ -32,190 +31,274 @@ CARD_SHADOW_COLOR = (0, 0, 0, 120)
 GRADIENT_TOP = (40, 40, 60)
 GRADIENT_BOTTOM = (15, 15, 25)
 
-@dataclass
-class Character:
-    name: str
-    description: str
-    abilities: List[str]
-    combo_tips: List[str]
-    lore: str
-    height: int
-    weight: int
-    color: Tuple[int, int, int]
-    style: str
-    difficulty: str
-
-class Animation(ABC):
-    def __init__(self, duration=1.0, loop=True):
-        self.duration = duration
-        self.loop = loop
-        self.time = 0
-        
-    @abstractmethod
-    def update(self, dt):
-        pass
-        
-    def reset(self):
-        self.time = 0
-
-class SineWave(Animation):
-    def __init__(self, amplitude, frequency=1.0, **kwargs):
-        super().__init__(**kwargs)
-        self.amplitude = amplitude
-        self.frequency = frequency
-        
-    def update(self, dt):
-        self.time += dt
-        if self.loop:
-            t = (self.time * self.frequency) % self.duration
-        else:
-            t = min(self.time * self.frequency, self.duration)
-        return math.sin(t * math.pi * 2) * self.amplitude
-
-class Spring(Animation):
-    def __init__(self, start=0, end=1, stiffness=10.0, damping=0.8, **kwargs):
-        super().__init__(loop=False, **kwargs)
-        self.pos = start
-        self.vel = 0
-        self.target = end
-        self.stiffness = stiffness
-        self.damping = damping
-        
-    def update(self, dt):
-        force = (self.target - self.pos) * self.stiffness
-        self.vel += force * dt
-        self.vel *= (1 - self.damping * dt)
-        self.pos += self.vel * dt
-        return self.pos
-
-class AnimationManager:
+class ParticleSystem:
     def __init__(self):
-        self.animations = {}
-        
-    def add(self, name, animation):
-        self.animations[name] = animation
-        
-    def update(self, dt):
-        return {name: anim.update(dt) for name, anim in self.animations.items()}
+        self.particles = []
+
+    def create_particle(self, pos, color):
+        particle = {
+            'pos': list(pos),
+            'velocity': [((pygame.time.get_ticks() % 10) - 5) / 2, -3],
+            'lifetime': 60,
+            'color': (*color, 255),
+            'size': 4
+        }
+        self.particles.append(particle)
+
+    def update(self):
+        for particle in self.particles[:]:
+            particle['pos'][0] += particle['velocity'][0]
+            particle['pos'][1] += particle['velocity'][1]
+            particle['lifetime'] -= 1
+            particle['size'] *= 0.95
+            if particle['lifetime'] <= 0:
+                self.particles.remove(particle)
+
+    def draw(self, screen):
+        for particle in self.particles:
+            alpha = min(255, particle['lifetime'] * 4)
+            color = (*particle['color'][:3], alpha)
+            pygame.draw.circle(screen, color, 
+                             (int(particle['pos'][0]), int(particle['pos'][1])), 
+                             int(particle['size']))
 
 class CharacterSelect:
     def __init__(self):
-        # Chargement des polices
+        pygame.init()
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        pygame.display.set_caption("Pyth Fighter - Character Selection")
+        
+        self.position_manager = PositionManager(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.selected = {"player1": None, "player2": None}
+        self.current_player = "player1"
+        self.animation_time = 0
+        self.hovered_character = None
+        self.particles = ParticleSystem()
+        self.selection_done = False  # New flag for selection completion
+        
+        # Load and create fonts
         self.fonts = {
             'title': pygame.font.Font(None, 72),
             'subtitle': pygame.font.Font(None, 48),
             'normal': pygame.font.Font(None, 36),
             'small': pygame.font.Font(None, 24)
         }
-        
-        # Calcul des positions centrées
-        self.calculate_layout()
-        
-        self.animations = {
-            'hover': AnimationManager(),
-            'card': AnimationManager(),
-            'stats': AnimationManager()
-        }
-        
-        # Card animations
-        self.animations['card'].add('float', SineWave(2, 0.5))  # Réduire l'amplitude
-        # Désactiver l'animation de secousse
-        # self.animations['card'].add('shake', SineWave(1, 1.3))  # Réduire l'amplitude ou commenter cette ligne
-        
-        # Stat bar animations
-        self.animations['stats'].add('fill', Spring(0, 1, stiffness=15))
-        
-        # Hover effects
-        self.animations['hover'].add('scale', Spring(1, 1.05, stiffness=20))  # Réduire l'amplitude
-        self.animations['hover'].add('glow', SineWave(0.2, 2))  # Réduire l'amplitude
 
-        self.particles = ParticleSystem()  # Initialiser ParticleSystem
+    def draw_gradient_background(self):
+        for y in range(SCREEN_HEIGHT):
+            progress = y / SCREEN_HEIGHT
+            color = [
+                GRADIENT_TOP[i] + (GRADIENT_BOTTOM[i] - GRADIENT_TOP[i]) * progress
+                for i in range(3)
+            ]
+            pygame.draw.line(self.screen, color, (0, y), (SCREEN_WIDTH, y))
 
-    def calculate_layout(self):
-        # Position des cartes
-        character_count = len(FIGHTERS)
-        total_width = (character_count * 300) + ((character_count - 1) * 50)  # 300px par carte + 50px espacement
-        self.start_x = (SCREEN_WIDTH - total_width) // 2
-        self.card_y = SCREEN_HEIGHT // 2 - 150  # Centré verticalement
-        
-        # Position du panneau de détails
-        self.detail_panel_width = 500
-        self.detail_panel_x = SCREEN_WIDTH - self.detail_panel_width - 20
-        
-        # Calcul des positions des éléments UI
-        self.title_y = 50
-        self.subtitle_y = 120
+    def create_card_glow(self, surface, color, radius):
+        glow = pygame.Surface((surface.get_width() + radius * 2, 
+                             surface.get_height() + radius * 2), 
+                            pygame.SRCALPHA)
+        for i in range(radius, 0, -1):
+            alpha = int(100 * (i / radius))
+            pygame.draw.rect(glow, (*color, alpha),
+                           (radius - i, radius - i,
+                            surface.get_width() + i * 2,
+                            surface.get_height() + i * 2),
+                           border_radius=20)
+        return glow
 
-    def draw_character_card(self, name, data, index):
+    def draw_character_card(self, name, data):
         card_rect = self.position_manager.card_positions[name]
         hover = card_rect.collidepoint(pygame.mouse.get_pos())
         
-        dt = 1/FPS
-        anim_values = {
-            'card': self.animations['card'].update(dt),
-            'hover': self.animations['hover'].update(dt) if hover else {'scale': 1, 'glow': 0}
-        }
+        # Card animation
+        y_offset = sin(self.animation_time * 3) * 5
+        x_offset = 0
+        if hover:
+            x_offset = sin(self.animation_time * 8) * 3
+            self.hovered_character = name
+            if pygame.time.get_ticks() % 10 == 0:
+                self.particles.create_particle(
+                    (card_rect.x + SETTINGS.CARD_WIDTH/2, 
+                     card_rect.y + SETTINGS.CARD_HEIGHT),
+                    data.color)
         
-        # Apply animations
-        y_offset = anim_values['card']['float']
-        x_offset = anim_values['card'].get('shake', 0) if hover else 0  # Utiliser get pour éviter KeyError
-        scale = anim_values['hover']['scale']
-        glow_intensity = anim_values['hover']['glow']
+        # Create card surface
+        card_surface = pygame.Surface((SETTINGS.CARD_WIDTH, SETTINGS.CARD_HEIGHT), 
+                                    pygame.SRCALPHA)
         
-        # Scale card size based on hover
-        card_width = int(SETTINGS.CARD_WIDTH * scale)
-        card_height = int(SETTINGS.CARD_HEIGHT * scale)
+        # Draw card shadow and background
+        pygame.draw.rect(card_surface, CARD_SHADOW_COLOR,
+                        (4, 4, SETTINGS.CARD_WIDTH, SETTINGS.CARD_HEIGHT),
+                        border_radius=20)
         
-        # Dessiner la carte du personnage avec la couleur de base et le style
-        base_color = data.color
+        # Card base color with gradient
+        for y in range(SETTINGS.CARD_HEIGHT):
+            progress = y / SETTINGS.CARD_HEIGHT
+            color = [
+                max(0, min(255, data.color[i] * (1 - progress * 0.3)))
+                for i in range(3)
+            ]
+            alpha = 230 if hover else 200
+            pygame.draw.line(card_surface, (*color, alpha),
+                           (0, y), (SETTINGS.CARD_WIDTH, y))
+            
+        # Card content
+        y_content = 20
+        
+        # Character name
+        name_parts = data.name.split(" ")
+        text = self.fonts['subtitle'].render(name_parts[0], True, TEXT_COLOR)
+        card_surface.blit(text, 
+                         (SETTINGS.CARD_WIDTH//2 - text.get_width()//2, y_content))
+        y_content += 50
+        
+        # Fighting style
         style = self.fonts['normal'].render(f"Style: {data.style}", True, TEXT_COLOR)
-        difficulty = self.fonts['normal'].render(f"Difficulté: {data.difficulty}", True, TEXT_COLOR)
-        # Ajoutez ici le code pour dessiner la carte du personnage
+        card_surface.blit(style, 
+                         (SETTINGS.CARD_WIDTH//2 - style.get_width()//2, y_content))
+        y_content += 40
+        
+        # Stats bars
+        for stat_name, value in list(data.stats.items())[:3]:
+            stat_text = self.fonts['small'].render(stat_name, True, TEXT_COLOR)
+            card_surface.blit(stat_text, (20, y_content))
+            
+            bar_width = SETTINGS.CARD_WIDTH - 40
+            # Background bar
+            pygame.draw.rect(card_surface, (50, 50, 50),
+                           (20, y_content + 20, bar_width, 10))
+            # Value bar with gradient
+            value_width = int(bar_width * (value/10 if isinstance(value, (int, float)) else value/120))
+            for x in range(value_width):
+                progress = x / bar_width
+                color = [
+                    max(0, min(255, data.color[i] * (1 + progress * 0.5)))
+                    for i in range(3)
+                ]
+                pygame.draw.line(card_surface, color,
+                               (20 + x, y_content + 20),
+                               (20 + x, y_content + 29))
+            y_content += 40
+            
+        # Selection indicators
+        if name == self.selected['player1']:
+            glow = self.create_card_glow(card_surface, SETTINGS.PLAYER1_COLOR, 10)
+            self.screen.blit(glow, 
+                           (card_rect.x + x_offset - 10,
+                            card_rect.y + y_offset - 10))
+        elif name == self.selected['player2']:
+            glow = self.create_card_glow(card_surface, SETTINGS.PLAYER2_COLOR, 10)
+            self.screen.blit(glow,
+                           (card_rect.x + x_offset - 10,
+                            card_rect.y + y_offset - 10))
+            
+        self.screen.blit(card_surface,
+                        (card_rect.x + x_offset, card_rect.y + y_offset))
 
     def draw_detail_panel(self):
         if not self.hovered_character:
             return
             
-        dt = 1/FPS
-        anim_values = self.animations['stats'].update(dt)
+        char_data = FIGHTERS[self.hovered_character]
+        panel_rect = self.position_manager.get_detail_panel_position()
+        surface = pygame.Surface((panel_rect.width, panel_rect.height),
+                               pygame.SRCALPHA)
         
-        # Utilisation de anim_values['fill'] pour les barres de statistiques
-        # Ajoutez ici le code pour dessiner le panneau de détails
+        # Panel background with gradient
+        for y in range(panel_rect.height):
+            progress = y / panel_rect.height
+            color = [
+                int(40 * (1 - progress)),
+                int(40 * (1 - progress)),
+                int(60 * (1 - progress))
+            ]
+            pygame.draw.line(surface, (*color, 180),
+                           (0, y), (panel_rect.width, y))
+        
+        # Panel content
+        y = 20
+        title = self.fonts['title'].render(char_data.name.split(" ")[0], True, TEXT_COLOR)
+        surface.blit(title, (20, y))
+        y += 60
+        
+        # Description with word wrap
+        words = char_data.description.split()
+        line = ""
+        for word in words:
+            test_line = line + word + " "
+            test_surface = self.fonts['normal'].render(test_line, True, TEXT_COLOR)
+            if test_surface.get_width() > panel_rect.width - 40:
+                desc = self.fonts['normal'].render(line, True, TEXT_COLOR)
+                surface.blit(desc, (20, y))
+                y += 30
+                line = word + " "
+            else:
+                line = test_line
+        if line:
+            desc = self.fonts['normal'].render(line, True, TEXT_COLOR)
+            surface.blit(desc, (20, y))
+        
+        self.screen.blit(surface, (panel_rect.x, panel_rect.y))
+
+    def draw_player_prompts(self):
+        # Player prompts
+        player_text = self.fonts['normal'].render(f"Joueur 1: {self.selected['player1']}" if self.selected["player1"] else "Joueur 1: Sélectionner", True, TEXT_COLOR)
+        self.screen.blit(player_text, (20, SCREEN_HEIGHT - 80))
+        
+        player_text = self.fonts['normal'].render(f"Joueur 2: {self.selected['player2']}" if self.selected["player2"] else "Joueur 2: Sélectionner", True, TEXT_COLOR)
+        self.screen.blit(player_text, (SCREEN_WIDTH - player_text.get_width() - 20, SCREEN_HEIGHT - 80))
 
     def run(self):
-        pygame.init()
-        screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         clock = pygame.time.Clock()
-
         running = True
+        
         while running:
+            self.animation_time = pygame.time.get_ticks() / 1000
+            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     for char_name, char_rect in self.position_manager.card_positions.items():
                         if char_rect.collidepoint(event.pos):
-                            self.selected[self.current_player] = char_name
+                            if self.current_player == "player1" and self.selected['player1'] is None:
+                                self.selected['player1'] = char_name
+                            elif self.current_player == "player2" and self.selected['player2'] is None:
+                                self.selected['player2'] = char_name
+                            if self.selected['player1'] and self.selected['player2']:
+                                self.selection_done = True  # Flag to indicate both players selected
                             self.current_player = "player2" if self.current_player == "player1" else "player1"
                             break
-                            
+
             # Draw everything
+            self.screen.fill(BACKGROUND_COLOR)
             self.draw_gradient_background()
             self.particles.update()
-            self.particles.draw(screen)
+            self.particles.draw(self.screen)
+
+            self.hovered_character = None
+
+            # Draw cards
+            for fighter_name, fighter in FIGHTERS.items():
+                self.draw_character_card(fighter_name, fighter)
             
-            for char_name in FIGHTERS:
-                self.draw_character_card(char_name, FIGHTERS[char_name])
-                
             self.draw_detail_panel()
             self.draw_player_prompts()
-            
+
+            # Delay before launching the game
+            if self.selection_done:
+                pygame.display.flip()
+                time.sleep(0.5)  # 0.5 seconds for character selection visualization
+                # Run the game
+                subprocess.run([sys.executable, "src/game.py", self.selected["player1"], self.selected["player2"]])
+                sys.exit()
+
             pygame.display.flip()
             clock.tick(FPS)
-            
-        pygame.quit()
-        sys.exit()
 
+        pygame.quit()
+
+# Run the game
 if __name__ == "__main__":
     game = CharacterSelect()
     game.run()

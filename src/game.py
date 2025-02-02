@@ -190,20 +190,14 @@ def main():
         bg_image = pygame.Surface((VISIBLE_WIDTH, VISIBLE_HEIGHT))
         bg_image.fill(COLORS['background'])
 
+    # Création des combattants avec leurs configurations par défaut
     fighter1 = AgileFighter()
     fighter2 = Tank()
-
-
     
-    fighter1.id = 1
-    fighter2.id = 2
-    fighter1.x = VISIBLE_WIDTH // 4
-    fighter1.y = VISIBLE_HEIGHT // 2
-    fighter2.x = VISIBLE_WIDTH * 3 // 4
-    fighter2.y = VISIBLE_HEIGHT // 2
-
-    fighters = [fighter1, fighter2]
-
+    fighters = [
+        Fighter(1, VISIBLE_WIDTH//4, VISIBLE_HEIGHT//2, fighter1),
+        Fighter(2, VISIBLE_WIDTH*3//4, VISIBLE_HEIGHT//2, fighter2)
+    ]
 
     running = True
     while running:

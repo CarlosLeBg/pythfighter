@@ -1,14 +1,6 @@
 import pygame
 import sys
 from config.fighters import AgileFighter, Tank, BurstDamage, ThunderStrike, Bruiser
-
-fighter_classes = {
-    "AgileFighter": AgileFighter,
-    "Tank": Tank,
-    "BurstDamage": BurstDamage,
-    "ThunderStrike": ThunderStrike,
-    "Bruiser": Bruiser
-}
 from dualsense_controller import DualSenseController
 
 # Screen Configuration
@@ -17,7 +9,6 @@ SCALE_FACTOR = 7
 VISIBLE_WIDTH = BASE_WIDTH * SCALE_FACTOR
 VISIBLE_HEIGHT = BASE_HEIGHT * SCALE_FACTOR
 
-# Color Palette
 COLORS = {
     'background': (40, 40, 60),
     'menu_bg': (30, 30, 50),
@@ -30,6 +21,7 @@ COLORS = {
 class DualSenseManager:
     def __init__(self):
         self.controllers = []
+        self.controller_states = []
         self.init_controllers()
 
     def init_controllers(self):
@@ -44,49 +36,57 @@ class DualSenseManager:
             controller2.lightbar.set_color(255, 0, 0)  # Rouge pour J2
             
             self.controllers = [controller1, controller2]
+            
+            # Initialisation des états des controllers
+            for i, controller in enumerate(self.controllers):
+                self._setup_controller_callbacks(i, controller)
+            
+            self.controller_states = [
+                {
+                    'move_x': 0,
+                    'move_y': 0,
+                    'jump': False,
+                    'attack': False,
+                    'block': False,
+                    'special': False
+                } for _ in range(2)
+            ]
+            
             return True
         except Exception as e:
             print(f"Erreur d'initialisation des controllers: {e}")
             return False
 
+    def _setup_controller_callbacks(self, index, controller):
+        def create_button_callback(button_name):
+            def callback(pressed):
+                self.controller_states[index][button_name] = pressed
+            return callback
+
+        def create_stick_callback(axis_name):
+            def callback(value):
+                self.controller_states[index][axis_name] = value
+            return callback
+
+        # Configuration des boutons
+        controller.btn_cross.on_change(create_button_callback('jump'))
+        controller.btn_square.on_change(create_button_callback('attack'))
+        controller.btn_triangle.on_change(create_button_callback('special'))
+        controller.btn_l1.on_change(create_button_callback('block'))
+        
+        # Configuration des sticks
+        controller.left_stick_x.on_change(create_stick_callback('move_x'))
+        controller.left_stick_y.on_change(create_stick_callback('move_y'))
+
+        # Configuration des triggers
+        if hasattr(controller, 'l2_analog'):
+            controller.l2_analog.on_change(lambda value: setattr(self, f'l2_value_{index}', value))
+
     def get_player_input(self, player_index):
         if player_index >= len(self.controllers):
             return None
             
-        controller = self.controllers[player_index]
-        input_state = {
-            'move_x': 0,
-            'move_y': 0,
-            'jump': False,
-            'attack': False,
-            'block': False,
-            'special': False
-        }
-
-        # Lecture des sticks analogiques
-        try:
-            input_state['move_x'] = controller.left_stick_x.value
-            input_state['move_y'] = controller.left_stick_y.value
-            
-            # Boutons
-            input_state['jump'] = controller.btn_cross.value
-            input_state['attack'] = controller.btn_square.value
-            input_state['block'] = controller.btn_l1.value or controller.l2_analog.value > 0.5
-            input_state['special'] = controller.btn_triangle.value
-            
-            # Feedback haptique pour les actions
-            if input_state['attack']:
-                controller.right_rumble = 100
-            elif input_state['block']:
-                controller.left_rumble = 50
-            else:
-                controller.right_rumble = 0
-                controller.left_rumble = 0
-                
-        except Exception as e:
-            print(f"Erreur de lecture controller {player_index}: {e}")
-            
-        return input_state
+        return self.controller_states[player_index]
 
     def cleanup(self):
         for controller in self.controllers:
@@ -126,10 +126,6 @@ class Fighter:
         self.special_active = False
         self.attack_cooldown = 0
         self.special_cooldown = 0
-        
-        # Animation states
-        self.current_animation = "idle"
-        self.animation_frame = 0
 
     def handle_controller_input(self, input_state, opponent_x):
         if not input_state:
@@ -171,15 +167,20 @@ class Fighter:
             self.vel_y = 0
             self.on_ground = True
 
-        # Limites de l'écran
         self.rect.left = max(0, min(self.rect.left, VISIBLE_WIDTH - self.rect.width))
         self.hitbox.topleft = (self.rect.x + self.rect.width//4, self.rect.y + self.rect.height//4)
 
-        # Mise à jour des cooldowns
         if self.attack_cooldown > 0:
             self.attack_cooldown -= 1
         if self.special_cooldown > 0:
             self.special_cooldown -= 1
+
+    def attack(self, opponent_x):
+        if self.attack_cooldown == 0:
+            distance = abs(self.rect.centerx - opponent_x)
+            if distance < self.rect.width * 2:
+                self.attacking = True
+                self.attack_cooldown = 15
 
     def special_attack(self, opponent_x):
         if self.special_meter >= self.max_special and self.special_cooldown == 0:
@@ -220,7 +221,6 @@ class Fighter:
                         (bar_x, 10, bar_width * health_percentage, bar_height), 
                         border_radius=10)
 
-        # Name and health text
         name_font = pygame.font.Font(None, 24)
         name_text = name_font.render(self.name, True, COLORS['text_primary'])
         health_text = name_font.render(f"{int(self.health)}/{self.max_health}", True, COLORS['text_secondary'])
@@ -264,6 +264,13 @@ def main():
     bg_image = pygame.image.load("src/assets/backg.jpg")
     bg_image = pygame.transform.scale(bg_image, (VISIBLE_WIDTH, VISIBLE_HEIGHT))
     
+    fighter_classes = {
+        "AgileFighter": AgileFighter,
+        "Tank": Tank,
+        "BurstDamage": BurstDamage,
+        "ThunderStrike": ThunderStrike,
+        "Bruiser": Bruiser
+    }
     selected_fighters = ["AgileFighter", "Tank"]
     fighters = [
         Fighter(1, VISIBLE_WIDTH//4, VISIBLE_HEIGHT//2, fighter_classes[selected_fighters[0]]()),
@@ -274,6 +281,8 @@ def main():
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
 
         screen.blit(bg_image, (0, 0))

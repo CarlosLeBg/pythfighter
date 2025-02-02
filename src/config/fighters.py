@@ -1,18 +1,59 @@
-class Fighter:
-    def __init__(self, name, speed, damage, abilities, style, stats, description, combo_tips, lore, color, special_ability, weakness):
-        self.name = name
-        self.speed = speed
-        self.damage = damage
-        self.abilities = abilities
-        self.style = style
-        self.stats = stats
-        self.description = description
-        self.combo_tips = combo_tips
-        self.lore = lore
-        self.color = color
-        self.special_ability = special_ability
-        self.weakness = weakness
+import pygame
 
+class Fighter:
+    def __init__(self, player_num, x, y, fighter_type):
+        self.player_num = player_num
+        self.x = x
+        self.y = y
+        self.rect = pygame.Rect(x, y, 50, 100)
+        self.hitbox = pygame.Rect(x, y, 40, 90)
+        
+        # Import fighter stats from fighter_type
+        self.name = fighter_type.name
+        self.speed = fighter_type.speed
+        self.damage = fighter_type.damage
+        self.abilities = fighter_type.abilities
+        self.color = fighter_type.color
+        
+        # Combat states
+        self.health = 100
+        self.special_meter = 0
+        self.max_special = 100
+        self.attacking = False
+        self.blocking = False
+        self.special_active = False
+        
+    def handle_controller_input(self, input_state, opponent_x):
+        # Movement
+        move_x = input_state['move_x'] * self.speed
+        move_y = input_state['move_y'] * self.speed
+        
+        self.x += move_x
+        self.y += move_y
+        self.rect.x = self.x
+        self.rect.y = self.y
+        self.hitbox.x = self.x + 5
+        self.hitbox.y = self.y + 5
+        
+        # Actions
+        self.attacking = input_state['attack']
+        self.blocking = input_state['block']
+        if input_state['special'] and self.special_meter >= self.max_special:
+            self.special_active = True
+            self.special_meter = 0
+            
+    def draw(self, screen):
+        # Draw fighter
+        pygame.draw.rect(screen, self.color, self.rect)
+        
+        # Draw health bar
+        health_width = 50 * (self.health / 100)
+        health_color = (0, 255, 0) if self.health > 50 else (255, 165, 0)
+        pygame.draw.rect(screen, health_color, (self.x, self.y - 20, health_width, 10))
+        
+        # Draw special meter
+        special_width = 50 * (self.special_meter / self.max_special)
+        pygame.draw.rect(screen, (0, 0, 255), (self.x, self.y - 10, special_width, 5))
 
 class AgileFighter(Fighter):
     def __init__(self):

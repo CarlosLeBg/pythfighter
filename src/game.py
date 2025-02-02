@@ -22,14 +22,13 @@ COLORS = {
 class ControllerManager:
     def __init__(self):
         self.controllers = []
-        self.controller_types = []  # "ps4" ou "ps5"
+        self.controller_types = []
         self.controller_states = []
         pygame.joystick.init()
         self.init_controllers()
 
     def init_controllers(self):
         try:
-            # Détection des manettes connectées
             num_joysticks = pygame.joystick.get_count()
             print(f"Nombre de manettes détectées : {num_joysticks}")
 
@@ -43,7 +42,8 @@ class ControllerManager:
                     try:
                         controller = DualSenseController()
                         controller.activate()
-                        controller.lightbar.set_color(0, 0, 255 if i == 0 else 255, 0, 0)
+                        # Correction ici : seulement 3 paramètres RGB au lieu de 5
+                        controller.lightbar.set_color(0 if i == 0 else 255, 0, 255 if i == 0 else 0)
                         self.controllers.append(controller)
                         self.controller_types.append("ps5")
                         print(f"DualSense (PS5) initialisée sur le port {i}")
@@ -56,7 +56,6 @@ class ControllerManager:
                     self.controller_types.append("ps4")
                     print(f"DualShock (PS4) initialisée sur le port {i}")
 
-            # Initialisation des états
             self.controller_states = [
                 {
                     'move_x': 0,

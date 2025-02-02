@@ -35,7 +35,6 @@ class DualSenseManager:
 
     def init_controllers(self):
         try:
-<<<<<<< HEAD
             num_joysticks = pygame.joystick.get_count()
             print(f"Nombre de manettes détectées : {num_joysticks}")
 
@@ -111,22 +110,6 @@ class DualSenseManager:
             state['special'] = controller.get_button(3)
         except Exception as e:
             print(f"Erreur lecture PS4 {index}: {e}")
-=======
-            controller1 = DualSenseController()
-            controller2 = DualSenseController()
-            controller1.activate()
-            controller2.activate()
-            
-            # Configuration des LED pour identifier les controllers
-            controller1.lightbar.set_color(0, 0, 255)  # Bleu pour J1
-            controller2.lightbar.set_color(255, 0, 0)  # Rouge pour J2
-            
-            self.controllers = [controller1, controller2]
-            return True
-        except Exception as e:
-            print(f"Erreur d'initialisation des controllers: {e}")
-            return False
->>>>>>> 670f220eeefa70b2753b523e1fb4fb2a6cd9e2ab
 
     def get_player_input(self, player_index):
         if player_index >= len(self.controllers):

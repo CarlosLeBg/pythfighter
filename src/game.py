@@ -45,7 +45,7 @@ class ControllerManager:
                 try:
                     controller = DualSenseController()
                     controller.activate()
-                    controller.lightbar.set_color(0, 0, 255 if i == 0 else 255, 0, 0)
+                    controller.lightbar.set_color(255 if i == 0 else 0, 0, 255)
                     self.controllers.append(controller)
                     self.controller_types.append("ps5")
                 except Exception as e:

@@ -28,9 +28,12 @@ COLORS = {
     'button_hover': (80, 80, 120)
 }
 
-class DualSenseManager:
+class ControllerManager:
     def __init__(self):
         self.controllers = []
+        self.controller_types = []
+        self.controller_states = []
+        pygame.joystick.init()
         self.init_controllers()
 
     def init_controllers(self):
@@ -56,10 +59,10 @@ class DualSenseManager:
                         print(f"Erreur initialisation DualSense: {e}")
                         joystick.quit()
                         continue
-                elif "dualshock" in name or "ps4" in name:
+                else:
                     self.controllers.append(joystick)
                     self.controller_types.append("ps4")
-                    print(f"DualShock (PS4) initialisée sur le port {i}")
+                    print(f"Manette générique initialisée sur le port {i}")
 
             self.controller_states = [
                 {
@@ -90,12 +93,12 @@ class DualSenseManager:
     def _update_ps5_state(self, index, controller):
         state = self.controller_states[index]
         try:
-            state['move_x'] = getattr(controller, 'left_stick_x', 0) or 0
-            state['move_y'] = getattr(controller, 'left_stick_y', 0) or 0
-            state['jump'] = getattr(controller.btn_cross, 'pressed', False)
-            state['attack'] = getattr(controller.btn_square, 'pressed', False)
-            state['block'] = getattr(controller.btn_l1, 'pressed', False)
-            state['special'] = getattr(controller.btn_triangle, 'pressed', False)
+            state['move_x'] = controller.left_stick_x if hasattr(controller, 'left_stick_x') else 0
+            state['move_y'] = controller.left_stick_y if hasattr(controller, 'left_stick_y') else 0
+            state['jump'] = controller.btn_cross.pressed if hasattr(controller, 'btn_cross') else False
+            state['attack'] = controller.btn_square.pressed if hasattr(controller, 'btn_square') else False
+            state['block'] = controller.btn_l1.pressed if hasattr(controller, 'btn_l1') else False
+            state['special'] = controller.btn_triangle.pressed if hasattr(controller, 'btn_triangle') else False
         except Exception as e:
             print(f"Erreur lecture PS5 {index}: {e}")
 
@@ -114,48 +117,19 @@ class DualSenseManager:
     def get_player_input(self, player_index):
         if player_index >= len(self.controllers):
             return None
-            
-        controller = self.controllers[player_index]
-        input_state = {
-            'move_x': 0,
-            'move_y': 0,
-            'jump': False,
-            'attack': False,
-            'block': False,
-            'special': False
-        }
-
-        # Lecture des sticks analogiques
-        try:
-            input_state['move_x'] = controller.left_stick_x.value
-            input_state['move_y'] = controller.left_stick_y.value
-            
-            # Boutons
-            input_state['jump'] = controller.btn_cross.value
-            input_state['attack'] = controller.btn_square.value
-            input_state['block'] = controller.btn_l1.value or controller.l2_analog.value > 0.5
-            input_state['special'] = controller.btn_triangle.value
-            
-            # Feedback haptique pour les actions
-            if input_state['attack']:
-                controller.right_rumble = 100
-            elif input_state['block']:
-                controller.left_rumble = 50
-            else:
-                controller.right_rumble = 0
-                controller.left_rumble = 0
-                
-        except Exception as e:
-            print(f"Erreur de lecture controller {player_index}: {e}")
-            
-        return input_state
+        return self.controller_states[player_index]
 
     def cleanup(self):
-        for controller in self.controllers:
+        for controller, controller_type in zip(self.controllers, self.controller_types):
             try:
-                controller.deactivate()
+                if controller_type == "ps5":
+                    controller.deactivate()
+                else:
+                    controller.quit()
             except:
                 pass
+        pygame.joystick.quit()
+
 
 class Fighter:
     def __init__(self, player, x, y, data):
@@ -317,7 +291,7 @@ def main():
     clock = pygame.time.Clock()
     
     # Initialize DualSense controllers
-    controller_manager = DualSenseManager()
+    controller_manager = ControllerManager()
     if not controller_manager.controllers:
         print("Erreur: Connectez deux manettes DualSense")
         return

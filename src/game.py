@@ -1,16 +1,23 @@
 import pygame
 import sys
-from config.fighters import AgileFighter, Tank, BurstDamage, ThunderStrike, Bruiser
+from config.fighters import AgileFighter, Tank, BurstDamage, ThunderStrike, Bruiser, Fighter
 import pygame.joystick
 from dualsense_controller import DualSenseController
 
+# Screen Configuration
 BASE_WIDTH, BASE_HEIGHT = 175, 112
 SCALE_FACTOR = 7
 VISIBLE_WIDTH = BASE_WIDTH * SCALE_FACTOR
 VISIBLE_HEIGHT = BASE_HEIGHT * SCALE_FACTOR
-GRAVITY = 0.8
-JUMP_FORCE = -15
-GROUND_Y = VISIBLE_HEIGHT - 100
+
+COLORS = {
+    'background': (40, 40, 60),
+    'menu_bg': (30, 30, 50),
+    'text_primary': (220, 220, 240),
+    'text_secondary': (150, 150, 180),
+    'button_normal': (60, 60, 100),
+    'button_hover': (80, 80, 120)
+}
 
 class GameState:
     FIGHTING = 0
@@ -23,104 +30,180 @@ class Menu:
         self.font = pygame.font.Font(None, 36)
 
     def draw_pause(self):
+        # Semi-transparent overlay
         s = pygame.Surface((VISIBLE_WIDTH, VISIBLE_HEIGHT))
         s.set_alpha(128)
         s.fill((0, 0, 0))
         self.screen.blit(s, (0, 0))
-        pause_text = self.font.render("PAUSE", True, (220, 220, 240))
+        
+        # Pause text
+        pause_text = self.font.render("PAUSE", True, COLORS['text_primary'])
         text_rect = pause_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//2))
         self.screen.blit(pause_text, text_rect)
 
-def draw_health_bars(screen, fighter1, fighter2):
-    bar_width = 200
-    bar_height = 20
-    margin = 20
-    
-    # Player 1 Health Bar (Left)
-    p1_health = (fighter1.health / 100) * bar_width
-    p1_special = (fighter1.special_meter / fighter1.max_special) * bar_width
-    pygame.draw.rect(screen, (255, 0, 0), (margin, margin, bar_width, bar_height))
-    pygame.draw.rect(screen, (0, 255, 0), (margin, margin, p1_health, bar_height))
-    pygame.draw.rect(screen, (0, 0, 255), (margin, margin + bar_height + 5, p1_special, 10))
-    
-    # Player 2 Health Bar (Right)
-    p2_health = (fighter2.health / 100) * bar_width
-    p2_special = (fighter2.special_meter / fighter2.max_special) * bar_width
-    pygame.draw.rect(screen, (255, 0, 0), (VISIBLE_WIDTH - margin - bar_width, margin, bar_width, bar_height))
-    pygame.draw.rect(screen, (0, 255, 0), (VISIBLE_WIDTH - margin - p2_health, margin, p2_health, bar_height))
-    pygame.draw.rect(screen, (0, 0, 255), (VISIBLE_WIDTH - margin - p2_special, margin + bar_height + 5, p2_special, 10))
+class ControllerManager:
+    def __init__(self):
+        self.controllers = []
+        self.controller_types = []
+        self.controller_states = []
+        pygame.joystick.init()
+        self.init_controllers()
 
-class Fighter:
-    def __init__(self, x, y, width, height, color):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.color = color
-        self.velocity_x = 0
-        self.velocity_y = 0
-        self.on_ground = False
-        self.health = 100
-        self.special_meter = 0
-        self.max_special = 100
-        self.attacking = False
-        self.blocking = False
-        self.special_active = False
-        self.facing_right = True
-        self.rect = pygame.Rect(x, y, width, height)
-        self.hitbox = self.rect.inflate(-10, -10)
+    def init_controllers(self):
+        try:
+            num_joysticks = pygame.joystick.get_count()
+            print(f"Nombre de manettes détectées : {num_joysticks}")
 
-    def update(self):
-        # Physics
-        self.velocity_y += GRAVITY
-        self.y += self.velocity_y
-        self.x += self.velocity_x
-        
-        # Ground collision
-        if self.y > GROUND_Y:
-            self.y = GROUND_Y
-            self.velocity_y = 0
-            self.on_ground = True
-        
-        # Screen boundaries
-        if self.x < 0:
-            self.x = 0
-        elif self.x > VISIBLE_WIDTH - self.width:
-            self.x = VISIBLE_WIDTH - self.width
+            for i in range(num_joysticks):
+                joystick = pygame.joystick.Joystick(i)
+                joystick.init()
+                name = joystick.get_name().lower()
+                print(f"Manette {i+1}: {name}")
+
+                if "dualsense" in name or "ps5" in name:
+                    try:
+                        controller = DualSenseController()
+                        controller.activate()
+                        if i == 0:
+                            controller.lightbar.set_color(0, 0, 255)  # Bleu P1
+                        else:
+                            controller.lightbar.set_color(255, 0, 0)  # Rouge P2
+                        self.controllers.append(controller)
+                        self.controller_types.append("ps5")
+                        print(f"DualSense (PS5) initialisée sur le port {i}")
+                    except Exception as e:
+                        print(f"Erreur initialisation DualSense: {e}")
+                        try:
+                            self.controllers.append(joystick)
+                            self.controller_types.append("ps4")
+                            print(f"Fallback vers mode standard pour manette sur port {i}")
+                        except:
+                            joystick.quit()
+                elif "dualshock" in name or "ps4" in name:
+                    self.controllers.append(joystick)
+                    self.controller_types.append("ps4")
+                    print(f"DualShock (PS4) initialisée sur le port {i}")
+                else:
+                    self.controllers.append(joystick)
+                    self.controller_types.append("ps4")
+                    print(f"Manette générique initialisée sur le port {i}")
+
+            self.controller_states = [
+                {
+                    'move_x': 0,
+                    'move_y': 0,
+                    'jump': False,
+                    'attack': False,
+                    'block': False,
+                    'special': False,
+                    'start': False
+                } for _ in range(len(self.controllers))
+            ]
+
+            return len(self.controllers) > 0
+
+        except Exception as e:
+            print(f"Erreur globale d'initialisation: {e}")
+            return False
+
+    def update_controller_states(self):
+        for i, (controller, controller_type) in enumerate(zip(self.controllers, self.controller_types)):
+            try:
+                if controller_type == "ps5":
+                    self._update_ps5_state(i, controller)
+                else:
+                    self._update_ps4_state(i, controller)
+            except Exception as e:
+                print(f"Erreur mise à jour controller {i}: {e}")
+                self.controller_states[i] = {
+                    'move_x': 0, 'move_y': 0,
+                    'jump': False, 'attack': False,
+                    'block': False, 'special': False,
+                    'start': False
+                }
+
+    def _update_ps5_state(self, index, controller):
+        state = self.controller_states[index]
+        try:
+            state['move_x'] = getattr(controller, 'left_stick_x', 0)
+            state['move_y'] = getattr(controller, 'left_stick_y', 0)
             
-        # Update rectangles
-        self.rect.x = self.x
-        self.rect.y = self.y
-        self.hitbox.center = self.rect.center
+            if hasattr(state['move_x'], 'value'):
+                state['move_x'] = max(-1.0, min(1.0, state['move_x'].value))
+            if hasattr(state['move_y'], 'value'):
+                state['move_y'] = max(-1.0, min(1.0, state['move_y'].value))
 
-    def draw(self, screen):
-        pygame.draw.rect(screen, self.color, self.rect)
-        if self.blocking:
-            shield_width = 10
-            shield_x = self.x - shield_width if not self.facing_right else self.x + self.width
-            pygame.draw.rect(screen, (200, 200, 200), (shield_x, self.y, shield_width, self.height))
-        
-        if self.attacking:
-            attack_width = 30
-            attack_x = self.x + self.width if self.facing_right else self.x - attack_width
-            pygame.draw.rect(screen, (255, 255, 0), (attack_x, self.y + self.height//4, attack_width, self.height//2))
+            state['jump'] = bool(getattr(getattr(controller, 'btn_cross', None), 'pressed', False))
+            state['attack'] = bool(getattr(getattr(controller, 'btn_square', None), 'pressed', False))
+            state['block'] = bool(getattr(getattr(controller, 'btn_l1', None), 'pressed', False))
+            state['special'] = bool(getattr(getattr(controller, 'btn_triangle', None), 'pressed', False))
+            state['start'] = bool(getattr(getattr(controller, 'btn_options', None), 'pressed', False))
+
+        except Exception as e:
+            print(f"Erreur lecture PS5 {index}: {e}")
+
+    def _update_ps4_state(self, index, controller):
+        state = self.controller_states[index]
+        try:
+            state['move_x'] = controller.get_axis(0)
+            state['move_y'] = controller.get_axis(1)
+            state['jump'] = controller.get_button(0)    # X
+            state['attack'] = controller.get_button(1)  # Carré
+            state['block'] = controller.get_button(4)   # L1
+            state['special'] = controller.get_button(2) # Triangle
+            state['start'] = controller.get_button(9)   # Options
+
+        except Exception as e:
+            print(f"Erreur lecture PS4 {index}: {e}")
+
+    def get_player_input(self, player_index):
+        if 0 <= player_index < len(self.controllers):
+            return self.controller_states[player_index]
+        return None
+
+    def cleanup(self):
+        for controller, controller_type in zip(self.controllers, self.controller_types):
+            try:
+                if controller_type == "ps5":
+                    controller.deactivate()
+                else:
+                    controller.quit()
+            except Exception as e:
+                print(f"Erreur nettoyage controller: {e}")
+        pygame.joystick.quit()
 
 def main():
     pygame.init()
     screen = pygame.display.set_mode((VISIBLE_WIDTH, VISIBLE_HEIGHT))
+    pygame.display.set_caption("PythFighter - PlayStation Edition")
     clock = pygame.time.Clock()
+    
+    controller_manager = ControllerManager()
     menu = Menu(screen)
     
+    # Load background
     try:
         bg_image = pygame.image.load("src/assets/backg.jpg")
         bg_image = pygame.transform.scale(bg_image, (VISIBLE_WIDTH, VISIBLE_HEIGHT))
-    except:
+    except Exception as e:
+        print(f"Erreur chargement image de fond: {e}")
         bg_image = pygame.Surface((VISIBLE_WIDTH, VISIBLE_HEIGHT))
-        bg_image.fill((40, 40, 60))
+        bg_image.fill(COLORS['background'])
 
-    fighter1 = Fighter(VISIBLE_WIDTH//4, GROUND_Y, 50, 100, (0, 200, 255))
-    fighter2 = Fighter(3*VISIBLE_WIDTH//4, GROUND_Y, 50, 100, (255, 100, 100))
+    fighter1 = AgileFighter()
+    fighter2 = Tank()
+
+
+    
+    fighter1.id = 1
+    fighter2.id = 2
+    fighter1.x = VISIBLE_WIDTH // 4
+    fighter1.y = VISIBLE_HEIGHT // 2
+    fighter2.x = VISIBLE_WIDTH * 3 // 4
+    fighter2.y = VISIBLE_HEIGHT // 2
+
     fighters = [fighter1, fighter2]
+
 
     running = True
     while running:
@@ -129,70 +212,64 @@ def main():
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    menu.state = GameState.PAUSED if menu.state == GameState.FIGHTING else GameState.FIGHTING
+                    if menu.state == GameState.FIGHTING:
+                        menu.state = GameState.PAUSED
+                    else:
+                        menu.state = GameState.FIGHTING
 
-        keys = pygame.key.get_pressed()
-        
+        controller_manager.update_controller_states()
+
+        # Check for pause with controllers
+        for i in range(len(controller_manager.controllers)):
+            controller_state = controller_manager.get_player_input(i)
+            if controller_state and controller_state['start']:
+                if menu.state == GameState.FIGHTING:
+                    menu.state = GameState.PAUSED
+                else:
+                    menu.state = GameState.FIGHTING
+
+        # Draw game
+        screen.blit(bg_image, (0, 0))
+
         if menu.state == GameState.FIGHTING:
-            # Player 1 Controls
-            fighter1.velocity_x = (keys[pygame.K_d] - keys[pygame.K_a]) * 5
-            if keys[pygame.K_w] and fighter1.on_ground:
-                fighter1.velocity_y = JUMP_FORCE
-                fighter1.on_ground = False
-            fighter1.attacking = keys[pygame.K_f]
-            fighter1.blocking = keys[pygame.K_g]
-            if keys[pygame.K_t] and fighter1.special_meter >= fighter1.max_special:
-                fighter1.special_active = True
-                fighter1.special_meter = 0
-                
-            # Player 2 Controls
-            fighter2.velocity_x = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * 5
-            if keys[pygame.K_UP] and fighter2.on_ground:
-                fighter2.velocity_y = JUMP_FORCE
-                fighter2.on_ground = False
-            fighter2.attacking = keys[pygame.K_l]
-            fighter2.blocking = keys[pygame.K_k]
-            if keys[pygame.K_o] and fighter2.special_meter >= fighter2.max_special:
-                fighter2.special_active = True
-                fighter2.special_meter = 0
-
             # Update fighters
-            for fighter in fighters:
-                fighter.update()
-                if fighter.velocity_x > 0:
-                    fighter.facing_right = True
-                elif fighter.velocity_x < 0:
-                    fighter.facing_right = False
+            for i, fighter in enumerate(fighters):
+                input_state = controller_manager.get_player_input(i)
+                if input_state:
+                    fighter.handle_controller_input(input_state, fighters[1-i].rect.centerx)
 
             # Combat logic
             for i, attacker in enumerate(fighters):
                 defender = fighters[1-i]
+                
                 if attacker.attacking and attacker.hitbox.colliderect(defender.hitbox):
                     if not defender.blocking:
-                        defender.health = max(0, defender.health - 10)
-                        attacker.special_meter = min(attacker.max_special, attacker.special_meter + 20)
+                        defender.health -= attacker.damage
+                        attacker.special_meter = min(attacker.max_special, 
+                                                   attacker.special_meter + attacker.damage * 2)
                     else:
-                        defender.special_meter = min(defender.max_special, defender.special_meter + 10)
+                        defender.special_meter = min(defender.max_special, 
+                                                   defender.special_meter + attacker.damage)
+                    attacker.attacking = False
                 
                 if attacker.special_active and attacker.hitbox.colliderect(defender.hitbox):
                     if not defender.blocking:
-                        defender.health = max(0, defender.health - 20)
+                        defender.health -= attacker.damage * 2
                     else:
-                        defender.health = max(0, defender.health - 10)
+                        defender.health -= attacker.damage
                     attacker.special_active = False
 
-        # Drawing
-        screen.blit(bg_image, (0, 0))
-        for fighter in fighters:
-            fighter.draw(screen)
-        draw_health_bars(screen, fighter1, fighter2)
-        
-        if menu.state == GameState.PAUSED:
+            # Draw fighters
+            for fighter in fighters:
+                fighter.draw(screen)
+        else:
+            # Draw pause menu
             menu.draw_pause()
 
-        pygame.display.flip()
+        pygame.display.update()
         clock.tick(60)
 
+    controller_manager.cleanup()
     pygame.quit()
     sys.exit()
 

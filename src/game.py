@@ -195,10 +195,15 @@ def main():
     fighter2 = Tank("style2", {}, "desc2", "combo2", "lore2", "color2", "ability2", "weakness2")
 
     
-    fighters = [
-        Fighter(1, VISIBLE_WIDTH//4, VISIBLE_HEIGHT//2, **fighter1.__dict__),
-        Fighter(2, VISIBLE_WIDTH*3//4, VISIBLE_HEIGHT//2, **fighter2.__dict__)
-    ]
+    fighter1.id = 1
+    fighter2.id = 2
+    fighter1.x = VISIBLE_WIDTH // 4
+    fighter1.y = VISIBLE_HEIGHT // 2
+    fighter2.x = VISIBLE_WIDTH * 3 // 4
+    fighter2.y = VISIBLE_HEIGHT // 2
+
+    fighters = [fighter1, fighter2]
+
 
     running = True
     while running:

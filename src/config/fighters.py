@@ -1,3 +1,5 @@
+import pygame
+
 class Fighter:
     def __init__(self, name, speed, damage, abilities, style, stats, description, combo_tips, lore, color, special_ability, weakness):
         self.name = name
@@ -12,7 +14,8 @@ class Fighter:
         self.color = color
         self.special_ability = special_ability
         self.weakness = weakness
-
+        self.attacking = False
+        self.hitbox = pygame.Rect(0, 0, 50, 100)  # Taille par défaut, ajustable
 
 class AgileFighter(Fighter):
     def __init__(self):
@@ -27,7 +30,8 @@ class AgileFighter(Fighter):
             special_ability="Esquive parfaite (réduit les dégâts reçus de 50 % si activée au bon moment)",
             weakness="Faible résistance (3 coups pour briser la garde)"
         )
-
+        self.attacking = False
+        self.hitbox = pygame.Rect(0, 0, 45, 95)  # Ajustement pour son gabarit
 
 class Tank(Fighter):
     def __init__(self):
@@ -42,7 +46,8 @@ class Tank(Fighter):
             special_ability="Bouclier indestructible (absorbe le prochain coup subi toutes les 10 secondes)",
             weakness="Extrême lenteur (difficile de toucher les cibles rapides)"
         )
-
+        self.attacking = False
+        self.hitbox = pygame.Rect(0, 0, 60, 120)  # Plus grand pour un Tank
 
 class BurstDamage(Fighter):
     def __init__(self):
@@ -57,7 +62,8 @@ class BurstDamage(Fighter):
             special_ability="Inflige des brûlures (5 dégâts par seconde pendant 3 secondes)",
             weakness="Faibles dégâts directs (brûlures nécessaires pour maximiser les dégâts totaux)"
         )
-
+        self.attacking = False
+        self.hitbox = pygame.Rect(0, 0, 50, 100)
 
 class ThunderStrike(Fighter):
     def __init__(self):
@@ -72,7 +78,8 @@ class ThunderStrike(Fighter):
             special_ability="Stun aléatoire (25 % de chance d'étourdir l'ennemi pendant 2 secondes)",
             weakness="Dépendance à la chance (le stun peut ne pas se produire)"
         )
-
+        self.attacking = False
+        self.hitbox = pygame.Rect(0, 0, 50, 100)
 
 class Bruiser(Fighter):
     def __init__(self):
@@ -87,3 +94,5 @@ class Bruiser(Fighter):
             special_ability="Boost équilibré (augmente les dégâts et la vitesse de 10 % pendant 5 secondes)",
             weakness="Aucune statistique dominante (ne surpasse pas les autres dans un domaine spécifique)"
         )
+        self.attacking = False
+        self.hitbox = pygame.Rect(0, 0, 50, 100)

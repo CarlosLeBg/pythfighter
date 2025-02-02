@@ -1,4 +1,5 @@
 import pygame
+import math
 
 class Fighter:
     def __init__(self, name, speed, damage, abilities, style, stats, description, combo_tips, lore, color, special_ability, weakness):
@@ -14,16 +15,92 @@ class Fighter:
         self.color = color
         self.special_ability = special_ability
         self.weakness = weakness
+        
+        # Fighting properties
+        self.x = 0
+        self.y = 0
+        self.width = 50
+        self.height = 100
+        self.velocity_x = 0
+        self.velocity_y = 0
+        self.health = 100
+        self.max_special = 100
+        self.special_meter = 0
         self.attacking = False
-        self.hitbox = pygame.Rect(0, 0, 50, 100)
-        self.special_active = False  # ✅ Ajout pour éviter l'erreur
+        self.blocking = False
+        self.special_active = False
+        self.facing_right = True
+        
+        # Create rectangles for collision
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+        self.hitbox = pygame.Rect(self.x, self.y, self.width, self.height)
+
+    def handle_controller_input(self, input_state, opponent_x):
+        # Movement
+        self.velocity_x = input_state['move_x'] * self.speed
+        
+        # Update facing direction
+        if self.velocity_x > 0:
+            self.facing_right = True
+        elif self.velocity_x < 0:
+            self.facing_right = False
+        
+        # Update position
+        self.x += self.velocity_x
+        self.rect.x = self.x
+        self.hitbox.x = self.x
+        
+        # Actions
+        if input_state['attack']:
+            self.attacking = True
+        if input_state['block']:
+            self.blocking = True
+        else:
+            self.blocking = False
+        if input_state['special'] and self.special_meter >= self.max_special:
+            self.special_active = True
+            self.special_meter = 0
+
+    def draw(self, screen):
+        # Draw character rectangle
+        pygame.draw.rect(screen, self.color, self.rect)
+        
+        # Draw health bar
+        health_width = 50
+        health_height = 5
+        health_x = self.x
+        health_y = self.y - 10
+        health_fill = (self.health / 100) * health_width
+        
+        pygame.draw.rect(screen, (255, 0, 0), (health_x, health_y, health_width, health_height))
+        pygame.draw.rect(screen, (0, 255, 0), (health_x, health_y, health_fill, health_height))
+        
+        # Draw special meter
+        special_y = self.y - 20
+        special_fill = (self.special_meter / self.max_special) * health_width
+        pygame.draw.rect(screen, (0, 0, 255), (health_x, special_y, special_fill, health_height))
+        
+        # Visual feedback for actions
+        if self.attacking:
+            attack_rect = pygame.Rect(
+                self.x + (self.width if self.facing_right else -20),
+                self.y + 20,
+                20,
+                20
+            )
+            pygame.draw.rect(screen, (255, 255, 0), attack_rect)
+        
+        if self.blocking:
+            pygame.draw.rect(screen, (200, 200, 200), 
+                           (self.x + (0 if self.facing_right else self.width - 5),
+                            self.y,
+                            5,
+                            self.height))
 
     def activate_special(self):
-        """Active la capacité spéciale du personnage."""
         self.special_active = True
 
     def deactivate_special(self):
-        """Désactive la capacité spéciale du personnage."""
         self.special_active = False
 
 class AgileFighter(Fighter):

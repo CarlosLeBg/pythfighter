@@ -42,7 +42,6 @@ class ControllerManager:
                     try:
                         controller = DualSenseController()
                         controller.activate()
-                        # Correction ici : seulement 3 paramètres RGB au lieu de 5
                         controller.lightbar.set_color(0 if i == 0 else 255, 0, 255 if i == 0 else 0)
                         self.controllers.append(controller)
                         self.controller_types.append("ps5")
@@ -77,7 +76,7 @@ class ControllerManager:
             try:
                 if controller_type == "ps5":
                     self._update_ps5_state(i, controller)
-                else:  # ps4
+                else:
                     self._update_ps4_state(i, controller)
             except Exception as e:
                 print(f"Erreur mise à jour controller {i}: {e}")
@@ -85,35 +84,24 @@ class ControllerManager:
     def _update_ps5_state(self, index, controller):
         state = self.controller_states[index]
         try:
-            # Lecture des sticks avec correction des valeurs négatives
-            left_x = getattr(controller, 'left_stick_x', 0)
-            left_y = getattr(controller, 'left_stick_y', 0)
-            
-            if hasattr(left_x, 'value'):
-                state['move_x'] = max(-1.0, min(1.0, left_x.value))
-            if hasattr(left_y, 'value'):
-                state['move_y'] = max(-1.0, min(1.0, left_y.value))
-
-            # Boutons
-            state['jump'] = bool(getattr(controller.btn_cross, 'pressed', False))
-            state['attack'] = bool(getattr(controller.btn_square, 'pressed', False))
-            state['block'] = bool(getattr(controller.btn_l1, 'pressed', False))
-            state['special'] = bool(getattr(controller.btn_triangle, 'pressed', False))
-
+            state['move_x'] = getattr(controller, 'left_stick_x', 0) or 0
+            state['move_y'] = getattr(controller, 'left_stick_y', 0) or 0
+            state['jump'] = getattr(controller.btn_cross, 'pressed', False)
+            state['attack'] = getattr(controller.btn_square, 'pressed', False)
+            state['block'] = getattr(controller.btn_l1, 'pressed', False)
+            state['special'] = getattr(controller.btn_triangle, 'pressed', False)
         except Exception as e:
             print(f"Erreur lecture PS5 {index}: {e}")
 
     def _update_ps4_state(self, index, controller):
         state = self.controller_states[index]
         try:
-            # Mapping des boutons PS4
-            state['move_x'] = controller.get_axis(0)  # Stick gauche X
-            state['move_y'] = controller.get_axis(1)  # Stick gauche Y
-            state['jump'] = controller.get_button(0)    # X
-            state['attack'] = controller.get_button(1)  # Carré
-            state['block'] = controller.get_button(4)   # L1
-            state['special'] = controller.get_button(3) # Triangle
-
+            state['move_x'] = controller.get_axis(0)
+            state['move_y'] = controller.get_axis(1)
+            state['jump'] = controller.get_button(0)
+            state['attack'] = controller.get_button(1)
+            state['block'] = controller.get_button(4)
+            state['special'] = controller.get_button(3)
         except Exception as e:
             print(f"Erreur lecture PS4 {index}: {e}")
 

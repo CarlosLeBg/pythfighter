@@ -191,12 +191,13 @@ def main():
         bg_image.fill(COLORS['background'])
 
     # Création des combattants avec leurs configurations par défaut
-    fighter1 = AgileFighter()
-    fighter2 = Tank()
+    fighter1 = AgileFighter("style1", {}, "desc1", "combo1", "lore1", "color1", "ability1", "weakness1")
+    fighter2 = Tank("style2", {}, "desc2", "combo2", "lore2", "color2", "ability2", "weakness2")
+
     
     fighters = [
-        Fighter(1, VISIBLE_WIDTH//4, VISIBLE_HEIGHT//2, fighter1),
-        Fighter(2, VISIBLE_WIDTH*3//4, VISIBLE_HEIGHT//2, fighter2)
+        Fighter(1, VISIBLE_WIDTH//4, VISIBLE_HEIGHT//2, **fighter1.__dict__),
+        Fighter(2, VISIBLE_WIDTH*3//4, VISIBLE_HEIGHT//2, **fighter2.__dict__)
     ]
 
     running = True

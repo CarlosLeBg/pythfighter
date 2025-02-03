@@ -35,6 +35,7 @@ class Fighter:
         
         self.on_ground = True
         self.attacking = False
+        self.can_attack = True  # New attribute to prevent multiple attacks
         self.blocking = False
         self.attack_cooldown = 0
         self.invincibility_frames = 0
@@ -99,12 +100,21 @@ class Fighter:
             self.last_hit_time = current_time
 
     def attack(self, opponent_x):
-        if self.attack_cooldown == 0 and not self.blocking and self.stamina >= 10:
+        if self.can_attack and self.attack_cooldown == 0 and not self.blocking and self.stamina >= 10:
             distance = abs(self.rect.centerx - opponent_x)
             if distance < self.rect.width * 2:
                 self.attacking = True
+                self.can_attack = False  # Prevent multiple attacks
                 self.attack_cooldown = 15
                 self.stamina -= 10  # Spend stamina on attack
+
+    def reset_attack(self):
+        # Reset attack state when cooldown completes
+        if self.attack_cooldown > 0:
+            self.attack_cooldown -= 1
+            if self.attack_cooldown == 0:
+                self.attacking = False
+                self.can_attack = True
 
     def block(self):
         self.blocking = True
@@ -117,27 +127,22 @@ class Fighter:
 
     def update_physics(self):
         GRAVITY = 0.4
-        GROUND_Y = VISIBLE_HEIGHT - VISIBLE_HEIGHT // 5.4  # Ajuste pour faire spawn plus bas
-        MAX_JUMP_HEIGHT = 60  # Réduction de la hauteur max du saut
+        GROUND_Y = VISIBLE_HEIGHT - VISIBLE_HEIGHT // 5.4
+        MAX_JUMP_HEIGHT = 60
 
-        # Appliquer la gravité seulement si le personnage est en l'air
         if not self.on_ground:
             self.vel_y += GRAVITY
 
-        # Appliquer la friction en fonction de la surface
         friction = 0.85 if self.on_ground else 0.95
         self.vel_x *= friction
 
-        # Mettre à jour la position
         self.pos_x += self.vel_x
         self.pos_y += self.vel_y
 
-        # Correction : Empêcher le dépassement du haut de l'écran
         if self.pos_y < MAX_JUMP_HEIGHT:
             self.pos_y = MAX_JUMP_HEIGHT
-            self.vel_y = 0  # Stopper la montée
+            self.vel_y = 0
 
-        # Correction : Empêcher de tomber sous le sol
         if self.pos_y + self.rect.height >= GROUND_Y:
             self.pos_y = GROUND_Y - self.rect.height
             self.vel_y = 0
@@ -145,18 +150,18 @@ class Fighter:
         else:
             self.on_ground = False
 
-        # Empêcher le dépassement des bords de l'écran
         self.pos_x = max(0, min(self.pos_x, VISIBLE_WIDTH - self.rect.width))
 
-        # Mettre à jour la position de la hitbox et du sprite
         self.rect.x = int(self.pos_x)
         self.rect.y = int(self.pos_y)
         self.hitbox.topleft = (self.rect.x + self.rect.width // 4,
                                self.rect.y + self.rect.height // 4)
 
-        # Réduction des frames d'invincibilité
         if self.invincibility_frames > 0:
             self.invincibility_frames -= 1
+
+        # Reset attack state
+        self.reset_attack()
 
 class Game:
     def __init__(self, player1_type="AgileFighter", player2_type="Tank"):
@@ -176,10 +181,6 @@ class Game:
             joy.init()
             self.controllers.append(joy)
 
-        if len(self.controllers) < 2:
-            print("Erreur: deux manettes ne sont pas détectées.")
-            sys.exit()
-
         fighter_map = {
             "AgileFighter": AgileFighter,
             "Tank": Tank,
@@ -187,8 +188,8 @@ class Game:
             "ThunderStrike": ThunderStrike,
             "Bruiser": Bruiser
         }
-        GROUND_Y = 91  # Assure-toi que c'est bien la hauteur du sol
-        fighter_height = VISIBLE_HEIGHT // 4  # Taille estimée du personnage
+        GROUND_Y = 91  
+        fighter_height = VISIBLE_HEIGHT // 4  
 
         self.fighters = [
             Fighter(1, VISIBLE_WIDTH//4, GROUND_Y - fighter_height, fighter_map[player1_type]()),
@@ -200,7 +201,32 @@ class Game:
         self.show_start_timer = True
         self.start_time = time.time()
         self.game_start_time = None
-        self.round_time = 99  # 99 second rounds
+        self.round_time = 99
+        self.font = pygame.font.Font(None, 36)
+
+    def draw_timer(self):
+        if self.game_start_time:
+            remaining_time = max(0, int(self.round_time - (time.time() - self.game_start_time)))
+            timer_text = self.font.render(str(remaining_time), True, (255, 255, 255))
+            timer_rect = timer_text.get_rect(center=(VISIBLE_WIDTH//2, 30))
+            self.screen.blit(timer_text, timer_rect)
+            return remaining_time
+        return self.round_time
+
+    def draw_pause_menu(self):
+        pause_surface = pygame.Surface((VISIBLE_WIDTH, VISIBLE_HEIGHT), pygame.SRCALPHA)
+        pause_surface.fill((0, 0, 0, 128))  # Semi-transparent black
+
+        pause_text = self.font.render("PAUSE", True, (255, 255, 255))
+        resume_text = self.font.render("Press ESC to Resume", True, (200, 200, 200))
+        
+        pause_rect = pause_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//2 - 50))
+        resume_rect = resume_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//2 + 50))
+        
+        self.screen.blit(pause_surface, (0, 0))
+        self.screen.blit(pause_text, pause_rect)
+        self.screen.blit(resume_text, resume_rect)
+        pygame.display.flip()
 
     def handle_controller_input(self, fighter, controller, current_time):
         deadzone = 0.2
@@ -256,54 +282,87 @@ class Game:
             if keys[pygame.K_RETURN]:  # Attack
                 fighter.attack(self.fighters[0].rect.centerx)
 
+    def draw_countdown(self, number):
+        font = pygame.font.Font(None, 200)
+        text = font.render(str(number), True, (255, 255, 255))
+        text_rect = text.get_rect(center=(VISIBLE_WIDTH/2, VISIBLE_HEIGHT/2))
+        self.screen.blit(text, text_rect)
+        pygame.display.flip()
+        pygame.time.wait(1000)
+
     def update(self):
         current_time = time.time()
-        self.screen.fill((0, 0, 0))  # Clear screen
-        
-        self.screen.blit(self.bg_image, (0, 0))  # Draw background
+        self.screen.fill((0, 0, 0))  
+        self.screen.blit(self.bg_image, (0, 0))  
         
         keys = pygame.key.get_pressed()
         
+        # Handle game pause
+        if keys[pygame.K_ESCAPE]:
+            self.pause_menu_active = not self.pause_menu_active
+            pygame.time.delay(200)  # Prevent multiple toggles
+        
+        if self.pause_menu_active:
+            self.draw_pause_menu()
+            return
+
+        # Draw and check timer
+        remaining_time = self.draw_timer()
+        if remaining_time <= 0:
+            print("Time's up!")
+            pygame.quit()
+            sys.exit()
+
         for fighter in self.fighters:
             fighter.update_physics()
-            fighter.recover_stamina()  # Recover stamina over time
+            fighter.recover_stamina() 
             fighter.draw(self.screen)
 
-        # Handle input from controllers or keyboard
+        # Input handling
         for i, fighter in enumerate(self.fighters):
             if i < len(self.controllers):
                 self.handle_controller_input(fighter, self.controllers[i], current_time)
-            if fighter.player == 1:  # Player 1 also has keyboard input
-                self.handle_keyboard_input(fighter, keys, current_time)
+            
+            self.handle_keyboard_input(fighter, keys, current_time)
 
-        # Update the screen
         pygame.display.flip()
-
-        # Maintain frame rate
         self.clock.tick(60)
 
     def run(self):
+        # Countdown before game starts
+        if self.show_start_timer:
+            for i in range(3, 0, -1):
+                self.screen.fill((0, 0, 0))
+                self.screen.blit(self.bg_image, (0, 0))
+                self.draw_countdown(i)
+            self.show_start_timer = False
+            self.game_start_time = time.time()
+
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
 
-            if self.show_start_timer:
-                elapsed_time = time.time() - self.start_time
-                if elapsed_time >= 3:
-                    self.show_start_timer = False
-                    self.game_start_time = time.time()
-
             if self.game_start_time:
-                self.update()  # Start the game once the timer ends
+                # Check for first fighter's hit
+                if self.fighters[0].hitbox.colliderect(self.fighters[1].hitbox):
+                    if self.fighters[0].attacking:
+                        self.fighters[1].take_damage(self.fighters[0].damage, time.time())
+                    elif self.fighters[1].attacking:
+                        self.fighters[0].take_damage(self.fighters[1].damage, time.time())
 
+                # Check for game over conditions
+                if self.fighters[0].health <= 0 or self.fighters[1].health <= 0:
+                    print("Game Over!")
+                    pygame.quit()
+                    sys.exit()
+
+                self.update()
 
 if __name__ == "__main__":
     if len(sys.argv) > 2:
-        # Récupérer les arguments comme tu le faisais avant (ici, en passant deux arguments)
         game = Game(sys.argv[1], sys.argv[2])
     else:
-        # Si pas assez d'arguments, initialiser avec les paramètres par défaut
         game = Game()
     game.run()

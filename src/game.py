@@ -18,6 +18,9 @@ class Fighter:
         self.max_health = fighter_data.stats["Vie"]
         self.health = self.max_health
         
+        self.max_stamina = 100
+        self.stamina = self.max_stamina
+        
         self.pos_x = float(x)
         self.pos_y = float(91)
         self.vel_x = 0.0
@@ -58,19 +61,31 @@ class Fighter:
                         (bar_x, 10, bar_width * health_percentage, bar_height),
                         border_radius=10)
         
+        # Draw Stamina bar
+        stamina_percentage = max(0, self.stamina / self.max_stamina)
+        stamina_color = (0, 0, 255)  # Blue for stamina
+        
+        pygame.draw.rect(surface, (0, 0, 100),
+                        (bar_x, 40, bar_width, bar_height),
+                        border_radius=10)
+        pygame.draw.rect(surface, stamina_color,
+                        (bar_x, 40, bar_width * stamina_percentage, bar_height),
+                        border_radius=10)
+        
+        # Adjusted positions for text
         name_font = pygame.font.Font(None, 24)
         name_text = name_font.render(self.name, True, (220, 220, 240))
         health_text = name_font.render(f"{int(self.health)}/{self.max_health}", True, (150, 150, 180))
         combo_text = name_font.render(f"Combo: {self.combo_count}", True, (255, 215, 0))
         
         if self.player == 1:
-            surface.blit(name_text, (bar_x, 35))
-            surface.blit(health_text, (bar_x + bar_width - 100, 35))
-            surface.blit(combo_text, (bar_x, 55))
+            surface.blit(name_text, (bar_x, 60))
+            surface.blit(health_text, (bar_x + bar_width - 100, 60))
+            surface.blit(combo_text, (bar_x, 80))
         else:
-            surface.blit(name_text, (bar_x + bar_width - name_text.get_width(), 35))
-            surface.blit(health_text, (bar_x, 35))
-            surface.blit(combo_text, (bar_x + bar_width - combo_text.get_width(), 55))
+            surface.blit(name_text, (bar_x + bar_width - name_text.get_width(), 60))
+            surface.blit(health_text, (bar_x, 60))
+            surface.blit(combo_text, (bar_x + bar_width - combo_text.get_width(), 80))
 
     def take_damage(self, damage, current_time):
         if self.invincibility_frames <= 0:
@@ -84,11 +99,22 @@ class Fighter:
             self.last_hit_time = current_time
 
     def attack(self, opponent_x):
-        if self.attack_cooldown == 0 and not self.blocking:
+        if self.attack_cooldown == 0 and not self.blocking and self.stamina >= 10:
             distance = abs(self.rect.centerx - opponent_x)
             if distance < self.rect.width * 2:
                 self.attacking = True
                 self.attack_cooldown = 15
+                self.stamina -= 10  # Spend stamina on attack
+
+    def block(self):
+        self.blocking = True
+        self.stamina = max(0, self.stamina - 5)  # Spend stamina while blocking
+
+    def recover_stamina(self):
+        if self.stamina < self.max_stamina:
+            self.stamina += 0.1  # Slower recovery
+        self.stamina = min(self.stamina, self.max_stamina)
+
     def update_physics(self):
         GRAVITY = 0.4
         GROUND_Y = VISIBLE_HEIGHT - VISIBLE_HEIGHT // 5.4  # Ajuste pour faire spawn plus bas
@@ -149,7 +175,11 @@ class Game:
             joy = pygame.joystick.Joystick(i)
             joy.init()
             self.controllers.append(joy)
-        
+
+        if len(self.controllers) < 2:
+            print("Erreur: deux manettes ne sont pas détectées.")
+            sys.exit()
+
         fighter_map = {
             "AgileFighter": AgileFighter,
             "Tank": Tank,
@@ -161,10 +191,9 @@ class Game:
         fighter_height = VISIBLE_HEIGHT // 4  # Taille estimée du personnage
 
         self.fighters = [
-    Fighter(1, VISIBLE_WIDTH//4, GROUND_Y - fighter_height, fighter_map[player1_type]()),
-    Fighter(2, VISIBLE_WIDTH*3//4, GROUND_Y - fighter_height, fighter_map[player2_type]())
-]
-
+            Fighter(1, VISIBLE_WIDTH//4, GROUND_Y - fighter_height, fighter_map[player1_type]()),
+            Fighter(2, VISIBLE_WIDTH*3//4, GROUND_Y - fighter_height, fighter_map[player2_type]())
+        ]
 
         self.clock = pygame.time.Clock()
         self.pause_menu_active = False
@@ -185,9 +214,10 @@ class Game:
             fighter.vel_y = -10
             fighter.on_ground = False
         
-        fighter.blocking = controller.get_button(2)
+        if controller.get_button(2):  # Blocking
+            fighter.block()
         
-        if controller.get_button(1):
+        if controller.get_button(1):  # Attack
             fighter.attack(self.fighters[1 if fighter.player == 1 else 0].rect.centerx)
 
     def handle_keyboard_input(self, fighter, keys, current_time):
@@ -203,9 +233,10 @@ class Game:
                 fighter.vel_y = -10
                 fighter.on_ground = False
             
-            fighter.blocking = keys[pygame.K_LSHIFT]
+            if keys[pygame.K_LSHIFT]:  # Blocking
+                fighter.block()
             
-            if keys[pygame.K_r]:
+            if keys[pygame.K_r]:  # Attack
                 fighter.attack(self.fighters[1].rect.centerx)
         else:
             if keys[pygame.K_LEFT]:
@@ -214,118 +245,65 @@ class Game:
             elif keys[pygame.K_RIGHT]:
                 fighter.vel_x = fighter.speed * 2
                 fighter.direction = 1
-            
+
             if keys[pygame.K_UP] and fighter.on_ground:
                 fighter.vel_y = -10
                 fighter.on_ground = False
             
-            fighter.blocking = keys[pygame.K_RSHIFT]
+            if keys[pygame.K_RSHIFT]:  # Blocking
+                fighter.block()
             
-            if keys[pygame.K_KP1]:
+            if keys[pygame.K_RETURN]:  # Attack
                 fighter.attack(self.fighters[0].rect.centerx)
 
-    def draw_timer(self):
-        if self.game_start_time:
-            elapsed = time.time() - self.game_start_time
-            time_left = max(0, self.round_time - int(elapsed))
-            font = pygame.font.Font(None, 48)
-            text = font.render(str(time_left), True, (255, 255, 255))
-            self.screen.blit(text, (VISIBLE_WIDTH//2 - text.get_width()//2, 10))
-            return time_left == 0
-        return False
+    def update(self):
+        current_time = time.time()
+        self.screen.fill((0, 0, 0))  # Clear screen
+        
+        self.screen.blit(self.bg_image, (0, 0))  # Draw background
+        
+        keys = pygame.key.get_pressed()
+        
+        for fighter in self.fighters:
+            fighter.update_physics()
+            fighter.recover_stamina()  # Recover stamina over time
+            fighter.draw(self.screen)
 
-    def show_victory_screen(self, winner_name):
-        self.screen.fill((0, 0, 0))
-        font = pygame.font.Font(None, 74)
-        text = font.render(f"{winner_name} WINS!", True, (255, 215, 0))
-        self.screen.blit(text, (VISIBLE_WIDTH//2 - text.get_width()//2,
-                              VISIBLE_HEIGHT//2 - text.get_height()//2))
+        # Handle input from controllers or keyboard
+        for i, fighter in enumerate(self.fighters):
+            if i < len(self.controllers):
+                self.handle_controller_input(fighter, self.controllers[i], current_time)
+            if fighter.player == 1:  # Player 1 also has keyboard input
+                self.handle_keyboard_input(fighter, keys, current_time)
+
+        # Update the screen
         pygame.display.flip()
-        pygame.time.wait(3000)
+
+        # Maintain frame rate
+        self.clock.tick(60)
 
     def run(self):
-        running = True
-        while running:
-            current_time = time.time()
-            
+        while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        self.pause_menu_active = not self.pause_menu_active
-            
+                    pygame.quit()
+                    sys.exit()
+
             if self.show_start_timer:
-                if current_time - self.start_time < 3:
-                    self.screen.fill((0, 0, 0))
-                    font = pygame.font.Font(None, 74)
-                    countdown = str(3 - int(current_time - self.start_time))
-                    text = font.render(countdown, True, (255, 255, 255))
-                    self.screen.blit(text, (VISIBLE_WIDTH//2 - text.get_width()//2,
-                                          VISIBLE_HEIGHT//2 - text.get_height()//2))
-                else:
+                elapsed_time = time.time() - self.start_time
+                if elapsed_time >= 3:
                     self.show_start_timer = False
                     self.game_start_time = time.time()
-                pygame.display.flip()
-                continue
-            
-            if not self.pause_menu_active:
-                self.screen.blit(self.bg_image, (0, 0))
-                
-                keys = pygame.key.get_pressed()
-                for i, fighter in enumerate(self.fighters):
-                    if i < len(self.controllers):
-                        self.handle_controller_input(fighter, self.controllers[i], current_time)
-                    else:
-                        self.handle_keyboard_input(fighter, keys, current_time)
-                    
-                    fighter.update_physics()
-                    
-                    if fighter.attack_cooldown > 0:
-                        fighter.attack_cooldown -= 1
-                    
-                    if fighter.attacking:
-                        if fighter.hitbox.colliderect(
-                            self.fighters[1 if i == 0 else 0].hitbox
-                        ):
-                            self.fighters[1 if i == 0 else 0].take_damage(
-                                fighter.damage, current_time
-                            )
-                            fighter.attacking = False
-                    
-                    fighter.draw(self.screen)
-                
-                time_up = self.draw_timer()
-                
-                # Check victory conditions
-                for fighter in self.fighters:
-                    if fighter.health <= 0 or time_up:
-                        winner = None
-                        if time_up:
-                            health_percent_1 = self.fighters[0].health / self.fighters[0].max_health
-                            health_percent_2 = self.fighters[1].health / self.fighters[1].max_health
-                            winner = self.fighters[0].name if health_percent_1 > health_percent_2 else self.fighters[1].name
-                        else:
-                            winner = self.fighters[1 if fighter == self.fighters[0] else 0].name
-                        self.show_victory_screen(winner)
-                        running = False
-                        break
-            
-            else:
-                font = pygame.font.Font(None, 36)
-                text = font.render("PAUSED - Press ESC to Resume", True, (255, 255, 255))
-                self.screen.blit(text, (VISIBLE_WIDTH//2 - text.get_width()//2,
-                                      VISIBLE_HEIGHT//2))
-            
-            pygame.display.flip()
-            self.clock.tick(60)
-        
-        pygame.quit()
-        sys.exit()
+
+            if self.game_start_time:
+                self.update()  # Start the game once the timer ends
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 2:
+        # Récupérer les arguments comme tu le faisais avant (ici, en passant deux arguments)
         game = Game(sys.argv[1], sys.argv[2])
     else:
+        # Si pas assez d'arguments, initialiser avec les paramètres par défaut
         game = Game()
     game.run()

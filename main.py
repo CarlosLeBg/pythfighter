@@ -5,7 +5,20 @@ from tkinter import messagebox, Toplevel
 from tkinter.font import Font
 import subprocess
 import logging
+from tkinter import ttk
 from tkinter.ttk import Style
+
+# Configuration des couleurs
+class Colors:
+    BACKGROUND = "#181825"
+    BUTTON_BG = "#3B82F6"
+    BUTTON_ACTIVE_BG = "#2563EB"
+    BUTTON_TEXT = "white"
+    TITLE_TEXT = "#E4E4E7"
+    HELP_TEXT = "#D1D5DB"
+    ERROR_BG = "#EF4444"
+    ERROR_ACTIVE_BG = "#B91C1C"
+    MODAL_BG = "#1F2937"
 
 # Configuration du logger
 def setup_logger():
@@ -21,33 +34,29 @@ logger = setup_logger()
 
 class PythFighterLauncher:
     def __init__(self):
-        # Configuration de la fenêtre principale
         self.root = tk.Tk()
         self.root.title("PythFighter Launcher")
         self.root.geometry("1280x720")
-        self.root.configure(bg="#181825")
-        self.root.attributes("-fullscreen", True)
+        self.root.configure(bg=Colors.BACKGROUND)
+        self.root.resizable(True, True)  # Rendre la fenêtre redimensionnable
 
-        # Configuration des polices
         self.title_font = Font(family="Verdana", size=60, weight="bold")
         self.button_font = Font(family="Verdana", size=20)
         self.text_font = Font(family="Verdana", size=14)
 
-        # Création des éléments de l'interface
         self.create_widgets()
 
     def create_widgets(self):
         # Titre principal
-        title_label = tk.Label(self.root, text="PythFighter", font=self.title_font, fg="#E4E4E7", bg="#181825")
-        title_label.pack(pady=50)
+        title_label = tk.Label(self.root, text="PythFighter", font=self.title_font, fg=Colors.TITLE_TEXT, bg=Colors.BACKGROUND)
+        title_label.grid(row=0, column=0, pady=50)
 
-        # Style des boutons
         button_style = {
             "font": self.button_font,
-            "bg": "#3B82F6",
-            "fg": "white",
-            "activebackground": "#2563EB",
-            "activeforeground": "white",
+            "bg": Colors.BUTTON_BG,
+            "fg": Colors.BUTTON_TEXT,
+            "activebackground": Colors.BUTTON_ACTIVE_BG,
+            "activeforeground": Colors.BUTTON_TEXT,
             "relief": "flat",
             "cursor": "hand2",
             "bd": 0,
@@ -61,7 +70,7 @@ class PythFighterLauncher:
             command=self.run_game,
             **button_style
         )
-        self.launch_button.pack(pady=20, ipadx=50, ipady=20)
+        self.launch_button.grid(row=1, column=0, pady=20, ipadx=50, ipady=20)
 
         # Bouton pour afficher l'aide
         help_button = tk.Button(
@@ -70,7 +79,7 @@ class PythFighterLauncher:
             command=self.show_help,
             **button_style
         )
-        help_button.pack(pady=15, ipadx=50, ipady=20)
+        help_button.grid(row=2, column=0, pady=15, ipadx=50, ipady=20)
 
         # Bouton pour afficher les crédits
         credits_button = tk.Button(
@@ -79,7 +88,7 @@ class PythFighterLauncher:
             command=self.show_credits,
             **button_style
         )
-        credits_button.pack(pady=15, ipadx=50, ipady=20)
+        credits_button.grid(row=3, column=0, pady=15, ipadx=50, ipady=20)
 
         # Bouton pour quitter
         quit_button = tk.Button(
@@ -88,10 +97,49 @@ class PythFighterLauncher:
             command=self.root.quit,
             **button_style
         )
-        quit_button.pack(pady=15, ipadx=50, ipady=20)
+        quit_button.grid(row=4, column=0, pady=15, ipadx=50, ipady=20)
+
+    def show_modal(self, title, content):
+        modal_window = Toplevel(self.root)
+        modal_window.title(title)
+        modal_window.geometry("800x600")
+        modal_window.configure(bg=Colors.MODAL_BG)
+        
+        content_label = tk.Label(modal_window, text=content, font=self.text_font, fg=Colors.HELP_TEXT, bg=Colors.MODAL_BG, justify="left", wraplength=700)
+        content_label.pack(pady=20, padx=20)
+
+        close_button = tk.Button(modal_window, text="Fermer", font=self.button_font, bg=Colors.ERROR_BG, fg=Colors.BUTTON_TEXT, activebackground=Colors.ERROR_ACTIVE_BG, activeforeground=Colors.BUTTON_TEXT, command=modal_window.destroy)
+        close_button.pack(pady=20, ipadx=20, ipady=10)
+
+    def show_help(self):
+        help_content = (
+            "Bienvenue dans l'aide de PythFighter!\n\n"
+            "- Cliquez sur 'Lancer le jeu' pour commencer.\n"
+            "- Utilisez les flèches pour naviguer dans le jeu.\n"
+            "- Consultez les crédits pour plus d'informations."
+        )
+        self.show_modal("Aide", help_content)
+
+    def show_credits(self):
+        credits_content = (
+            "Crédits de PythFighter\n\n"
+            "Développé par :\n"
+            "- Développeur 1\n"
+            "- Développeur 2\n\n"
+            "Merci d'avoir joué!"
+        )
+        self.show_modal("Crédits", credits_content)
+
+    def show_loading(self):
+        self.spinner = ttk.Progressbar(self.root, mode="indeterminate")
+        self.spinner.grid(row=5, column=0, pady=30)
+        self.spinner.start()
+
+    def hide_loading(self):
+        self.spinner.stop()
+        self.spinner.grid_forget()
 
     def run_game(self):
-        # Chemin du fichier selector.py
         script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src", "selector.py")
         logger.info("Lancement du jeu...")
 
@@ -101,6 +149,7 @@ class PythFighterLauncher:
             return
 
         try:
+            self.show_loading()
             subprocess.run([sys.executable, script_path], check=True)
             logger.info("Jeu lancé avec succès.")
         except subprocess.CalledProcessError as e:
@@ -109,75 +158,8 @@ class PythFighterLauncher:
         except Exception as e:
             logger.error(f"Erreur inattendue : {e}")
             messagebox.showerror("Erreur", f"Une erreur inattendue s'est produite.\n{e}")
-
-    def show_help(self):
-        help_window = Toplevel(self.root)
-        help_window.title("Aide")
-        help_window.geometry("800x600")
-        help_window.configure(bg="#1F2937")
-
-        help_label = tk.Label(
-            help_window, 
-            text=(
-                "Bienvenue dans l'aide de PythFighter!\n\n"
-                "- Cliquez sur 'Lancer le jeu' pour commencer.\n"
-                "- Utilisez les flèches pour naviguer dans le jeu.\n"
-                "- Consultez les crédits pour plus d'informations."
-            ), 
-            font=self.text_font, 
-            fg="#D1D5DB", 
-            bg="#1F2937", 
-            justify="left",
-            wraplength=700
-        )
-        help_label.pack(pady=20, padx=20)
-
-        close_button = tk.Button(
-            help_window,
-            text="Fermer",
-            font=self.button_font,
-            bg="#EF4444",
-            fg="white",
-            activebackground="#B91C1C",
-            activeforeground="white",
-            command=help_window.destroy
-        )
-        close_button.pack(pady=20, ipadx=20, ipady=10)
-
-    def show_credits(self):
-        credits_window = Toplevel(self.root)
-        credits_window.title("Crédits")
-        credits_window.geometry("800x600")
-        credits_window.configure(bg="#1F2937")
-
-        credits_label = tk.Label(
-            credits_window, 
-            text=(
-                "Crédits de PythFighter\n\n"
-                "Développé par :\n"
-                "- Développeur 1\n"
-                "- Développeur 2\n\n"
-                "Merci d'avoir joué!"
-            ), 
-            font=self.text_font, 
-            fg="#D1D5DB", 
-            bg="#1F2937", 
-            justify="center",
-            wraplength=700
-        )
-        credits_label.pack(pady=20, padx=20)
-
-        close_button = tk.Button(
-            credits_window,
-            text="Fermer",
-            font=self.button_font,
-            bg="#EF4444",
-            fg="white",
-            activebackground="#B91C1C",
-            activeforeground="white",
-            command=credits_window.destroy
-        )
-        close_button.pack(pady=20, ipadx=20, ipady=10)
+        finally:
+            self.hide_loading()
 
     def run(self):
         logger.info("Lancement du launcher PythFighter.")

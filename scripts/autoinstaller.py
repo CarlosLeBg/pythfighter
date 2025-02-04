@@ -1,3 +1,5 @@
+# Installe les librairies nécessaires au projet si elles ne sont pas déjà installées
+
 import subprocess
 import sys
 import importlib.util

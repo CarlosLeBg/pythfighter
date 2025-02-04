@@ -64,7 +64,7 @@ class Fighter:
         
         # Draw Stamina bar
         stamina_percentage = max(0, self.stamina / self.max_stamina)
-        stamina_color = (0, 0, 255)  # Blue for stamina
+        stamina_color = (255, 165, 0)  # Blue for stamina
         
         pygame.draw.rect(surface, (0, 0, 100),
                         (bar_x, 40, bar_width, bar_height),

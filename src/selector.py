@@ -1,12 +1,22 @@
 import pygame
 import sys
+import subprocess
 import time
 from math import sin, cos
 from dataclasses import dataclass
 from typing import List, Dict, Tuple
 from config.settings import GameSettings
 from config.fighters import AgileFighter, Tank, BurstDamage, ThunderStrike, Bruiser
+
+FIGHTERS = {
+    "AgileFighter": AgileFighter(),
+    "Tank": Tank(),
+    "BurstDamage": BurstDamage(),
+    "ThunderStrike": ThunderStrike(),
+    "Bruiser": Bruiser()
+}
 from position_manager import PositionManager
+import threading
 
 SETTINGS = GameSettings()
 SCREEN_WIDTH = SETTINGS.SCREEN_WIDTH
@@ -21,32 +31,10 @@ CARD_SHADOW_COLOR = (0, 0, 0, 120)
 GRADIENT_TOP = (40, 40, 60)
 GRADIENT_BOTTOM = (15, 15, 25)
 
-@dataclass
-class Character:
-    name: str
-    description: str
-    abilities: List[str]
-    combo_tips: List[str]
-    lore: str
-    height: int
-    weight: int
-    color: Tuple[int, int, int]
-    style: str
-    difficulty: str
-    stats: Dict[str, int]
-
-FIGHTERS = {
-    "AgileFighter": AgileFighter(),
-    "Tank": Tank(),
-    "BurstDamage": BurstDamage(),
-    "ThunderStrike": ThunderStrike(),
-    "Bruiser": Bruiser()
-}
-
 class ParticleSystem:
     def __init__(self):
         self.particles = []
-        
+
     def create_particle(self, pos, color):
         particle = {
             'pos': list(pos),
@@ -56,7 +44,7 @@ class ParticleSystem:
             'size': 4
         }
         self.particles.append(particle)
-        
+
     def update(self):
         for particle in self.particles[:]:
             particle['pos'][0] += particle['velocity'][0]
@@ -65,7 +53,7 @@ class ParticleSystem:
             particle['size'] *= 0.95
             if particle['lifetime'] <= 0:
                 self.particles.remove(particle)
-                
+
     def draw(self, screen):
         for particle in self.particles:
             alpha = min(255, particle['lifetime'] * 4)
@@ -77,15 +65,16 @@ class ParticleSystem:
 class CharacterSelect:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
-        self.position_manager = PositionManager(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("Pyth Fighter - Character Selection")
         
+        self.position_manager = PositionManager(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.selected = {"player1": None, "player2": None}
         self.current_player = "player1"
         self.animation_time = 0
         self.hovered_character = None
         self.particles = ParticleSystem()
+        self.selection_done = False  # New flag for selection completion
         
         # Load and create fonts
         self.fonts = {
@@ -94,9 +83,7 @@ class CharacterSelect:
             'normal': pygame.font.Font(None, 36),
             'small': pygame.font.Font(None, 24)
         }
-        
-        self.position_manager.update_card_positions(FIGHTERS)
-        
+
     def draw_gradient_background(self):
         for y in range(SCREEN_HEIGHT):
             progress = y / SCREEN_HEIGHT
@@ -105,7 +92,7 @@ class CharacterSelect:
                 for i in range(3)
             ]
             pygame.draw.line(self.screen, color, (0, y), (SCREEN_WIDTH, y))
-            
+
     def create_card_glow(self, surface, color, radius):
         glow = pygame.Surface((surface.get_width() + radius * 2, 
                              surface.get_height() + radius * 2), 
@@ -159,7 +146,8 @@ class CharacterSelect:
         y_content = 20
         
         # Character name
-        text = self.fonts['subtitle'].render(name, True, TEXT_COLOR)
+        name_parts = data.name.split(" ")
+        text = self.fonts['subtitle'].render(name_parts[0], True, TEXT_COLOR)
         card_surface.blit(text, 
                          (SETTINGS.CARD_WIDTH//2 - text.get_width()//2, y_content))
         y_content += 50
@@ -180,7 +168,8 @@ class CharacterSelect:
             pygame.draw.rect(card_surface, (50, 50, 50),
                            (20, y_content + 20, bar_width, 10))
             # Value bar with gradient
-            for x in range(int(bar_width * (value/10))):
+            value_width = int(bar_width * (value/10 if isinstance(value, (int, float)) else value/120))
+            for x in range(value_width):
                 progress = x / bar_width
                 color = [
                     max(0, min(255, data.color[i] * (1 + progress * 0.5)))
@@ -228,7 +217,7 @@ class CharacterSelect:
         
         # Panel content
         y = 20
-        title = self.fonts['title'].render(self.hovered_character, True, TEXT_COLOR)
+        title = self.fonts['title'].render(char_data.name.split(" ")[0], True, TEXT_COLOR)
         surface.blit(title, (20, y))
         y += 60
         
@@ -248,50 +237,16 @@ class CharacterSelect:
         if line:
             desc = self.fonts['normal'].render(line, True, TEXT_COLOR)
             surface.blit(desc, (20, y))
-        y += 50
         
-        # Stats with animated bars
-        for stat_name, value in char_data.stats.items():
-            stat_text = self.fonts['normal'].render(f"{stat_name}:", True, TEXT_COLOR)
-            surface.blit(stat_text, (20, y))
-            
-            bar_width = panel_rect.width - 180
-            bar_progress = (1 + sin(self.animation_time * 2)) / 2
-            current_width = bar_width * (value/10) * bar_progress
-            
-            pygame.draw.rect(surface, (50, 50, 50),
-                           (140, y + 8, bar_width, 10))
-            pygame.draw.rect(surface, char_data.color,
-                           (140, y + 8, current_width, 10))
-            
-            value_text = self.fonts['normal'].render(str(value), True, TEXT_COLOR)
-            surface.blit(value_text,
-                        (150 + bar_width, y))
-            y += 40
-        
-        self.screen.blit(surface, panel_rect.topleft)
+        self.screen.blit(surface, (panel_rect.x, panel_rect.y))
 
     def draw_player_prompts(self):
-        prompt_text = f"Player {self.current_player[-1]} Select"
-        text = self.fonts['subtitle'].render(prompt_text, True, TEXT_COLOR)
-        x = SCREEN_WIDTH // 2 - text.get_width() // 2
-        y = 80
+        # Player prompts
+        player_text = self.fonts['normal'].render(f"Joueur 1: {self.selected['player1']}" if self.selected["player1"] else "Joueur 1: Sélectionner", True, TEXT_COLOR)
+        self.screen.blit(player_text, (20, SCREEN_HEIGHT - 80))
         
-        # Add glow effect
-        color = SETTINGS.PLAYER1_COLOR if self.current_player == "player1" else SETTINGS.PLAYER2_COLOR
-        glow_surface = pygame.Surface((text.get_width() + 20,
-                                     text.get_height() + 20),
-                                    pygame.SRCALPHA)
-        for i in range(10, 0, -1):
-            alpha = int(25 * (i / 10))
-            pygame.draw.rect(glow_surface, (*color, alpha),
-                           (10 - i, 10 - i,
-                            text.get_width() + i * 2,
-                            text.get_height() + i * 2),
-                           border_radius=5)
-        
-        self.screen.blit(glow_surface, (x - 10, y - 10))
-        self.screen.blit(text, (x, y))
+        player_text = self.fonts['normal'].render(f"Joueur 2: {self.selected['player2']}" if self.selected["player2"] else "Joueur 2: Sélectionner", True, TEXT_COLOR)
+        self.screen.blit(player_text, (SCREEN_WIDTH - player_text.get_width() - 20, SCREEN_HEIGHT - 80))
 
     def run(self):
         clock = pygame.time.Clock()
@@ -306,27 +261,45 @@ class CharacterSelect:
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     for char_name, char_rect in self.position_manager.card_positions.items():
                         if char_rect.collidepoint(event.pos):
-                            self.selected[self.current_player] = char_name
+                            if self.current_player == "player1" and self.selected['player1'] is None:
+                                self.selected['player1'] = char_name
+                            elif self.current_player == "player2" and self.selected['player2'] is None:
+                                self.selected['player2'] = char_name
+                            if self.selected['player1'] and self.selected['player2']:
+                                self.selection_done = True  # Flag to indicate both players selected
                             self.current_player = "player2" if self.current_player == "player1" else "player1"
                             break
-                            
+
             # Draw everything
+            self.screen.fill(BACKGROUND_COLOR)
             self.draw_gradient_background()
             self.particles.update()
             self.particles.draw(self.screen)
+
+            self.hovered_character = None
+
+            # Draw cards
+            for fighter_name, fighter in FIGHTERS.items():
+                self.draw_character_card(fighter_name, fighter)
             
-            for char_name in FIGHTERS:
-                self.draw_character_card(char_name, FIGHTERS[char_name])
-                
             self.draw_detail_panel()
             self.draw_player_prompts()
-            
+
+            # Delay before launching the game
+            if self.selection_done:
+                pygame.display.flip()
+                time.sleep(0.5)  # 0.5 seconds for character selection visualization
+                # Run the game
+                subprocess.run([sys.executable, "src/game.py", self.selected["player1"], self.selected["player2"]])
+                sys.exit()
+
             pygame.display.flip()
             clock.tick(FPS)
-            
+
         pygame.quit()
         sys.exit()
 
+# Run the game
 if __name__ == "__main__":
     game = CharacterSelect()
     game.run()

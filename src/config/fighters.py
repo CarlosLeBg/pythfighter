@@ -19,7 +19,7 @@ class AgileFighter(Fighter):
         super().__init__(
             "Menfou (Benjamin)", speed=9, damage=7,
             abilities=["Dodge", "Quick Strike"],
-            style="Agile", stats={"Force": 7, "Défense": 3, "Vitesse": 9, "Vie": 95},
+            style="Agile", stats={"Force": 7, "Défense": 3, "Vitesse": 9, "Vie": 100},
             description="Un samouraï rapide et précis, excellent pour esquiver et contre-attaquer.",
             combo_tips=["Esquivez puis enchaînez avec une frappe rapide pour un maximum d'impact."],
             lore="Benjamin est un maître du katana, spécialisé dans la rapidité et les attaques chirurgicales.",
@@ -34,7 +34,7 @@ class Tank(Fighter):
         super().__init__(
             "Tank (Carl)", speed=2, damage=20,
             abilities=["Shield Bash", "Endurance"],
-            style="Defensive", stats={"Force": 10, "Défense": 6, "Vitesse": 2, "Vie": 120},
+            style="Defensive", stats={"Force": 10, "Défense": 6, "Vitesse": 2, "Vie": 100},
             description="Un guerrier imposant et lent, mais capable d'encaisser et de frapper très fort.",
             combo_tips=["Utilisez Shield Bash pour repousser les ennemis, puis suivez avec une attaque lourde."],
             lore="Carl est un géant sur le champ de bataille, inarrêtable dans sa quête de victoire.",
@@ -79,7 +79,7 @@ class Bruiser(Fighter):
         super().__init__(
             "Bruiser (Rémi)", speed=7, damage=8,
             abilities=["Balanced Strike", "Power Up"],
-            style="Balanced", stats={"Force": 8, "Défense": 4, "Vitesse": 7, "Vie": 105},
+            style="Balanced", stats={"Force": 8, "Défense": 4, "Vitesse": 7, "Vie": 100},
             description="Un combattant polyvalent, équilibré dans toutes les statistiques.",
             combo_tips=["Activez Power Up pour augmenter vos dégâts, puis frappez avec Balanced Strike."],
             lore="Rémi est un guerrier polyvalent, prêt à affronter n'importe quelle situation avec aplomb.",

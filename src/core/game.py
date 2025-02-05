@@ -1,6 +1,11 @@
 import pygame
 import sys
 import time
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+
 from config.fighters import AgileFighter, Tank, BurstDamage, ThunderStrike, Bruiser
 
 BASE_WIDTH, BASE_HEIGHT = 175, 112
@@ -172,7 +177,7 @@ class Game:
         self.screen = pygame.display.set_mode((VISIBLE_WIDTH, VISIBLE_HEIGHT))
         pygame.display.set_caption("PythFighter")
         
-        self.bg_image = pygame.image.load("src/assets/backg.jpg")
+        self.bg_image = pygame.image.load(r"src\assets\backgrounds\backg.jpg")
         self.bg_image = pygame.transform.scale(self.bg_image, (VISIBLE_WIDTH, VISIBLE_HEIGHT))
         
         self.controllers = []

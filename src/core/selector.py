@@ -1,5 +1,10 @@
 import pygame
 import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+
 import subprocess
 import time
 from math import sin, cos
@@ -15,7 +20,7 @@ FIGHTERS = {
     "ThunderStrike": ThunderStrike(),
     "Bruiser": Bruiser()
 }
-from position_manager import PositionManager
+from managers.position_manager import PositionManager
 import threading
 
 SETTINGS = GameSettings()
@@ -290,7 +295,7 @@ class CharacterSelect:
                 pygame.display.flip()
                 time.sleep(0.5)  # 0.5 seconds for character selection visualization
                 # Run the game
-                subprocess.run([sys.executable, "src/game.py", self.selected["player1"], self.selected["player2"]])
+                subprocess.run([sys.executable, "src\core\game.py", self.selected["player1"], self.selected["player2"]])
                 sys.exit()
 
             pygame.display.flip()

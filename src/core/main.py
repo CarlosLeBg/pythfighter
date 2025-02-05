@@ -140,7 +140,7 @@ class PythFighterLauncher:
         self.spinner.grid_forget()
 
     def run_game(self):
-        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src", "selector.py")
+        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "selector.py")
         logger.info("Lancement du jeu...")
 
         if not os.path.exists(script_path):

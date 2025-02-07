@@ -5,7 +5,6 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-
 from config.fighters import AgileFighter, Tank, BurstDamage, ThunderStrike, Bruiser
 
 BASE_WIDTH, BASE_HEIGHT = 175, 112

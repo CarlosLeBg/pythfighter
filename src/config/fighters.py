@@ -17,7 +17,7 @@ class Fighter:
 class AgileFighter(Fighter):
     def __init__(self):
         super().__init__(
-            "Menfou (Benjamin)", speed=8, damage=7,
+            "Ben (Benjamin)", speed=8, damage=7,
             abilities=["Dodge", "Quick Strike"],
             style="Agile", stats={"Force": 7, "Défense": 3, "Vitesse": 8, "Vie": 95},
             description="Rapide et insaisissable, il excelle dans l'esquive et la contre-attaque.",

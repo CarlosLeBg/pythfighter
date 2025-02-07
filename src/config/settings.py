@@ -13,7 +13,7 @@ class GameSettings:
     # Configuration de l'écran
     SCREEN_WIDTH = 1920
     SCREEN_HEIGHT = 1080
-    FPS = 60
+    FPS = 20
 
     # Mode debug
     DEBUG_MODE = False

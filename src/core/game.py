@@ -39,7 +39,7 @@ class Fighter:
 
         self.on_ground = True
         self.attacking = False
-        self.can_attack = True  # New attribute to prevent multiple attacks
+        self.can_attack = True
         self.blocking = False
         self.attack_cooldown = 0
         self.invincibility_frames = 0
@@ -68,7 +68,7 @@ class Fighter:
 
         # Draw Stamina bar
         stamina_percentage = max(0, self.stamina / self.max_stamina)
-        stamina_color = (255, 165, 0)  # Blue for stamina
+        stamina_color = (255, 165, 0)
 
         pygame.draw.rect(surface, (0, 0, 100),
                         (bar_x, 40, bar_width, bar_height),
@@ -108,12 +108,11 @@ class Fighter:
             distance = abs(self.rect.centerx - opponent_x)
             if distance < self.rect.width * 2:
                 self.attacking = True
-                self.can_attack = False  # Prevent multiple attacks
+                self.can_attack = False
                 self.attack_cooldown = 15
-                self.stamina -= 10  # Spend stamina on attack
+                self.stamina -= 10
 
     def reset_attack(self):
-        # Reset attack state when cooldown completes
         if self.attack_cooldown > 0:
             self.attack_cooldown -= 1
             if self.attack_cooldown == 0:
@@ -122,11 +121,11 @@ class Fighter:
 
     def block(self):
         self.blocking = True
-        self.stamina = max(0, self.stamina - 5)  # Spend stamina while blocking
+        self.stamina = max(0, self.stamina - 5)
 
     def recover_stamina(self):
         if self.stamina < self.max_stamina:
-            self.stamina += 0.1  # Slower recovery
+            self.stamina += 0.1
         self.stamina = min(self.stamina, self.max_stamina)
 
     def update_physics(self):
@@ -164,14 +163,12 @@ class Fighter:
         if self.invincibility_frames > 0:
             self.invincibility_frames -= 1
 
-        # Reset attack state
         self.reset_attack()
 
 class Game:
     def __init__(self, player1_type="AgileFighter", player2_type="Tank"):
         pygame.init()
         pygame.joystick.init()
-        pygame.mixer.init()
 
         self.screen = pygame.display.set_mode((VISIBLE_WIDTH, VISIBLE_HEIGHT))
         pygame.display.set_caption("PythFighter")
@@ -209,10 +206,6 @@ class Game:
         self.round_time = 99
         self.font = pygame.font.Font(None, 36)
 
-        # Load sound effects
-        self.hit_sound = pygame.mixer.Sound("src/assets/sounds/hit.wav")
-        self.attack_sound = pygame.mixer.Sound("src/assets/sounds/attack.wav")
-
     def draw_timer(self):
         if self.game_start_time:
             remaining_time = max(0, int(self.round_time - (time.time() - self.game_start_time)))
@@ -224,7 +217,7 @@ class Game:
 
     def draw_pause_menu(self):
         pause_surface = pygame.Surface((VISIBLE_WIDTH, VISIBLE_HEIGHT), pygame.SRCALPHA)
-        pause_surface.fill((0, 0, 0, 128))  # Semi-transparent black
+        pause_surface.fill((0, 0, 0, 128))
 
         pause_text = self.font.render("PAUSE", True, (255, 255, 255))
         resume_text = self.font.render("Press ESC to Resume", True, (200, 200, 200))
@@ -257,7 +250,6 @@ class Game:
 
         if controller.get_button(1):  # Attack
             fighter.attack(self.fighters[1 if fighter.player == 1 else 0].rect.centerx)
-            self.attack_sound.play()
             print("Attack button pressed")
 
     def handle_keyboard_input(self, fighter, keys, current_time):
@@ -278,7 +270,6 @@ class Game:
 
             if keys[pygame.K_r]:  # Attack
                 fighter.attack(self.fighters[1].rect.centerx)
-                self.attack_sound.play()
         else:
             if keys[pygame.K_LEFT]:
                 fighter.vel_x = -fighter.speed * 2
@@ -296,7 +287,6 @@ class Game:
 
             if keys[pygame.K_RETURN]:  # Attack
                 fighter.attack(self.fighters[0].rect.centerx)
-                self.attack_sound.play()
 
     def draw_countdown(self, number):
         font = pygame.font.Font(None, 200)
@@ -313,16 +303,14 @@ class Game:
 
         keys = pygame.key.get_pressed()
 
-        # Handle game pause
         if keys[pygame.K_ESCAPE]:
             self.pause_menu_active = not self.pause_menu_active
-            pygame.time.delay(200)  # Prevent multiple toggles
+            pygame.time.delay(200)
 
         if self.pause_menu_active:
             self.draw_pause_menu()
             return
 
-        # Draw and check timer
         remaining_time = self.draw_timer()
         if remaining_time <= 0:
             print("Time's up!")
@@ -334,7 +322,6 @@ class Game:
             fighter.recover_stamina()
             fighter.draw(self.screen)
 
-        # Input handling
         for i, fighter in enumerate(self.fighters):
             if i < len(self.controllers):
                 self.handle_controller_input(fighter, self.controllers[i], current_time)
@@ -345,7 +332,6 @@ class Game:
         self.clock.tick(60)
 
     def run(self):
-        # Countdown before game starts
         if self.show_start_timer:
             for i in range(3, 0, -1):
                 self.screen.fill((0, 0, 0))
@@ -361,16 +347,12 @@ class Game:
                     sys.exit()
 
             if self.game_start_time:
-                # Check for first fighter's hit
                 if self.fighters[0].hitbox.colliderect(self.fighters[1].hitbox):
                     if self.fighters[0].attacking:
                         self.fighters[1].take_damage(self.fighters[0].damage, time.time())
-                        self.hit_sound.play()
                     elif self.fighters[1].attacking:
                         self.fighters[0].take_damage(self.fighters[1].damage, time.time())
-                        self.hit_sound.play()
 
-                # Check for game over conditions
                 if self.fighters[0].health <= 0 or self.fighters[1].health <= 0:
                     print("Game Over!")
                     pygame.quit()

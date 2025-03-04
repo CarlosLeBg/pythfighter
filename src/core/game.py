@@ -21,22 +21,22 @@ class Fighter:
         self.damage = fighter_data.damage
         self.max_health = fighter_data.stats["Vie"]
         self.health = self.max_health
-        
+
         self.max_stamina = 100
         self.stamina = self.max_stamina
-        
+
         self.pos_x = float(x)
         self.pos_y = float(91)
         self.vel_x = 0.0
         self.vel_y = 0.0
         self.direction = 1 if player == 1 else -1
-        
+
         self.fighter_width = VISIBLE_WIDTH // 16
         self.fighter_height = VISIBLE_HEIGHT // 4
         self.rect = pygame.Rect(x, 91, self.fighter_width, self.fighter_height)
         self.hitbox = pygame.Rect(x + self.fighter_width//4, 91 + self.fighter_height//4,
                                 self.fighter_width//2, self.fighter_height*3//4)
-        
+
         self.on_ground = True
         self.attacking = False
         self.can_attack = True  # New attribute to prevent multiple attacks
@@ -50,39 +50,39 @@ class Fighter:
         if self.invincibility_frames % 4 < 2:  # Flash when hit
             pygame.draw.rect(surface, self.color, self.rect)
         pygame.draw.rect(surface, (0,0,0), self.rect, 2)
-        
+
         bar_width = VISIBLE_WIDTH * 0.4
         bar_height = 20
         health_percentage = max(0, self.health / self.max_health)
         health_color = (int(255 * (1 - health_percentage)),
                        int(255 * health_percentage), 0)
-        
+
         bar_x = 20 if self.player == 1 else VISIBLE_WIDTH - bar_width - 20
-        
+
         pygame.draw.rect(surface, (100, 0, 0),
                         (bar_x, 10, bar_width, bar_height),
                         border_radius=10)
         pygame.draw.rect(surface, health_color,
                         (bar_x, 10, bar_width * health_percentage, bar_height),
                         border_radius=10)
-        
+
         # Draw Stamina bar
         stamina_percentage = max(0, self.stamina / self.max_stamina)
         stamina_color = (255, 165, 0)  # Blue for stamina
-        
+
         pygame.draw.rect(surface, (0, 0, 100),
                         (bar_x, 40, bar_width, bar_height),
                         border_radius=10)
         pygame.draw.rect(surface, stamina_color,
                         (bar_x, 40, bar_width * stamina_percentage, bar_height),
                         border_radius=10)
-        
+
         # Adjusted positions for text
         name_font = pygame.font.Font(None, 24)
         name_text = name_font.render(self.name, True, (220, 220, 240))
         health_text = name_font.render(f"{int(self.health)}/{self.max_health}", True, (150, 150, 180))
         combo_text = name_font.render(f"Combo: {self.combo_count}", True, (255, 215, 0))
-        
+
         if self.player == 1:
             surface.blit(name_text, (bar_x, 60))
             surface.blit(health_text, (bar_x + bar_width - 100, 60))
@@ -172,18 +172,19 @@ class Game:
         pygame.init()
         pygame.joystick.init()
         pygame.mixer.init()
-        
+
         self.screen = pygame.display.set_mode((VISIBLE_WIDTH, VISIBLE_HEIGHT))
         pygame.display.set_caption("PythFighter")
-        
+
         self.bg_image = pygame.image.load(r"src\assets\backgrounds\backg.jpg")
         self.bg_image = pygame.transform.scale(self.bg_image, (VISIBLE_WIDTH, VISIBLE_HEIGHT))
-        
+
         self.controllers = []
         for i in range(min(2, pygame.joystick.get_count())):
             joy = pygame.joystick.Joystick(i)
             joy.init()
             self.controllers.append(joy)
+            print(f"Controller {i} initialized with {joy.get_numaxes()} axes and {joy.get_numbuttons()} buttons.")
 
         fighter_map = {
             "AgileFighter": AgileFighter,
@@ -192,8 +193,8 @@ class Game:
             "ThunderStrike": ThunderStrike,
             "Bruiser": Bruiser
         }
-        GROUND_Y = 91  
-        fighter_height = VISIBLE_HEIGHT // 4  
+        GROUND_Y = 91
+        fighter_height = VISIBLE_HEIGHT // 4
 
         self.fighters = [
             Fighter(1, VISIBLE_WIDTH//4, GROUND_Y - fighter_height, fighter_map[player1_type]()),
@@ -207,6 +208,10 @@ class Game:
         self.game_start_time = None
         self.round_time = 99
         self.font = pygame.font.Font(None, 36)
+
+        # Load sound effects
+        self.hit_sound = pygame.mixer.Sound("src/assets/sounds/hit.wav")
+        self.attack_sound = pygame.mixer.Sound("src/assets/sounds/attack.wav")
 
     def draw_timer(self):
         if self.game_start_time:
@@ -223,10 +228,10 @@ class Game:
 
         pause_text = self.font.render("PAUSE", True, (255, 255, 255))
         resume_text = self.font.render("Press ESC to Resume", True, (200, 200, 200))
-        
+
         pause_rect = pause_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//2 - 50))
         resume_rect = resume_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//2 + 50))
-        
+
         self.screen.blit(pause_surface, (0, 0))
         self.screen.blit(pause_text, pause_rect)
         self.screen.blit(resume_text, resume_rect)
@@ -234,21 +239,26 @@ class Game:
 
     def handle_controller_input(self, fighter, controller, current_time):
         deadzone = 0.2
-        
+
         x_axis = controller.get_axis(0)
         if abs(x_axis) > deadzone:
             fighter.vel_x = fighter.speed * 2 * x_axis
             fighter.direction = 1 if x_axis > 0 else -1
-        
+            print(f"Controller axis 0 value: {x_axis}")
+
         if controller.get_button(0) and fighter.on_ground:
             fighter.vel_y = -10
             fighter.on_ground = False
-        
+            print("Jump button pressed")
+
         if controller.get_button(2):  # Blocking
             fighter.block()
-        
+            print("Block button pressed")
+
         if controller.get_button(1):  # Attack
             fighter.attack(self.fighters[1 if fighter.player == 1 else 0].rect.centerx)
+            self.attack_sound.play()
+            print("Attack button pressed")
 
     def handle_keyboard_input(self, fighter, keys, current_time):
         if fighter.player == 1:
@@ -258,16 +268,17 @@ class Game:
             elif keys[pygame.K_d]:
                 fighter.vel_x = fighter.speed * 2
                 fighter.direction = 1
-            
+
             if keys[pygame.K_w] and fighter.on_ground:
                 fighter.vel_y = -10
                 fighter.on_ground = False
-            
+
             if keys[pygame.K_LSHIFT]:  # Blocking
                 fighter.block()
-            
+
             if keys[pygame.K_r]:  # Attack
                 fighter.attack(self.fighters[1].rect.centerx)
+                self.attack_sound.play()
         else:
             if keys[pygame.K_LEFT]:
                 fighter.vel_x = -fighter.speed * 2
@@ -279,12 +290,13 @@ class Game:
             if keys[pygame.K_UP] and fighter.on_ground:
                 fighter.vel_y = -10
                 fighter.on_ground = False
-            
+
             if keys[pygame.K_RSHIFT]:  # Blocking
                 fighter.block()
-            
+
             if keys[pygame.K_RETURN]:  # Attack
                 fighter.attack(self.fighters[0].rect.centerx)
+                self.attack_sound.play()
 
     def draw_countdown(self, number):
         font = pygame.font.Font(None, 200)
@@ -296,16 +308,16 @@ class Game:
 
     def update(self):
         current_time = time.time()
-        self.screen.fill((0, 0, 0))  
-        self.screen.blit(self.bg_image, (0, 0))  
-        
+        self.screen.fill((0, 0, 0))
+        self.screen.blit(self.bg_image, (0, 0))
+
         keys = pygame.key.get_pressed()
-        
+
         # Handle game pause
         if keys[pygame.K_ESCAPE]:
             self.pause_menu_active = not self.pause_menu_active
             pygame.time.delay(200)  # Prevent multiple toggles
-        
+
         if self.pause_menu_active:
             self.draw_pause_menu()
             return
@@ -319,14 +331,14 @@ class Game:
 
         for fighter in self.fighters:
             fighter.update_physics()
-            fighter.recover_stamina() 
+            fighter.recover_stamina()
             fighter.draw(self.screen)
 
         # Input handling
         for i, fighter in enumerate(self.fighters):
             if i < len(self.controllers):
                 self.handle_controller_input(fighter, self.controllers[i], current_time)
-            
+
             self.handle_keyboard_input(fighter, keys, current_time)
 
         pygame.display.flip()
@@ -353,8 +365,10 @@ class Game:
                 if self.fighters[0].hitbox.colliderect(self.fighters[1].hitbox):
                     if self.fighters[0].attacking:
                         self.fighters[1].take_damage(self.fighters[0].damage, time.time())
+                        self.hit_sound.play()
                     elif self.fighters[1].attacking:
                         self.fighters[0].take_damage(self.fighters[1].damage, time.time())
+                        self.hit_sound.play()
 
                 # Check for game over conditions
                 if self.fighters[0].health <= 0 or self.fighters[1].health <= 0:

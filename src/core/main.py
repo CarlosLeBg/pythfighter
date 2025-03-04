@@ -3,18 +3,46 @@ from tkinter import messagebox
 import os
 import sys
 import subprocess
+import pygame
 from typing import Tuple, List, Callable
+
+class ControllerManager:
+    """Gère les entrées des manettes."""
+
+    def __init__(self):
+        pygame.init()
+        pygame.joystick.init()
+        self.joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
+        for joystick in self.joysticks:
+            joystick.init()
+        self.primary_joystick = self.joysticks[0] if self.joysticks else None
+
+    def get_input(self):
+        pygame.event.pump()
+        buttons = []
+        axes = []
+        for joystick in self.joysticks:
+            buttons.append([joystick.get_button(i) for i in range(joystick.get_numbuttons())])
+            axes.append([joystick.get_axis(i) for i in range(joystick.get_numaxes())])
+        return buttons, axes
+
+    def get_primary_input(self):
+        if self.primary_joystick:
+            buttons = [self.primary_joystick.get_button(i) for i in range(self.primary_joystick.get_numbuttons())]
+            axes = [self.primary_joystick.get_axis(i) for i in range(self.primary_joystick.get_numaxes())]
+            return buttons, axes
+        return [], []
 
 class LauncherPythFighter:
     """Launcher principal pour le jeu PythFighter avec une interface graphique améliorée."""
-    
+
     COLORS = {
         'background': '#1A1A2E',
         'primary': '#E94560',
         'secondary': '#16213E',
         'text': '#FFFFFF',
         'hover': '#FF6B6B',
-        'shadow': '#121220'  # Couleur plus sombre pour l'ombre
+        'shadow': '#121220'
     }
 
     FONTS = {
@@ -26,19 +54,17 @@ class LauncherPythFighter:
     def __init__(self) -> None:
         """Initialise le launcher avec une configuration de base."""
         self.root = tk.Tk()
+        self.controller_manager = ControllerManager()
         self.setup_window()
         self.create_canvas()
         self.create_interface()
-        self.bind_keys()
+        self.bind_controller()
 
     def setup_window(self) -> None:
         """Configure la fenêtre principale."""
         self.root.title("PythFighter Launcher")
         self.root.attributes('-fullscreen', True)
         self.root.configure(bg=self.COLORS['background'])
-        
-        # Ajout d'une option pour quitter avec Escape
-        self.root.bind('<Escape>', lambda e: self.confirm_quit())
 
     def create_canvas(self) -> None:
         """Crée et configure le canvas principal."""
@@ -58,7 +84,6 @@ class LauncherPythFighter:
     def _create_title(self) -> None:
         """Crée le titre du jeu avec un effet d'ombre."""
         screen_width = self.root.winfo_screenwidth()
-        # Plusieurs couches d'ombre pour un effet de profondeur
         offset = 3
         for i in range(3):
             self.canvas.create_text(
@@ -68,7 +93,6 @@ class LauncherPythFighter:
                 font=self.FONTS['title'],
                 fill=self.COLORS['shadow']
             )
-        # Texte principal
         self.canvas.create_text(
             screen_width // 2,
             150,
@@ -86,6 +110,7 @@ class LauncherPythFighter:
             ("Quitter", self.confirm_quit)
         ]
 
+        self.buttons = []
         for i, (text, command) in enumerate(menu_items):
             button = tk.Button(
                 self.root,
@@ -98,11 +123,6 @@ class LauncherPythFighter:
                 relief=tk.FLAT,
                 cursor="hand2"
             )
-            
-            # Ajout des effets de survol
-            button.bind('<Enter>', lambda e, b=button: self._on_button_hover(b, True))
-            button.bind('<Leave>', lambda e, b=button: self._on_button_hover(b, False))
-            
             self.canvas.create_window(
                 self.root.winfo_screenwidth() // 2,
                 400 + (i * 100),
@@ -110,6 +130,7 @@ class LauncherPythFighter:
                 width=400,
                 height=70
             )
+            self.buttons.append(button)
 
     def _create_version_info(self) -> None:
         """Ajoute les informations de version en bas de l'écran."""
@@ -128,11 +149,34 @@ class LauncherPythFighter:
             bg=self.COLORS['hover'] if entering else self.COLORS['secondary']
         )
 
-    def bind_keys(self) -> None:
-        """Configure les raccourcis clavier."""
-        self.root.bind('<Return>', lambda e: self.launch_game())
-        self.root.bind('<c>', lambda e: self.show_credits())
-        self.root.bind('<o>', lambda e: self.show_options())
+    def bind_controller(self) -> None:
+        """Configure les entrées de la manette."""
+        self.selected_index = 0
+        self._highlight_button(self.selected_index)
+        self.check_controller()
+
+    def _highlight_button(self, index: int) -> None:
+        """Met en surbrillance le bouton sélectionné."""
+        for i, button in enumerate(self.buttons):
+            if i == index:
+                button.config(bg=self.COLORS['hover'])
+            else:
+                button.config(bg=self.COLORS['secondary'])
+
+    def check_controller(self) -> None:
+        """Vérifie les entrées de la manette."""
+        buttons, _ = self.controller_manager.get_primary_input()
+        if buttons and buttons[0]:  # Bouton A (ou bouton principal)
+            self.buttons[self.selected_index].invoke()
+        if buttons and buttons[6]:  # Bouton Start
+            self.confirm_quit()
+        if buttons and buttons[12]:  # Bouton D-pad Up
+            self.selected_index = (self.selected_index - 1) % len(self.buttons)
+            self._highlight_button(self.selected_index)
+        if buttons and buttons[13]:  # Bouton D-pad Down
+            self.selected_index = (self.selected_index + 1) % len(self.buttons)
+            self._highlight_button(self.selected_index)
+        self.root.after(100, self.check_controller)
 
     def launch_game(self) -> None:
         """Lance le jeu principal avec gestion d'erreurs améliorée."""
@@ -151,9 +195,7 @@ class LauncherPythFighter:
         self.credits_window = tk.Toplevel(self.root)
         self.credits_window.attributes('-fullscreen', True)
         self.credits_window.configure(bg=self.COLORS['background'])
-        
         credits_text = self._get_credits_text()
-        
         self.credits_label = tk.Label(
             self.credits_window,
             text=credits_text,
@@ -163,8 +205,6 @@ class LauncherPythFighter:
             justify=tk.CENTER
         )
         self.credits_label.place(relx=0.5, rely=1.0, anchor=tk.S)
-
-        # Ajout d'un bouton pour fermer les crédits
         close_button = tk.Button(
             self.credits_window,
             text="×",
@@ -175,7 +215,6 @@ class LauncherPythFighter:
             relief=tk.FLAT
         )
         close_button.place(x=20, y=20)
-
         self.credits_position = self.root.winfo_screenheight()
         self._animate_credits()
 
@@ -213,7 +252,6 @@ class LauncherPythFighter:
         """Anime le défilement des crédits."""
         self.credits_position -= 2
         self.credits_label.place(relx=0.5, y=self.credits_position, anchor=tk.S)
-        
         if self.credits_position > -self.credits_label.winfo_reqheight():
             self.credits_window.after(50, self._animate_credits)
         else:
@@ -225,7 +263,6 @@ class LauncherPythFighter:
         options_window.title("Options")
         options_window.geometry("400x300")
         options_window.configure(bg=self.COLORS['background'])
-        
         tk.Label(
             options_window,
             text="Options",
@@ -233,14 +270,11 @@ class LauncherPythFighter:
             bg=self.COLORS['background'],
             fg=self.COLORS['primary']
         ).pack(pady=20)
-        
-        # Exemple d'options
         options = [
             ("Plein écran", tk.BooleanVar(value=True)),
             ("Musique", tk.BooleanVar(value=True)),
             ("Effets sonores", tk.BooleanVar(value=True))
         ]
-        
         for text, var in options:
             tk.Checkbutton(
                 options_window,

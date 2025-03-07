@@ -45,6 +45,7 @@ class Fighter:
         self.invincibility_frames = 0
         self.combo_count = 0
         self.last_hit_time = 0
+        self.block_stamina_drain_timer = 0
 
     def draw(self, surface):
         if self.invincibility_frames % 4 < 2:  # Flash when hit
@@ -92,9 +93,16 @@ class Fighter:
             surface.blit(health_text, (bar_x, 60))
             surface.blit(combo_text, (bar_x + bar_width - combo_text.get_width(), 80))
 
+        # Draw block indicator
+        if self.blocking and self.stamina > 0:
+            block_font = pygame.font.Font(None, 20)
+            block_text = block_font.render("BLOCKING", True, (0, 255, 255))
+            block_x = bar_x if self.player == 1 else bar_x + bar_width - block_text.get_width()
+            surface.blit(block_text, (block_x, 100))
+
     def take_damage(self, damage, current_time):
         if self.invincibility_frames <= 0:
-            actual_damage = damage * (0.5 if self.blocking else 1)
+            actual_damage = damage * (0.5 if self.blocking and self.stamina > 0 else 1)
             self.health = max(0, self.health - actual_damage)
             self.invincibility_frames = 30
             if current_time - self.last_hit_time < 1.0:
@@ -120,12 +128,23 @@ class Fighter:
                 self.can_attack = True
 
     def block(self):
-        self.blocking = True
-        self.stamina = max(0, self.stamina - 5)
+        if self.stamina > 0:
+            self.blocking = True
+            self.block_stamina_drain_timer += 1
+            # Drain 6 stamina per second (assuming 60 FPS, so 0.1 per frame)
+            if self.block_stamina_drain_timer >= 6:
+                self.stamina = max(0, self.stamina - 0.6)
+                self.block_stamina_drain_timer = 0
+        else:
+            self.blocking = False
+
+    def stop_blocking(self):
+        self.blocking = False
+        self.block_stamina_drain_timer = 0
 
     def recover_stamina(self):
-        if self.stamina < self.max_stamina:
-            self.stamina += 0.1
+        if not self.blocking and self.stamina < self.max_stamina:
+            self.stamina += 0.2
         self.stamina = min(self.stamina, self.max_stamina)
 
     def update_physics(self):
@@ -199,12 +218,27 @@ class Game:
         ]
 
         self.clock = pygame.time.Clock()
-        self.pause_menu_active = False
-        self.show_start_timer = True
+        self.game_state = "countdown"  # "countdown", "playing", "paused", "victory"
         self.start_time = time.time()
         self.game_start_time = None
         self.round_time = 99
         self.font = pygame.font.Font(None, 36)
+        self.winner = None
+        
+        # Menu options
+        self.menu_options = ["Resume", "Options", "Quit"]
+        self.selected_option = 0
+        
+        # Sound effects
+        try:
+            pygame.mixer.init()
+            self.hit_sound = pygame.mixer.Sound(r"src\assets\sounds\hit.wav")
+            self.victory_sound = pygame.mixer.Sound(r"src\assets\sounds\victory.wav")
+            self.menu_sound = pygame.mixer.Sound(r"src\assets\sounds\menu.wav")
+            self.sounds_loaded = True
+        except:
+            print("Could not load sound effects")
+            self.sounds_loaded = False
 
     def draw_timer(self):
         if self.game_start_time:
@@ -216,18 +250,69 @@ class Game:
         return self.round_time
 
     def draw_pause_menu(self):
+        # Semi-transparent background
         pause_surface = pygame.Surface((VISIBLE_WIDTH, VISIBLE_HEIGHT), pygame.SRCALPHA)
-        pause_surface.fill((0, 0, 0, 128))
-
-        pause_text = self.font.render("PAUSE", True, (255, 255, 255))
-        resume_text = self.font.render("Press ESC to Resume", True, (200, 200, 200))
-
-        pause_rect = pause_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//2 - 50))
-        resume_rect = resume_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//2 + 50))
-
+        pause_surface.fill((0, 0, 0, 180))
         self.screen.blit(pause_surface, (0, 0))
-        self.screen.blit(pause_text, pause_rect)
-        self.screen.blit(resume_text, resume_rect)
+        
+        # Title
+        title_font = pygame.font.Font(None, 72)
+        title_text = title_font.render("PAUSE", True, (255, 255, 255))
+        title_rect = title_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//4))
+        self.screen.blit(title_text, title_rect)
+        
+        # Menu options
+        for i, option in enumerate(self.menu_options):
+            color = (255, 255, 0) if i == self.selected_option else (200, 200, 200)
+            option_text = self.font.render(option, True, color)
+            option_rect = option_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//2 + i * 50))
+            self.screen.blit(option_text, option_rect)
+            
+            # Draw selection indicator
+            if i == self.selected_option:
+                pygame.draw.rect(self.screen, (255, 255, 0), option_rect.inflate(20, 10), 2)
+        
+        # Controls guide
+        controls_font = pygame.font.Font(None, 24)
+        controls_text = controls_font.render("↑/↓: Navigate   Enter: Select", True, (150, 150, 150))
+        controls_rect = controls_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT*3//4 + 50))
+        self.screen.blit(controls_text, controls_rect)
+        
+        pygame.display.flip()
+
+    def draw_victory_screen(self):
+        # Semi-transparent background
+        victory_surface = pygame.Surface((VISIBLE_WIDTH, VISIBLE_HEIGHT), pygame.SRCALPHA)
+        victory_surface.fill((0, 0, 0, 180))
+        self.screen.blit(victory_surface, (0, 0))
+        
+        # Victory title
+        title_font = pygame.font.Font(None, 72)
+        winner_name = self.fighters[self.winner-1].name
+        title_text = title_font.render(f"PLAYER {self.winner} WINS!", True, (255, 215, 0))
+        name_text = title_font.render(f"{winner_name}", True, self.fighters[self.winner-1].color)
+        
+        title_rect = title_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//4))
+        name_rect = name_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//4 + 80))
+        
+        self.screen.blit(title_text, title_rect)
+        self.screen.blit(name_text, name_rect)
+        
+        # Victory animation (pulsing effect)
+        pulse = abs(pygame.time.get_ticks() % 2000 - 1000) / 1000
+        size = 150 + pulse * 50
+        pygame.draw.circle(self.screen, self.fighters[self.winner-1].color, 
+                          (VISIBLE_WIDTH//2, VISIBLE_HEIGHT//2 + 50), size, 5)
+        
+        # Continue text
+        continue_font = pygame.font.Font(None, 36)
+        continue_text = continue_font.render("Press ENTER to continue", True, (200, 200, 200))
+        continue_rect = continue_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT*3//4 + 50))
+        
+        # Flashing effect for the continue text
+        if (pygame.time.get_ticks() // 500) % 2 == 0:
+            self.screen.blit(continue_text, continue_rect)
+            
         pygame.display.flip()
 
     def handle_controller_input(self, fighter, controller, current_time):
@@ -237,20 +322,36 @@ class Game:
         if abs(x_axis) > deadzone:
             fighter.vel_x = fighter.speed * 2 * x_axis
             fighter.direction = 1 if x_axis > 0 else -1
-            print(f"Controller axis 0 value: {x_axis}")
 
-        if controller.get_button(0) and fighter.on_ground:
+        if controller.get_button(0) and fighter.on_ground:  # Jump
             fighter.vel_y = -10
             fighter.on_ground = False
-            print("Jump button pressed")
 
         if controller.get_button(2):  # Blocking
             fighter.block()
-            print("Block button pressed")
+        else:
+            fighter.stop_blocking()
 
         if controller.get_button(1):  # Attack
             fighter.attack(self.fighters[1 if fighter.player == 1 else 0].rect.centerx)
-            print("Attack button pressed")
+
+        # Handle menu navigation with controller
+        if self.game_state == "paused" or self.game_state == "victory":
+            if controller.get_button(7):  # Start button to resume
+                if self.game_state == "paused":
+                    self.game_state = "playing"
+                elif self.game_state == "victory":
+                    pygame.quit()
+                    sys.exit()
+                    
+            # D-pad for menu navigation
+            dpad_y = controller.get_hat(0)[1] if controller.get_numhats() > 0 else 0
+            if dpad_y == 1:  # Up
+                self.selected_option = (self.selected_option - 1) % len(self.menu_options)
+                pygame.time.delay(200)
+            elif dpad_y == -1:  # Down
+                self.selected_option = (self.selected_option + 1) % len(self.menu_options)
+                pygame.time.delay(200)
 
     def handle_keyboard_input(self, fighter, keys, current_time):
         if fighter.player == 1:
@@ -267,6 +368,8 @@ class Game:
 
             if keys[pygame.K_LSHIFT]:  # Blocking
                 fighter.block()
+            else:
+                fighter.stop_blocking()
 
             if keys[pygame.K_r]:  # Attack
                 fighter.attack(self.fighters[1].rect.centerx)
@@ -284,38 +387,128 @@ class Game:
 
             if keys[pygame.K_RSHIFT]:  # Blocking
                 fighter.block()
+            else:
+                fighter.stop_blocking()
 
             if keys[pygame.K_RETURN]:  # Attack
                 fighter.attack(self.fighters[0].rect.centerx)
 
+    def handle_menu_input(self, keys, events):
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    self.selected_option = (self.selected_option - 1) % len(self.menu_options)
+                    if self.sounds_loaded:
+                        self.menu_sound.play()
+                elif event.key == pygame.K_DOWN:
+                    self.selected_option = (self.selected_option + 1) % len(self.menu_options)
+                    if self.sounds_loaded:
+                        self.menu_sound.play()
+                elif event.key == pygame.K_RETURN:
+                    self.execute_menu_option()
+                elif event.key == pygame.K_ESCAPE:
+                    if self.game_state == "paused":
+                        self.game_state = "playing"
+
+    def execute_menu_option(self):
+        selected = self.menu_options[self.selected_option]
+        if selected == "Resume":
+            self.game_state = "playing"
+        elif selected == "Options":
+            # Just a placeholder for now
+            print("Options menu not implemented yet")
+            # You could implement a screen for options here
+        elif selected == "Quit":
+            pygame.quit()
+            sys.exit()
+
     def draw_countdown(self, number):
+        self.screen.fill((0, 0, 0))
+        self.screen.blit(self.bg_image, (0, 0))
+        
+        # Draw fighters in background
+        for fighter in self.fighters:
+            fighter.draw(self.screen)
+        
+        # Semi-transparent overlay
+        overlay = pygame.Surface((VISIBLE_WIDTH, VISIBLE_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 128))
+        self.screen.blit(overlay, (0, 0))
+        
+        # Draw countdown
         font = pygame.font.Font(None, 200)
         text = font.render(str(number), True, (255, 255, 255))
         text_rect = text.get_rect(center=(VISIBLE_WIDTH/2, VISIBLE_HEIGHT/2))
+        
+        # Add glow effect
+        for i in range(20, 0, -5):
+            glow = pygame.Surface((text.get_width() + i*2, text.get_height() + i*2), pygame.SRCALPHA)
+            glow.fill((0, 0, 0, 0))
+            pygame.draw.rect(glow, (255, 255, 0, 10), 
+                             (0, 0, text.get_width() + i*2, text.get_height() + i*2), 
+                             border_radius=10)
+            self.screen.blit(glow, (text_rect.x - i, text_rect.y - i))
+        
         self.screen.blit(text, text_rect)
+        
+        # Draw ready text
+        ready_font = pygame.font.Font(None, 72)
+        ready_text = ready_font.render("GET READY!", True, (255, 255, 255))
+        ready_rect = ready_text.get_rect(center=(VISIBLE_WIDTH/2, VISIBLE_HEIGHT/2 - 150))
+        self.screen.blit(ready_text, ready_rect)
+        
         pygame.display.flip()
         pygame.time.wait(1000)
 
     def update(self):
         current_time = time.time()
+        events = pygame.event.get()
+        
+        for event in events:
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    if self.game_state == "playing":
+                        self.game_state = "paused"
+                    elif self.game_state == "paused":
+                        self.game_state = "playing"
+
         self.screen.fill((0, 0, 0))
         self.screen.blit(self.bg_image, (0, 0))
 
         keys = pygame.key.get_pressed()
 
-        if keys[pygame.K_ESCAPE]:
-            self.pause_menu_active = not self.pause_menu_active
-            pygame.time.delay(200)
-
-        if self.pause_menu_active:
+        if self.game_state == "paused":
+            # Draw fighters in background
+            for fighter in self.fighters:
+                fighter.draw(self.screen)
             self.draw_pause_menu()
+            self.handle_menu_input(keys, events)
+            return
+        
+        if self.game_state == "victory":
+            # Draw fighters in background before victory overlay
+            for fighter in self.fighters:
+                fighter.draw(self.screen)
+            self.draw_victory_screen()
+            if keys[pygame.K_RETURN]:
+                pygame.quit()
+                sys.exit()
             return
 
+        # Game is playing
         remaining_time = self.draw_timer()
         if remaining_time <= 0:
-            print("Time's up!")
-            pygame.quit()
-            sys.exit()
+            # Determine winner based on health percentage
+            health_percent_1 = self.fighters[0].health / self.fighters[0].max_health
+            health_percent_2 = self.fighters[1].health / self.fighters[1].max_health
+            self.winner = 1 if health_percent_1 >= health_percent_2 else 2
+            self.game_state = "victory"
+            if self.sounds_loaded:
+                self.victory_sound.play()
+            return
 
         for fighter in self.fighters:
             fighter.update_physics()
@@ -328,37 +521,38 @@ class Game:
 
             self.handle_keyboard_input(fighter, keys, current_time)
 
+        # Check for collisions and apply damage
+        if self.fighters[0].hitbox.colliderect(self.fighters[1].hitbox):
+            if self.fighters[0].attacking:
+                self.fighters[1].take_damage(self.fighters[0].damage, time.time())
+                if self.sounds_loaded:
+                    self.hit_sound.play()
+            elif self.fighters[1].attacking:
+                self.fighters[0].take_damage(self.fighters[1].damage, time.time())
+                if self.sounds_loaded:
+                    self.hit_sound.play()
+
+        # Check for game over
+        for i, fighter in enumerate(self.fighters):
+            if fighter.health <= 0:
+                self.winner = 2 if i == 0 else 1
+                self.game_state = "victory"
+                if self.sounds_loaded:
+                    self.victory_sound.play()
+                return
+
         pygame.display.flip()
         self.clock.tick(60)
 
     def run(self):
-        if self.show_start_timer:
+        if self.game_state == "countdown":
             for i in range(3, 0, -1):
-                self.screen.fill((0, 0, 0))
-                self.screen.blit(self.bg_image, (0, 0))
                 self.draw_countdown(i)
-            self.show_start_timer = False
+            self.game_state = "playing"
             self.game_start_time = time.time()
 
         while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-
-            if self.game_start_time:
-                if self.fighters[0].hitbox.colliderect(self.fighters[1].hitbox):
-                    if self.fighters[0].attacking:
-                        self.fighters[1].take_damage(self.fighters[0].damage, time.time())
-                    elif self.fighters[1].attacking:
-                        self.fighters[0].take_damage(self.fighters[1].damage, time.time())
-
-                if self.fighters[0].health <= 0 or self.fighters[1].health <= 0:
-                    print("Game Over!")
-                    pygame.quit()
-                    sys.exit()
-
-                self.update()
+            self.update()
 
 if __name__ == "__main__":
     if len(sys.argv) > 2:

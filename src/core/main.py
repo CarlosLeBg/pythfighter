@@ -223,20 +223,17 @@ class LauncherPythFighter:
         self._check_credits_controller()
 
     def _check_credits_controller(self):
+        """Vérifie les entrées de la manette pour la fenêtre de crédits."""
         if hasattr(self, 'credits_window') and self.credits_window.winfo_exists():
             buttons, axes = self.controller_manager.get_primary_input()
             current_time = time.time()
 
-            # Ajoutez des logs pour le débogage
-            print(f"Buttons: {buttons}")
-            print(f"Axes: {axes}")
-
             if current_time - self.last_nav_time > self.NAV_COOLDOWN:
-                if axes and (axes[1] < -0.3 or axes[3] < -0.3):  # Joystick vers le haut
+                if axes and (axes[1] < -0.5 or axes[3] < -0.5):  # Joystick vers le haut
                     self.credits_position += 20
                     self.credits_label.place(relx=0.5, y=self.credits_position, anchor=tk.S)
                     self.last_nav_time = current_time
-                elif axes and (axes[1] > 0.3 or axes[3] > 0.3):  # Joystick vers le bas
+                elif axes and (axes[1] > 0.5 or axes[3] > 0.5):  # Joystick vers le bas
                     self.credits_position -= 20
                     self.credits_label.place(relx=0.5, y=self.credits_position, anchor=tk.S)
                     self.last_nav_time = current_time

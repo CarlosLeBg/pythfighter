@@ -563,8 +563,4 @@ if __name__ == "__main__":
         game = Game(sys.argv[1], sys.argv[2])
     else:
         game = Game()
-<<<<<<< HEAD
     game.run()
-=======
-    game.run()
->>>>>>> 7c870a1612608cbd8eb6621a4bf38b8a77871869

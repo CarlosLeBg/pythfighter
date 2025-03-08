@@ -3,6 +3,7 @@ import sys
 import time
 import os
 from enum import Enum
+from PIL import Image, ImageSequence  # Pour manipuler les GIF et supprimer le fond
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -23,6 +24,37 @@ class GameState(Enum):
     PLAYING = "playing"
     PAUSED = "paused"
     VICTORY = "victory"
+
+def load_animation(path, action, frame_count):
+    frames = []
+    for i in range(frame_count):
+        # Gérer le cas spécial pour "walk" où les frames sont numérotées différemment
+        if action == "walk":
+            frame_name = f"frame_{i}_delay-0.1s.gif"
+        else:
+            frame_name = f"frame_{i:02}_delay-0.1s.gif"
+        
+        frame_path = os.path.join(path, action, frame_name)
+        
+        # Charger l'image avec PIL pour supprimer le fond
+        img = Image.open(frame_path).convert("RGBA")
+        datas = img.getdata()
+
+        # Supprimer le fond bleu (#5D6D87)
+        new_data = []
+        for item in datas:
+            if item[0] == 93 and item[1] == 109 and item[2] == 135:  # Couleur #5D6D87 en RGB
+                new_data.append((255, 255, 255, 0))  # Rendre transparent
+            else:
+                new_data.append(item)
+        
+        img.putdata(new_data)
+
+        # Convertir en surface Pygame
+        img = pygame.image.fromstring(img.tobytes(), img.size, img.mode)
+        frames.append(img)
+    
+    return frames
 
 class Fighter:
     def __init__(self, player, x, y, fighter_data):
@@ -55,11 +87,41 @@ class Fighter:
         self.last_hit_time = 0
         self.block_stamina_drain_timer = 0
 
-    def draw(self, surface):
-        if self.invincibility_frames % 4 < 2:  # Flash when hit
-            pygame.draw.rect(surface, self.color, self.rect)
-        pygame.draw.rect(surface, (0,0,0), self.rect, 2)
+        # Charger les animations uniquement pour le Tank
+        if self.name == "Tank":
+            self.animations = {
+                "idle": load_animation(os.path.join("src", "assets", "characters", "tank"), "idle", 9),
+                "walk": load_animation(os.path.join("src", "assets", "characters", "tank"), "walk", 7),
+                "attack": load_animation(os.path.join("src", "assets", "characters", "tank"), "attack", 20),
+                "dead": load_animation(os.path.join("src", "assets", "characters", "tank"), "dead", 15),
+            }
+            self.current_animation = "idle"
+            self.animation_frame = 0
+            self.animation_speed = 0.2  # Vitesse de l'animation
+        else:
+            self.animations = None
 
+    def draw(self, surface):
+        if self.animations:  # Si le personnage a des animations (Tank)
+            # Afficher l'animation actuelle
+            frame = int(self.animation_frame) % len(self.animations[self.current_animation])
+            sprite = self.animations[self.current_animation][frame]
+            sprite = pygame.transform.scale(sprite, (self.fighter_width, self.fighter_height))
+            if self.direction == -1:  # Inverser l'image si le personnage regarde à gauche
+                sprite = pygame.transform.flip(sprite, True, False)
+            surface.blit(sprite, (self.rect.x, self.rect.y))
+
+            # Mettre à jour l'animation
+            self.animation_frame = (self.animation_frame + self.animation_speed) % len(self.animations[self.current_animation])
+        else:  # Pour les autres personnages, utiliser des cubes de couleur
+            if self.invincibility_frames % 4 < 2:  # Flash quand touché
+                pygame.draw.rect(surface, self.color, self.rect)
+            pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
+
+        # Dessiner les barres de vie et d'endurance (comme avant)
+        self.draw_health_stamina_bars(surface)
+
+    def draw_health_stamina_bars(self, surface):
         bar_width = VISIBLE_WIDTH * 0.4
         bar_height = 20
         health_percentage = max(0, self.health / self.max_health)
@@ -156,6 +218,19 @@ class Fighter:
         self.stamina = min(self.stamina, self.max_stamina)
 
     def update_physics(self):
+        if self.animations:
+            if self.attacking:
+                self.current_animation = "attack"
+            elif not self.on_ground:
+                self.current_animation = "idle"  # Ou une animation de saut si disponible
+            elif abs(self.vel_x) > 0.5:
+                self.current_animation = "walk"
+            else:
+                self.current_animation = "idle"
+
+            if self.health <= 0:
+                self.current_animation = "dead"
+
         if not self.on_ground:
             self.vel_y += GRAVITY
 

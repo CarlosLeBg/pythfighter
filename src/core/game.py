@@ -3,7 +3,6 @@ import sys
 import time
 import os
 from enum import Enum
-from PIL import Image  # Pour manipuler les GIF et supprimer le fond
 import logging
 
 # Configuration des logs
@@ -32,46 +31,47 @@ class GameState(Enum):
 
 def load_animation(path, action, frame_count, fighter_width, fighter_height):
     frames = []
+
+    # Construire le chemin correct vers le dossier d'animation avec os.path.join
+    animation_folder = os.path.join(path, f"{action}")
+
+    logging.info(f"Tentative de chargement de l'animation depuis: {animation_folder}")
+
+    # Vérifier si le dossier existe
+    if not os.path.exists(animation_folder):
+        logging.error(f"Dossier d'animation introuvable - {animation_folder}")
+        return frames
+
     for i in range(frame_count):
         # Gérer le cas spécial pour "walk" où les frames sont numérotées différemment
         if action == "walk":
-            frame_name = f"frame_{i}_delay-0.1s.gif"
+            frame_name = f"frame_{i}_delay-0.1s.png"
         else:
-            frame_name = f"frame_{i:02}_delay-0.1s.gif"
+            frame_name = f"frame_{i:02}_delay-0.1s.png"
 
-        frame_path = os.path.join(path, action, frame_name)
+        frame_path = os.path.join(animation_folder, frame_name)
 
         # Vérifier si le fichier existe
         if not os.path.exists(frame_path):
             logging.error(f"Fichier introuvable - {frame_path}")
             continue  # Passer à la frame suivante
 
-        # Charger l'image avec PIL pour supprimer le fond
         try:
-            img = Image.open(frame_path).convert("RGBA")
-            datas = img.getdata()
-
-            # Supprimer le fond bleu (#5D6D87)
-            new_data = []
-            for item in datas:
-                if item[0] == 93 and item[1] == 109 and item[2] == 135:  # Couleur #5D6D87 en RGB
-                    new_data.append((255, 255, 255, 0))  # Rendre transparent
-                else:
-                    new_data.append(item)
-
-            img.putdata(new_data)
+            # Charger directement l'image PNG avec Pygame
+            img = pygame.image.load(frame_path).convert_alpha()
 
             # Redimensionner l'image pour qu'elle corresponde à la taille du personnage
-            img = img.resize((fighter_width, fighter_height), Image.ANTIALIAS)
+            img = pygame.transform.scale(img, (fighter_width, fighter_height))
 
-            # Convertir en surface Pygame
-            img = pygame.image.fromstring(img.tobytes(), img.size, img.mode)
             frames.append(img)
+            logging.debug(f"Image chargée avec succès: {frame_path}")
         except Exception as e:
             logging.error(f"Erreur lors du chargement de {frame_path}: {e}")
 
     if not frames:
-        logging.error(f"Aucune frame chargée pour l'action {action} dans {path}")
+        logging.error(f"Aucune frame chargée pour l'action {action} dans {animation_folder}")
+    else:
+        logging.info(f"Animation '{action}' chargée avec succès: {len(frames)} frames")
 
     return frames
 
@@ -105,40 +105,56 @@ class Fighter:
         self.combo_count = 0
         self.last_hit_time = 0
         self.block_stamina_drain_timer = 0
+        self.animations = None
+        self.current_animation = "idle"
+        self.animation_frame = 0
+        self.animation_speed = 0.2
 
-        # Charger les animations uniquement pour le Tank
-        if self.name == "Tank":
-            logging.info(f"Chargement des animations pour {self.name}...")
-            self.animations = {
-                "idle": load_animation(os.path.join("src", "assets", "characters", "tank"), "idle", 9, self.fighter_width, self.fighter_height),
-                "walk": load_animation(os.path.join("src", "assets", "characters", "tank"), "walk", 7, self.fighter_width, self.fighter_height),
-                "attack": load_animation(os.path.join("src", "assets", "characters", "tank"), "attack", 20, self.fighter_width, self.fighter_height),
-                "dead": load_animation(os.path.join("src", "assets", "characters", "tank"), "dead", 15, self.fighter_width, self.fighter_height),
-            }
-            self.current_animation = "idle"
-            self.animation_frame = 0
-            self.animation_speed = 0.2  # Vitesse de l'animation
-            logging.info(f"Animations chargées pour {self.name}: {list(self.animations.keys())}")
+        # Charger les animations pour le personnage
+        logging.info(f"Chargement des animations pour {self.name}...")
+        base_path = os.path.join("src", "assets", "characters", self.name.lower())
+
+        if not os.path.exists(base_path):
+            logging.error(f"Dossier de base pour les animations introuvable: {base_path}")
         else:
-            self.animations = None
+            logging.info(f"Dossier de base trouvé: {base_path}")
+
+            self.animations = {
+                "idle": load_animation(base_path, "idle", 10, self.fighter_width, self.fighter_height),
+                "walk": load_animation(base_path, "walk", 8, self.fighter_width, self.fighter_height),
+                "attack": load_animation(base_path, "attack", 21, self.fighter_width, self.fighter_height),
+                "dead": load_animation(base_path, "dead", 16, self.fighter_width, self.fighter_height),
+            }
+
+            # Vérifier que les animations ont bien été chargées
+            for anim_name, frames in self.animations.items():
+                logging.info(f"Animation '{anim_name}': {len(frames)} frames chargées")
 
     def draw(self, surface):
-        if self.animations:  # Si le personnage a des animations (Tank)
-            # Afficher l'animation actuelle
-            frame = int(self.animation_frame) % len(self.animations[self.current_animation])
-            sprite = self.animations[self.current_animation][frame]
-            if self.direction == -1:  # Inverser l'image si le personnage regarde à gauche
-                sprite = pygame.transform.flip(sprite, True, False)
-            surface.blit(sprite, (self.rect.x, self.rect.y))
+        if self.animations and any(len(frames) > 0 for frames in self.animations.values()):
+            # S'assurer que l'animation actuelle a des frames
+            if self.current_animation in self.animations and len(self.animations[self.current_animation]) > 0:
+                frame_idx = int(self.animation_frame) % len(self.animations[self.current_animation])
+                sprite = self.animations[self.current_animation][frame_idx]
 
-            # Mettre à jour l'animation
-            self.animation_frame = (self.animation_frame + self.animation_speed) % len(self.animations[self.current_animation])
+                if self.direction == -1:  # Inverser l'image si le personnage regarde à gauche
+                    sprite = pygame.transform.flip(sprite, True, False)
+
+                surface.blit(sprite, (self.rect.x, self.rect.y))
+
+                # Mettre à jour l'animation
+                self.animation_frame = (self.animation_frame + self.animation_speed) % len(self.animations[self.current_animation])
+            else:
+                # Fallback si l'animation est vide
+                if self.invincibility_frames % 4 < 2:
+                    pygame.draw.rect(surface, self.color, self.rect)
+                pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
         else:  # Pour les autres personnages, utiliser des cubes de couleur
             if self.invincibility_frames % 4 < 2:  # Flash quand touché
                 pygame.draw.rect(surface, self.color, self.rect)
             pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
 
-        # Dessiner les barres de vie et d'endurance (comme avant)
+        # Dessiner les barres de vie et d'endurance
         self.draw_health_stamina_bars(surface)
 
     def draw_health_stamina_bars(self, surface):
@@ -238,17 +254,20 @@ class Fighter:
         self.stamina = min(self.stamina, self.max_stamina)
 
     def update_physics(self):
-        if self.animations:
-            if self.attacking:
+        if self.animations and any(len(frames) > 0 for frames in self.animations.values()):
+            if self.attacking and "attack" in self.animations and len(self.animations["attack"]) > 0:
                 self.current_animation = "attack"
             elif not self.on_ground:
-                self.current_animation = "idle"  # Ou une animation de saut si disponible
+                if "idle" in self.animations and len(self.animations["idle"]) > 0:
+                    self.current_animation = "idle"  # Ou une animation de saut si disponible
             elif abs(self.vel_x) > 0.5:
-                self.current_animation = "walk"
+                if "walk" in self.animations and len(self.animations["walk"]) > 0:
+                    self.current_animation = "walk"
             else:
-                self.current_animation = "idle"
+                if "idle" in self.animations and len(self.animations["idle"]) > 0:
+                    self.current_animation = "idle"
 
-            if self.health <= 0:
+            if self.health <= 0 and "dead" in self.animations and len(self.animations["dead"]) > 0:
                 self.current_animation = "dead"
 
         if not self.on_ground:
@@ -291,15 +310,26 @@ class Game:
         self.screen = pygame.display.set_mode((VISIBLE_WIDTH, VISIBLE_HEIGHT))
         pygame.display.set_caption("PythFighter")
 
-        self.bg_image = pygame.image.load(r"src\assets\backgrounds\backg.jpg")
-        self.bg_image = pygame.transform.scale(self.bg_image, (VISIBLE_WIDTH, VISIBLE_HEIGHT))
+        try:
+            bg_path = os.path.join("src", "assets", "backgrounds", "backg.jpg")
+            self.bg_image = pygame.image.load(bg_path)
+            self.bg_image = pygame.transform.scale(self.bg_image, (VISIBLE_WIDTH, VISIBLE_HEIGHT))
+            logging.info(f"Image de fond chargée avec succès: {bg_path}")
+        except Exception as e:
+            logging.error(f"Erreur lors du chargement de l'image de fond: {e}")
+            # Créer une image de fond par défaut si l'image ne peut pas être chargée
+            self.bg_image = pygame.Surface((VISIBLE_WIDTH, VISIBLE_HEIGHT))
+            self.bg_image.fill((50, 50, 80))  # Fond bleu foncé par défaut
 
         self.controllers = []
         for i in range(min(2, pygame.joystick.get_count())):
-            joy = pygame.joystick.Joystick(i)
-            joy.init()
-            self.controllers.append(joy)
-            logging.info(f"Controller {i} initialized with {joy.get_numaxes()} axes and {joy.get_numbuttons()} buttons.")
+            try:
+                joy = pygame.joystick.Joystick(i)
+                joy.init()
+                self.controllers.append(joy)
+                logging.info(f"Controller {i} initialized with {joy.get_numaxes()} axes and {joy.get_numbuttons()} buttons.")
+            except Exception as e:
+                logging.error(f"Erreur lors de l'initialisation du contrôleur {i}: {e}")
 
         fighter_map = {
             "AgileFighter": AgileFighter,
@@ -309,6 +339,14 @@ class Game:
             "Bruiser": Bruiser
         }
         fighter_height = VISIBLE_HEIGHT // 4
+
+        # S'assurer que les types de combattants sont valides
+        if player1_type not in fighter_map:
+            logging.warning(f"Type de combattant invalide: {player1_type}, utilisation d'AgileFighter par défaut")
+            player1_type = "AgileFighter"
+        if player2_type not in fighter_map:
+            logging.warning(f"Type de combattant invalide: {player2_type}, utilisation de Tank par défaut")
+            player2_type = "Tank"
 
         self.fighters = [
             Fighter(1, VISIBLE_WIDTH//4, GROUND_Y - fighter_height, fighter_map[player1_type]()),
@@ -330,13 +368,18 @@ class Game:
         # Sound effects
         try:
             pygame.mixer.init()
-            self.hit_sound = pygame.mixer.Sound(r"src\assets\sounds\hit.wav")
-            self.victory_sound = pygame.mixer.Sound(r"src\assets\sounds\victory.wav")
-            self.menu_sound = pygame.mixer.Sound(r"src\assets\sounds\menu.wav")
+            self.hit_sound = pygame.mixer.Sound(os.path.join("src", "assets", "sounds", "hit.wav"))
+            self.victory_sound = pygame.mixer.Sound(os.path.join("src", "assets", "sounds", "victory.wav"))
+            self.menu_sound = pygame.mixer.Sound(os.path.join("src", "assets", "sounds", "menu.wav"))
             self.sounds_loaded = True
-        except:
-            logging.error("Could not load sound effects")
+            logging.info("Sons chargés avec succès")
+        except Exception as e:
+            logging.error(f"Impossible de charger les effets sonores: {e}")
             self.sounds_loaded = False
+            # Création de sons vides pour éviter les erreurs
+            self.hit_sound = None
+            self.victory_sound = None
+            self.menu_sound = None
 
     def draw_timer(self):
         if self.game_start_time:
@@ -417,40 +460,46 @@ class Game:
         deadzone = 0.2
 
         if controller:
-            x_axis = controller.get_axis(0)
-            if abs(x_axis) > deadzone:
-                fighter.vel_x = fighter.speed * 2 * x_axis
-                fighter.direction = 1 if x_axis > 0 else -1
+            try:
+                x_axis = controller.get_axis(0)
+                if abs(x_axis) > deadzone:
+                    fighter.vel_x = fighter.speed * 2 * x_axis
+                    fighter.direction = 1 if x_axis > 0 else -1
 
-            if controller.get_button(0) and fighter.on_ground:  # Jump
-                fighter.vel_y = -10
-                fighter.on_ground = False
+                if controller.get_button(0) and fighter.on_ground:  # Jump
+                    fighter.vel_y = -10
+                    fighter.on_ground = False
 
-            if controller.get_button(2):  # Blocking
-                fighter.block()
-            else:
-                fighter.stop_blocking()
+                if controller.get_button(2):  # Blocking
+                    fighter.block()
+                else:
+                    fighter.stop_blocking()
 
-            if controller.get_button(1):  # Attack
-                fighter.attack(self.fighters[1 if fighter.player == 1 else 0].rect.centerx)
+                if controller.get_button(1):  # Attack
+                    fighter.attack(self.fighters[1 if fighter.player == 1 else 0].rect.centerx)
 
-            # Handle menu navigation with controller
-            if self.game_state in [GameState.PAUSED, GameState.VICTORY]:
-                if controller.get_button(7):  # Start button to resume
-                    if self.game_state == GameState.PAUSED:
-                        self.game_state = GameState.PLAYING
-                    elif self.game_state == GameState.VICTORY:
-                        pygame.quit()
-                        sys.exit()
+                # Handle menu navigation with controller
+                if self.game_state in [GameState.PAUSED, GameState.VICTORY]:
+                    if controller.get_button(7):  # Start button to resume
+                        if self.game_state == GameState.PAUSED:
+                            self.game_state = GameState.PLAYING
+                        elif self.game_state == GameState.VICTORY:
+                            pygame.quit()
+                            sys.exit()
 
-                # D-pad for menu navigation
-                dpad_y = controller.get_hat(0)[1] if controller.get_numhats() > 0 else 0
-                if dpad_y == 1:  # Up
-                    self.selected_option = (self.selected_option - 1) % len(self.menu_options)
-                    pygame.time.delay(200)
-                elif dpad_y == -1:  # Down
-                    self.selected_option = (self.selected_option + 1) % len(self.menu_options)
-                    pygame.time.delay(200)
+                    # D-pad for menu navigation
+                    try:
+                        dpad_y = controller.get_hat(0)[1] if controller.get_numhats() > 0 else 0
+                        if dpad_y == 1:  # Up
+                            self.selected_option = (self.selected_option - 1) % len(self.menu_options)
+                            pygame.time.delay(200)
+                        elif dpad_y == -1:  # Down
+                            self.selected_option = (self.selected_option + 1) % len(self.menu_options)
+                            pygame.time.delay(200)
+                    except Exception as e:
+                        logging.error(f"Erreur lors de la navigation du D-pad: {e}")
+            except Exception as e:
+                logging.error(f"Erreur lors de la gestion des entrées du contrôleur: {e}")
 
         if keys:
             if fighter.player == 1:
@@ -497,12 +546,18 @@ class Game:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     self.selected_option = (self.selected_option - 1) % len(self.menu_options)
-                    if self.sounds_loaded:
-                        self.menu_sound.play()
+                    if self.sounds_loaded and self.menu_sound:
+                        try:
+                            self.menu_sound.play()
+                        except Exception as e:
+                            logging.error(f"Erreur lors de la lecture du son de menu: {e}")
                 elif event.key == pygame.K_DOWN:
                     self.selected_option = (self.selected_option + 1) % len(self.menu_options)
-                    if self.sounds_loaded:
-                        self.menu_sound.play()
+                    if self.sounds_loaded and self.menu_sound:
+                        try:
+                            self.menu_sound.play()
+                        except Exception as e:
+                            logging.error(f"Erreur lors de la lecture du son de menu: {e}")
                 elif event.key == pygame.K_RETURN:
                     self.execute_menu_option()
                 elif event.key == pygame.K_ESCAPE:

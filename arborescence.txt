@@ -1,0 +1,119 @@
+Structure du dossier pour le volume WINDOWS
+Le numéro de série du volume est BCB4-CA7D
+C:.
+¦   .gitignore
+¦   arborescence.txt
+¦   controller_manager.py
+¦   healthbar.py
+¦   launcher.log
+¦   
++---.vscode
+¦       settings.json
+¦       
++---src
+    +---assets
+    ¦   ¦   bg.jpg
+    ¦   ¦   logo-bg.png
+    ¦   ¦   
+    ¦   +---backgrounds
+    ¦   ¦       backg.jpg
+    ¦   ¦       temp_backg.jpg
+    ¦   ¦       
+    ¦   +---characters
+    ¦   ¦   +---tank
+    ¦   ¦       +---tank-attack
+    ¦   ¦       ¦       frame_00_delay-0.1s.png
+    ¦   ¦       ¦       frame_01_delay-0.1s.png
+    ¦   ¦       ¦       frame_02_delay-0.1s.png
+    ¦   ¦       ¦       frame_03_delay-0.1s.png
+    ¦   ¦       ¦       frame_04_delay-0.1s.png
+    ¦   ¦       ¦       frame_05_delay-0.1s.png
+    ¦   ¦       ¦       frame_06_delay-0.1s.png
+    ¦   ¦       ¦       frame_07_delay-0.1s.png
+    ¦   ¦       ¦       frame_08_delay-0.1s.png
+    ¦   ¦       ¦       frame_09_delay-0.1s.png
+    ¦   ¦       ¦       frame_10_delay-0.1s.png
+    ¦   ¦       ¦       frame_11_delay-0.1s.png
+    ¦   ¦       ¦       frame_12_delay-0.1s.png
+    ¦   ¦       ¦       frame_13_delay-0.1s.png
+    ¦   ¦       ¦       frame_14_delay-0.1s.png
+    ¦   ¦       ¦       frame_15_delay-0.1s.png
+    ¦   ¦       ¦       frame_16_delay-0.1s.png
+    ¦   ¦       ¦       frame_17_delay-0.1s.png
+    ¦   ¦       ¦       frame_18_delay-0.1s.png
+    ¦   ¦       ¦       frame_19_delay-0.1s.png
+    ¦   ¦       ¦       frame_20_delay-0.1s.png
+    ¦   ¦       ¦       
+    ¦   ¦       +---tank-dead
+    ¦   ¦       ¦       frame_00_delay-0.1s.png
+    ¦   ¦       ¦       frame_01_delay-0.1s.png
+    ¦   ¦       ¦       frame_02_delay-0.1s.png
+    ¦   ¦       ¦       frame_03_delay-0.1s.png
+    ¦   ¦       ¦       frame_04_delay-0.1s.png
+    ¦   ¦       ¦       frame_05_delay-0.1s.png
+    ¦   ¦       ¦       frame_06_delay-0.1s.png
+    ¦   ¦       ¦       frame_07_delay-0.1s.png
+    ¦   ¦       ¦       frame_08_delay-0.1s.png
+    ¦   ¦       ¦       frame_09_delay-0.1s.png
+    ¦   ¦       ¦       frame_10_delay-0.1s.png
+    ¦   ¦       ¦       frame_11_delay-0.1s.png
+    ¦   ¦       ¦       frame_12_delay-0.1s.png
+    ¦   ¦       ¦       frame_13_delay-0.1s.png
+    ¦   ¦       ¦       frame_14_delay-0.1s.png
+    ¦   ¦       ¦       frame_15_delay-0.1s.png
+    ¦   ¦       ¦       
+    ¦   ¦       +---tank-idle
+    ¦   ¦       ¦       frame_00_delay-0.1s.png
+    ¦   ¦       ¦       frame_01_delay-0.1s.png
+    ¦   ¦       ¦       frame_02_delay-0.1s.png
+    ¦   ¦       ¦       frame_03_delay-0.1s.png
+    ¦   ¦       ¦       frame_04_delay-0.1s.png
+    ¦   ¦       ¦       frame_05_delay-0.1s.png
+    ¦   ¦       ¦       frame_06_delay-0.1s.png
+    ¦   ¦       ¦       frame_07_delay-0.1s.png
+    ¦   ¦       ¦       frame_08_delay-0.1s.png
+    ¦   ¦       ¦       frame_09_delay-0.1s.png
+    ¦   ¦       ¦       
+    ¦   ¦       +---tank-walk
+    ¦   ¦               frame_0_delay-0.1s.png
+    ¦   ¦               frame_1_delay-0.1s.png
+    ¦   ¦               frame_2_delay-0.1s.png
+    ¦   ¦               frame_3_delay-0.1s.png
+    ¦   ¦               frame_4_delay-0.1s.png
+    ¦   ¦               frame_5_delay-0.1s.png
+    ¦   ¦               frame_6_delay-0.1s.png
+    ¦   ¦               frame_7_delay-0.1s.png
+    ¦   ¦               
+    ¦   +---images
+    ¦           logo.png
+    ¦           
+    +---config
+    ¦   ¦   fighters.py
+    ¦   ¦   settings.py
+    ¦   ¦   
+    ¦   +---__pycache__
+    ¦           fighters.cpython-312.pyc
+    ¦           settings.cpython-312.pyc
+    ¦           
+    +---core
+    ¦       game.py
+    ¦       main.py
+    ¦       selector.py
+    ¦       
+    +---managers
+    ¦   ¦   position_manager.py
+    ¦   ¦   
+    ¦   +---__pycache__
+    ¦           position_manager.cpython-312.pyc
+    ¦           
+    +---scripts
+    ¦       particle_system.py
+    ¦       
+    +---utils
+    ¦       autoinstaller.py
+    ¦       
+    +---__pycache__
+            animations.cpython-312.pyc
+            particle_system.cpython-312.pyc
+            position_manager.cpython-312.pyc
+            

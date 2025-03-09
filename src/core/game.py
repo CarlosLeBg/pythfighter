@@ -3,7 +3,12 @@ import sys
 import time
 import os
 from enum import Enum
-from PIL import Image, ImageSequence  # Pour manipuler les GIF et supprimer le fond
+from PIL import Image  # Pour manipuler les GIF et supprimer le fond
+import logging
+
+# Configuration des logs
+logging.basicConfig(filename='launcher.log', level=logging.DEBUG,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -25,7 +30,7 @@ class GameState(Enum):
     PAUSED = "paused"
     VICTORY = "victory"
 
-def load_animation(path, action, frame_count):
+def load_animation(path, action, frame_count, fighter_width, fighter_height):
     frames = []
     for i in range(frame_count):
         # Gérer le cas spécial pour "walk" où les frames sont numérotées différemment
@@ -33,27 +38,41 @@ def load_animation(path, action, frame_count):
             frame_name = f"frame_{i}_delay-0.1s.gif"
         else:
             frame_name = f"frame_{i:02}_delay-0.1s.gif"
-        
+
         frame_path = os.path.join(path, action, frame_name)
-        
+
+        # Vérifier si le fichier existe
+        if not os.path.exists(frame_path):
+            logging.error(f"Fichier introuvable - {frame_path}")
+            continue  # Passer à la frame suivante
+
         # Charger l'image avec PIL pour supprimer le fond
-        img = Image.open(frame_path).convert("RGBA")
-        datas = img.getdata()
+        try:
+            img = Image.open(frame_path).convert("RGBA")
+            datas = img.getdata()
 
-        # Supprimer le fond bleu (#5D6D87)
-        new_data = []
-        for item in datas:
-            if item[0] == 93 and item[1] == 109 and item[2] == 135:  # Couleur #5D6D87 en RGB
-                new_data.append((255, 255, 255, 0))  # Rendre transparent
-            else:
-                new_data.append(item)
-        
-        img.putdata(new_data)
+            # Supprimer le fond bleu (#5D6D87)
+            new_data = []
+            for item in datas:
+                if item[0] == 93 and item[1] == 109 and item[2] == 135:  # Couleur #5D6D87 en RGB
+                    new_data.append((255, 255, 255, 0))  # Rendre transparent
+                else:
+                    new_data.append(item)
 
-        # Convertir en surface Pygame
-        img = pygame.image.fromstring(img.tobytes(), img.size, img.mode)
-        frames.append(img)
-    
+            img.putdata(new_data)
+
+            # Redimensionner l'image pour qu'elle corresponde à la taille du personnage
+            img = img.resize((fighter_width, fighter_height), Image.ANTIALIAS)
+
+            # Convertir en surface Pygame
+            img = pygame.image.fromstring(img.tobytes(), img.size, img.mode)
+            frames.append(img)
+        except Exception as e:
+            logging.error(f"Erreur lors du chargement de {frame_path}: {e}")
+
+    if not frames:
+        logging.error(f"Aucune frame chargée pour l'action {action} dans {path}")
+
     return frames
 
 class Fighter:
@@ -89,15 +108,17 @@ class Fighter:
 
         # Charger les animations uniquement pour le Tank
         if self.name == "Tank":
+            logging.info(f"Chargement des animations pour {self.name}...")
             self.animations = {
-                "idle": load_animation(os.path.join("src", "assets", "characters", "tank"), "idle", 9),
-                "walk": load_animation(os.path.join("src", "assets", "characters", "tank"), "walk", 7),
-                "attack": load_animation(os.path.join("src", "assets", "characters", "tank"), "attack", 20),
-                "dead": load_animation(os.path.join("src", "assets", "characters", "tank"), "dead", 15),
+                "idle": load_animation(os.path.join("src", "assets", "characters", "tank"), "idle", 9, self.fighter_width, self.fighter_height),
+                "walk": load_animation(os.path.join("src", "assets", "characters", "tank"), "walk", 7, self.fighter_width, self.fighter_height),
+                "attack": load_animation(os.path.join("src", "assets", "characters", "tank"), "attack", 20, self.fighter_width, self.fighter_height),
+                "dead": load_animation(os.path.join("src", "assets", "characters", "tank"), "dead", 15, self.fighter_width, self.fighter_height),
             }
             self.current_animation = "idle"
             self.animation_frame = 0
             self.animation_speed = 0.2  # Vitesse de l'animation
+            logging.info(f"Animations chargées pour {self.name}: {list(self.animations.keys())}")
         else:
             self.animations = None
 
@@ -106,7 +127,6 @@ class Fighter:
             # Afficher l'animation actuelle
             frame = int(self.animation_frame) % len(self.animations[self.current_animation])
             sprite = self.animations[self.current_animation][frame]
-            sprite = pygame.transform.scale(sprite, (self.fighter_width, self.fighter_height))
             if self.direction == -1:  # Inverser l'image si le personnage regarde à gauche
                 sprite = pygame.transform.flip(sprite, True, False)
             surface.blit(sprite, (self.rect.x, self.rect.y))
@@ -279,7 +299,7 @@ class Game:
             joy = pygame.joystick.Joystick(i)
             joy.init()
             self.controllers.append(joy)
-            print(f"Controller {i} initialized with {joy.get_numaxes()} axes and {joy.get_numbuttons()} buttons.")
+            logging.info(f"Controller {i} initialized with {joy.get_numaxes()} axes and {joy.get_numbuttons()} buttons.")
 
         fighter_map = {
             "AgileFighter": AgileFighter,
@@ -315,7 +335,7 @@ class Game:
             self.menu_sound = pygame.mixer.Sound(r"src\assets\sounds\menu.wav")
             self.sounds_loaded = True
         except:
-            print("Could not load sound effects")
+            logging.error("Could not load sound effects")
             self.sounds_loaded = False
 
     def draw_timer(self):
@@ -495,7 +515,7 @@ class Game:
             self.game_state = GameState.PLAYING
         elif selected == "Options":
             # Just a placeholder for now
-            print("Options menu not implemented yet")
+            logging.info("Options menu not implemented yet")
             # You could implement a screen for options here
         elif selected == "Quit":
             pygame.quit()

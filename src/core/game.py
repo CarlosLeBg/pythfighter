@@ -80,11 +80,11 @@ class Fighter:
         self.player = player
         self.name = fighter_data.name
         self.color = fighter_data.color
-        self.speed = fighter_data.speed * 1.2
+        self.speed = fighter_data.speed * 0.9
         self.damage = fighter_data.damage
         self.max_health = fighter_data.stats["Vie"]
         self.health = self.max_health
-        self.max_stamina = 100
+        self.max_stamina = 80
         self.stamina = self.max_stamina
         self.pos_x = float(x)
         self.pos_y = float(91)

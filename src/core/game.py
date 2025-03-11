@@ -14,15 +14,17 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from config.fighters import Mitsu, Tank, Noya, ThunderStrike, Bruiser
 
+# Constants
 BASE_WIDTH, BASE_HEIGHT = 175, 112
 SCALE_FACTOR = 7
 VISIBLE_WIDTH = BASE_WIDTH * SCALE_FACTOR
 VISIBLE_HEIGHT = BASE_HEIGHT * SCALE_FACTOR
 
-# Constants
 GRAVITY = 0.4
 GROUND_Y = VISIBLE_HEIGHT - VISIBLE_HEIGHT // 5.4
 MAX_JUMP_HEIGHT = 60
+BLOCK_STAMINA_DRAIN = 0.2
+SPECIAL_ATTACK_MULTIPLIER = 2.5
 
 class GameState(Enum):
     COUNTDOWN = "countdown"
@@ -33,11 +35,11 @@ class GameState(Enum):
 
 def load_animation(path, action, frame_count, fighter_width, fighter_height):
     frames = []
-    animation_folder = os.path.join(path, f"{action}")
-    logging.info(f"Tentative de chargement de l'animation depuis: {animation_folder}")
+    animation_folder = os.path.join(path, action)
+    logging.info(f"Loading animation from: {animation_folder}")
 
     if not os.path.exists(animation_folder):
-        logging.error(f"Dossier d'animation introuvable - {animation_folder}")
+        logging.error(f"Animation folder not found - {animation_folder}")
         return frames
 
     for i in range(frame_count):
@@ -45,21 +47,21 @@ def load_animation(path, action, frame_count, fighter_width, fighter_height):
         frame_path = os.path.join(animation_folder, frame_name)
 
         if not os.path.exists(frame_path):
-            logging.error(f"Fichier introuvable - {frame_path}")
+            logging.error(f"File not found - {frame_path}")
             continue
 
         try:
             img = pygame.image.load(frame_path).convert_alpha()
             img = pygame.transform.scale(img, (fighter_width, fighter_height))
             frames.append(img)
-            logging.debug(f"Image chargée avec succès: {frame_path}")
+            logging.debug(f"Image loaded successfully: {frame_path}")
         except Exception as e:
-            logging.error(f"Erreur lors du chargement de {frame_path}: {e}")
+            logging.error(f"Error loading {frame_path}: {e}")
 
     if not frames:
-        logging.error(f"Aucune frame chargée pour l'action {action} dans {animation_folder}")
+        logging.error(f"No frames loaded for action {action} in {animation_folder}")
     else:
-        logging.info(f"Animation '{action}' chargée avec succès: {len(frames)} frames")
+        logging.info(f"Animation '{action}' loaded successfully: {len(frames)} frames")
 
     return frames
 
@@ -83,8 +85,8 @@ class Fighter:
         self.fighter_height = VISIBLE_HEIGHT // 4
         self.ground_y = ground_y
         self.rect = pygame.Rect(x, y, self.fighter_width, self.fighter_height)
-        self.hitbox = pygame.Rect(x + self.fighter_width//4, y + self.fighter_height//4,
-                                  self.fighter_width//2, self.fighter_height*3//4)
+        self.hitbox = pygame.Rect(x + self.fighter_width // 4, y + self.fighter_height // 4,
+                                  self.fighter_width // 2, self.fighter_height * 3 // 4)
         self.on_ground = True
         self.attacking = False
         self.can_attack = True
@@ -99,41 +101,72 @@ class Fighter:
         self.animation_frame = 0
         self.animation_speed = 0.2
         self.special_attack_cooldown = 0
+        self.using_special_attack = False
+        self.special_attack_frames = 0
+        self.special_attack_effect = None
+        self.special_attack_effect_duration = 60
 
-        logging.info(f"Chargement des animations pour {self.name}...")
+        logging.info(f"Loading animations for {self.name}...")
         base_path = os.path.join("src", "assets", "characters", self.name.lower())
 
         if not os.path.exists(base_path):
-            logging.error(f"Dossier de base pour les animations introuvable: {base_path}")
+            logging.error(f"Base folder for animations not found: {base_path}")
         else:
-            logging.info(f"Dossier de base trouvé: {base_path}")
-
+            logging.info(f"Base folder found: {base_path}")
             self.animations = {
                 "idle": load_animation(base_path, "idle", 10, self.fighter_width, self.fighter_height),
                 "walk": load_animation(base_path, "walk", 8, self.fighter_width, self.fighter_height),
                 "attack": load_animation(base_path, "attack", 21, self.fighter_width, self.fighter_height),
                 "dead": load_animation(base_path, "dead", 16, self.fighter_width, self.fighter_height),
                 "special_attack": load_animation(base_path, "special_attack", 15, self.fighter_width, self.fighter_height),
+                "block": load_animation(base_path, "block", 10, self.fighter_width, self.fighter_height),
             }
 
             for anim_name, frames in self.animations.items():
-                logging.info(f"Animation '{anim_name}': {len(frames)} frames chargées")
+                logging.info(f"Animation '{anim_name}': {len(frames)} frames loaded")
 
     def draw(self, surface):
+        if self.special_attack_effect and self.special_attack_effect_duration > 0:
+            effect_alpha = min(255, self.special_attack_effect_duration * 4)
+            self.special_attack_effect.set_alpha(effect_alpha)
+            effect_x = self.rect.x - self.fighter_width // 2
+            effect_y = self.rect.y - self.fighter_height // 4
+            surface.blit(self.special_attack_effect, (effect_x, effect_y))
+            self.special_attack_effect_duration -= 1
+
         if self.animations and any(len(frames) > 0 for frames in self.animations.values()):
-            if self.current_animation in self.animations and len(self.animations[self.current_animation]) > 0:
-                frame_idx = int(self.animation_frame) % len(self.animations[self.current_animation])
-                sprite = self.animations[self.current_animation][frame_idx]
+            current_anim = self.current_animation
 
-                if self.direction == -1:
-                    sprite = pygame.transform.flip(sprite, True, False)
+            if current_anim not in self.animations or len(self.animations[current_anim]) == 0:
+                if "idle" in self.animations and len(self.animations["idle"]) > 0:
+                    current_anim = "idle"
+                else:
+                    if self.invincibility_frames % 4 < 2:
+                        pygame.draw.rect(surface, self.color, self.rect)
+                    pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
+                    self.draw_health_stamina_bars(surface)
+                    return
 
-                surface.blit(sprite, (self.rect.x, self.rect.y))
-                self.animation_frame = (self.animation_frame + self.animation_speed) % len(self.animations[self.current_animation])
+            frame_idx = int(self.animation_frame) % len(self.animations[current_anim])
+            sprite = self.animations[current_anim][frame_idx]
+
+            if self.direction == -1:
+                sprite = pygame.transform.flip(sprite, True, False)
+
+            surface.blit(sprite, (self.rect.x, self.rect.y))
+
+            if current_anim == "special_attack":
+                self.animation_frame = (self.animation_frame + 0.15) % len(self.animations[current_anim])
+            elif current_anim == "attack":
+                self.animation_frame = (self.animation_frame + 0.25) % len(self.animations[current_anim])
             else:
-                if self.invincibility_frames % 4 < 2:
-                    pygame.draw.rect(surface, self.color, self.rect)
-                pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
+                self.animation_frame = (self.animation_frame + self.animation_speed) % len(self.animations[current_anim])
+
+            if self.invincibility_frames > 0:
+                glow_surface = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
+                glow_color = (255, 255, 255, 100 if self.invincibility_frames % 4 < 2 else 50)
+                glow_surface.fill(glow_color)
+                surface.blit(glow_surface, self.rect)
         else:
             if self.invincibility_frames % 4 < 2:
                 pygame.draw.rect(surface, self.color, self.rect)
@@ -146,54 +179,144 @@ class Fighter:
         bar_height = 20
         health_percentage = max(0, self.health / self.max_health)
         health_color = (int(255 * (1 - health_percentage)), int(255 * health_percentage), 0)
-
         bar_x = 20 if self.player == 1 else VISIBLE_WIDTH - bar_width - 20
 
-        pygame.draw.rect(surface, (100, 0, 0), (bar_x, 10, bar_width, bar_height), border_radius=10)
-        pygame.draw.rect(surface, health_color, (bar_x, 10, bar_width * health_percentage, bar_height), border_radius=10)
+        for i in range(int(bar_width)):
+            ratio = i / bar_width
+            color = (100 - int(50 * ratio), 0, 0)
+            pygame.draw.line(surface, color, (bar_x + i, 10), (bar_x + i, 10 + bar_height))
+
+        if health_percentage > 0:
+            health_width = bar_width * health_percentage
+            pygame.draw.rect(surface, health_color, (bar_x, 10, health_width, bar_height), border_radius=10)
+            pygame.draw.rect(surface, (255, 255, 255), (bar_x, 10, health_width, bar_height), 1, border_radius=10)
+
+            highlight_height = bar_height // 3
+            highlight_surface = pygame.Surface((int(health_width), highlight_height), pygame.SRCALPHA)
+            highlight_color = (255, 255, 255, 100)
+            pygame.draw.rect(highlight_surface, highlight_color, (0, 0, int(health_width), highlight_height), border_radius=5)
+            surface.blit(highlight_surface, (bar_x, 10))
 
         stamina_percentage = max(0, self.stamina / self.max_stamina)
-        stamina_color = (255, 165, 0)
+        stamina_color = (255, 165 + int(90 * stamina_percentage), 0)
 
-        pygame.draw.rect(surface, (0, 0, 100), (bar_x, 40, bar_width, bar_height), border_radius=10)
-        pygame.draw.rect(surface, stamina_color, (bar_x, 40, bar_width * stamina_percentage, bar_height), border_radius=10)
+        for i in range(int(bar_width)):
+            ratio = i / bar_width
+            color = (0, 0, 100 - int(50 * ratio))
+            pygame.draw.line(surface, color, (bar_x + i, 40), (bar_x + i, 40 + bar_height))
+
+        if stamina_percentage > 0:
+            stamina_width = bar_width * stamina_percentage
+            pygame.draw.rect(surface, stamina_color, (bar_x, 40, stamina_width, bar_height), border_radius=10)
+            pygame.draw.rect(surface, (255, 255, 255), (bar_x, 40, stamina_width, bar_height), 1, border_radius=10)
+
+            highlight_height = bar_height // 3
+            highlight_surface = pygame.Surface((int(stamina_width), highlight_height), pygame.SRCALPHA)
+            highlight_color = (255, 255, 255, 100)
+            pygame.draw.rect(highlight_surface, highlight_color, (0, 0, int(stamina_width), highlight_height), border_radius=5)
+            surface.blit(highlight_surface, (bar_x, 40))
 
         name_font = pygame.font.Font(None, 24)
-        name_text = name_font.render(self.name, True, (220, 220, 240))
+        name_color = (220, 220, 240)
+        name_text = name_font.render(self.name, True, name_color)
+        name_shadow = name_font.render(self.name, True, (0, 0, 0))
         health_text = name_font.render(f"{int(self.health)}/{self.max_health}", True, (150, 150, 180))
-        combo_text = name_font.render(f"Combo: {self.combo_count}", True, (255, 215, 0))
+        health_shadow = name_font.render(f"{int(self.health)}/{self.max_health}", True, (0, 0, 0))
+
+        combo_scale = 1.0 + (0.2 * min(self.combo_count, 5)) if self.combo_count > 1 else 1.0
+        combo_font = pygame.font.Font(None, int(24 * combo_scale))
+        combo_color = (255, 215, 0) if self.combo_count > 1 else (200, 200, 100)
+        combo_text = combo_font.render(f"Combo: {self.combo_count}", True, combo_color)
+        combo_shadow = combo_font.render(f"Combo: {self.combo_count}", True, (0, 0, 0))
 
         if self.player == 1:
+            surface.blit(name_shadow, (bar_x + 2, 62))
+            surface.blit(health_shadow, (bar_x + bar_width - 98, 62))
+            surface.blit(combo_shadow, (bar_x + 2, 82))
             surface.blit(name_text, (bar_x, 60))
             surface.blit(health_text, (bar_x + bar_width - 100, 60))
             surface.blit(combo_text, (bar_x, 80))
         else:
+            surface.blit(name_shadow, (bar_x + bar_width - name_text.get_width() + 2, 62))
+            surface.blit(health_shadow, (bar_x + 2, 62))
+            surface.blit(combo_shadow, (bar_x + bar_width - combo_text.get_width() + 2, 82))
             surface.blit(name_text, (bar_x + bar_width - name_text.get_width(), 60))
             surface.blit(health_text, (bar_x, 60))
             surface.blit(combo_text, (bar_x + bar_width - combo_text.get_width(), 80))
 
         if self.blocking and self.stamina > 0:
             block_font = pygame.font.Font(None, 20)
-            block_text = block_font.render("BLOCKING", True, (0, 255, 255))
+            pulse = (pygame.time.get_ticks() % 1000) / 1000.0
+            alpha = 128 + int(127 * pulse)
+            block_color = (0, 255, 255, alpha)
+            block_text = block_font.render("BLOCKING", True, block_color)
+            block_shadow = block_font.render("BLOCKING", True, (0, 0, 0))
             block_x = bar_x if self.player == 1 else bar_x + bar_width - block_text.get_width()
+
+            shield_radius = 20 + int(5 * pulse)
+            shield_pos = (block_x + block_text.get_width() // 2, 100)
+            pygame.draw.circle(surface, (0, 200, 255, 50), shield_pos, shield_radius, 2)
+
+            surface.blit(block_shadow, (block_x + 1, 101))
             surface.blit(block_text, (block_x, 100))
 
-        if self.special_attack_cooldown > 0:
+        if self.special_attack_cooldown <= 0:
             special_font = pygame.font.Font(None, 20)
-            special_text = special_font.render("SPECIAL READY", True, (255, 0, 0))
+            pulse = (pygame.time.get_ticks() % 1000) / 1000.0
+            special_color = (255, 50 + int(205 * pulse), 50 + int(100 * pulse))
+            special_text = special_font.render("SPECIAL READY", True, special_color)
+            special_shadow = special_font.render("SPECIAL READY", True, (0, 0, 0))
             special_x = bar_x if self.player == 1 else bar_x + bar_width - special_text.get_width()
-            surface.blit(special_text, (special_x, 120))
 
-    def take_damage(self, damage, current_time):
+            glow_surface = pygame.Surface((special_text.get_width() + 10, special_text.get_height() + 10), pygame.SRCALPHA)
+            glow_radius = 5 + int(3 * pulse)
+            glow_color = (255, 100, 100, 50 + int(50 * pulse))
+            pygame.draw.rect(glow_surface, glow_color, (0, 0, special_text.get_width() + 10, special_text.get_height() + 10),
+                             border_radius=glow_radius)
+            surface.blit(glow_surface, (special_x - 5, 115))
+
+            surface.blit(special_shadow, (special_x + 1, 121))
+            surface.blit(special_text, (special_x, 120))
+        else:
+            cooldown_font = pygame.font.Font(None, 18)
+            cooldown_text = cooldown_font.render(f"SPECIAL: {self.special_attack_cooldown // 60 + 1}s", True, (200, 200, 200))
+            cooldown_x = bar_x if self.player == 1 else bar_x + bar_width - cooldown_text.get_width()
+            surface.blit(cooldown_text, (cooldown_x, 120))
+
+    def take_damage(self, damage, current_time, is_special=False):
         if self.invincibility_frames <= 0:
-            actual_damage = damage * (0.5 if self.blocking and self.stamina > 0 else 1)
+            damage_multiplier = SPECIAL_ATTACK_MULTIPLIER if is_special else 1.0
+            actual_damage = damage * damage_multiplier
+
+            if self.blocking and self.stamina > 0:
+                actual_damage *= 0.5
+                self.stamina = max(0, self.stamina - 10)
+                self.show_block_effect()
+
             self.health = max(0, self.health - actual_damage)
             self.invincibility_frames = 30
+
             if current_time - self.last_hit_time < 1.0:
                 self.combo_count += 1
             else:
                 self.combo_count = 1
             self.last_hit_time = current_time
+
+            knockback_direction = -1 if self.direction == 1 else 1
+            knockback_force = 3 if is_special else 1
+            if not self.blocking:
+                self.vel_x += knockback_direction * knockback_force
+
+            return True
+        return False
+
+    def show_block_effect(self):
+        shield_size = self.fighter_width * 1.5
+        shield_surface = pygame.Surface((shield_size, shield_size), pygame.SRCALPHA)
+        shield_color = (0, 200, 255, 150)
+        pygame.draw.circle(shield_surface, shield_color, (shield_size // 2, shield_size // 2), shield_size // 2, 5)
+        self.special_attack_effect = shield_surface
+        self.special_attack_effect_duration = 20
 
     def attack(self, opponent_x):
         if self.can_attack and self.attack_cooldown == 0 and not self.blocking and self.stamina >= 10:
@@ -201,49 +324,88 @@ class Fighter:
             if distance < self.rect.width * 2:
                 self.attacking = True
                 self.can_attack = False
-                self.attack_cooldown = 15
+                self.attack_cooldown = 30
+                self.animation_frame = 0
+                self.current_animation = "attack"
                 self.stamina -= 10
+                return True
+        return False
 
     def special_attack(self):
-        if self.special_attack_cooldown == 0 and self.stamina >= 90:
+        if self.special_attack_cooldown <= 0 and self.stamina >= 30 and not self.blocking:
+            self.using_special_attack = True
             self.attacking = True
+            self.can_attack = False
             self.current_animation = "special_attack"
-            self.special_attack_cooldown = 120
-            self.stamina -= 90
+            self.animation_frame = 0
+            self.special_attack_cooldown = 240
+            self.stamina -= 30
+
+            effect_size = self.fighter_width * 3
+            effect_surface = pygame.Surface((effect_size, effect_size), pygame.SRCALPHA)
+
+            for i in range(10, 0, -1):
+                alpha = 150 - i * 10
+                size = effect_size - i * 10
+                r, g, b = self.color
+                pygame.draw.circle(effect_surface, (r, g, b, alpha), (effect_size // 2, effect_size // 2), size // 2)
+
+            self.special_attack_effect = effect_surface
+            self.special_attack_effect_duration = 60
+
+            return True
+        return False
 
     def reset_attack(self):
         if self.attack_cooldown > 0:
             self.attack_cooldown -= 1
-            if self.attack_cooldown == 0:
+
+            if self.attack_cooldown == 1:
                 self.attacking = False
                 self.can_attack = True
+                self.using_special_attack = False
+
+                if self.current_animation in ["attack", "special_attack"]:
+                    self.current_animation = "idle"
+                    self.animation_frame = 0
 
         if self.special_attack_cooldown > 0:
             self.special_attack_cooldown -= 1
 
     def block(self):
-        if self.stamina > 0:
+        if self.stamina > 0 and not self.attacking:
             self.blocking = True
-            self.block_stamina_drain_timer += 1
-            if self.block_stamina_drain_timer >= 6:
-                self.stamina = max(0, self.stamina - 12)
-                self.block_stamina_drain_timer = 0
+
+            if "block" in self.animations and len(self.animations["block"]) > 0:
+                self.current_animation = "block"
+
+            self.stamina = max(0, self.stamina - BLOCK_STAMINA_DRAIN)
         else:
             self.blocking = False
 
     def stop_blocking(self):
-        self.blocking = False
-        self.block_stamina_drain_timer = 0
+        if self.blocking:
+            self.blocking = False
+            self.current_animation = "idle"
+            self.animation_frame = 0
 
     def recover_stamina(self):
+        recovery_rate = 0.15 if self.special_attack_cooldown <= 180 else 0.05
+
         if not self.blocking and self.stamina < self.max_stamina:
-            self.stamina += 0.1
+            self.stamina += recovery_rate
         self.stamina = min(self.stamina, self.max_stamina)
 
     def update_physics(self):
         if self.animations and any(len(frames) > 0 for frames in self.animations.values()):
-            if self.attacking and "attack" in self.animations and len(self.animations["attack"]) > 0:
+            if self.health <= 0 and "dead" in self.animations and len(self.animations["dead"]) > 0:
+                self.current_animation = "dead"
+            elif self.using_special_attack and "special_attack" in self.animations and len(self.animations["special_attack"]) > 0:
+                self.current_animation = "special_attack"
+            elif self.attacking and "attack" in self.animations and len(self.animations["attack"]) > 0:
                 self.current_animation = "attack"
+            elif self.blocking and "block" in self.animations and len(self.animations["block"]) > 0:
+                self.current_animation = "block"
             elif not self.on_ground:
                 if "idle" in self.animations and len(self.animations["idle"]) > 0:
                     self.current_animation = "idle"
@@ -253,9 +415,6 @@ class Fighter:
             else:
                 if "idle" in self.animations and len(self.animations["idle"]) > 0:
                     self.current_animation = "idle"
-
-            if self.health <= 0 and "dead" in self.animations and len(self.animations["dead"]) > 0:
-                self.current_animation = "dead"
 
         if not self.on_ground:
             self.vel_y += GRAVITY
@@ -302,14 +461,14 @@ class Game:
             bg_path = os.path.join("src", "assets", "backgrounds", self.bg_selected)
             self.bg_image = pygame.image.load(bg_path)
             self.bg_image = pygame.transform.scale(self.bg_image, (VISIBLE_WIDTH, VISIBLE_HEIGHT))
-            logging.info(f"Image de fond chargée avec succès: {bg_path}")
+            logging.info(f"Background image loaded successfully: {bg_path}")
         except Exception as e:
-            logging.error(f"Erreur lors du chargement de l'image de fond: {e}")
+            logging.error(f"Error loading background image: {e}")
             self.bg_image = pygame.Surface((VISIBLE_WIDTH, VISIBLE_HEIGHT))
             self.bg_image.fill((50, 50, 80))
 
         self.ground_y = VISIBLE_HEIGHT - 91 if self.bg_selected == "backg.png" else VISIBLE_HEIGHT - 98
-        logging.info(f"Background sélectionné: {self.bg_selected}, hauteur du sol: {self.ground_y}")
+        logging.info(f"Background selected: {self.bg_selected}, ground height: {self.ground_y}")
 
         fighter_map = {
             "Mitsu": Mitsu,
@@ -321,16 +480,16 @@ class Game:
         fighter_height = VISIBLE_HEIGHT // 4
 
         if player1_type not in fighter_map:
-            logging.warning(f"Type de combattant invalide: {player1_type}, utilisation de Mitsu par défaut")
+            logging.warning(f"Invalid fighter type: {player1_type}, defaulting to Mitsu")
             player1_type = "Mitsu"
         if player2_type not in fighter_map:
-            logging.warning(f"Type de combattant invalide: {player2_type}, utilisation de Tank par défaut")
+            logging.warning(f"Invalid fighter type: {player2_type}, defaulting to Tank")
             player2_type = "Tank"
 
         self.fighters = [
-            Fighter(1, VISIBLE_WIDTH//4, self.ground_y - fighter_height,
+            Fighter(1, VISIBLE_WIDTH // 4, self.ground_y - fighter_height,
                     fighter_map[player1_type](), self.ground_y),
-            Fighter(2, VISIBLE_WIDTH*3//4, self.ground_y - fighter_height,
+            Fighter(2, VISIBLE_WIDTH * 3 // 4, self.ground_y - fighter_height,
                     fighter_map[player2_type](), self.ground_y)
         ]
 
@@ -342,7 +501,7 @@ class Game:
                 self.controllers.append(joy)
                 logging.info(f"Controller {i} initialized with {joy.get_numaxes()} axes and {joy.get_numbuttons()} buttons.")
             except Exception as e:
-                logging.error(f"Erreur lors de l'initialisation du contrôleur {i}: {e}")
+                logging.error(f"Error initializing controller {i}: {e}")
 
         self.clock = pygame.time.Clock()
         self.game_state = GameState.COUNTDOWN
@@ -361,9 +520,9 @@ class Game:
             self.victory_sound = pygame.mixer.Sound(os.path.join("src", "assets", "sounds", "victory.wav"))
             self.menu_sound = pygame.mixer.Sound(os.path.join("src", "assets", "sounds", "menu.wav"))
             self.sounds_loaded = True
-            logging.info("Sons chargés avec succès")
+            logging.info("Sounds loaded successfully")
         except Exception as e:
-            logging.error(f"Impossible de charger les effets sonores: {e}")
+            logging.error(f"Failed to load sound effects: {e}")
             self.sounds_loaded = False
             self.hit_sound = None
             self.victory_sound = None
@@ -373,7 +532,7 @@ class Game:
         if self.game_start_time:
             remaining_time = max(0, int(self.round_time - (time.time() - self.game_start_time)))
             timer_text = self.font.render(str(remaining_time), True, (255, 255, 255))
-            timer_rect = timer_text.get_rect(center=(VISIBLE_WIDTH//2, 30))
+            timer_rect = timer_text.get_rect(center=(VISIBLE_WIDTH // 2, 30))
             self.screen.blit(timer_text, timer_rect)
             return remaining_time
         return self.round_time
@@ -385,13 +544,13 @@ class Game:
 
         title_font = pygame.font.Font(None, 72)
         title_text = title_font.render("PAUSE", True, (255, 255, 255))
-        title_rect = title_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//4))
+        title_rect = title_text.get_rect(center=(VISIBLE_WIDTH // 2, VISIBLE_HEIGHT // 4))
         self.screen.blit(title_text, title_rect)
 
         for i, option in enumerate(self.menu_options):
             color = (255, 255, 0) if i == self.selected_option else (200, 200, 200)
             option_text = self.font.render(option, True, color)
-            option_rect = option_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//2 + i * 50))
+            option_rect = option_text.get_rect(center=(VISIBLE_WIDTH // 2, VISIBLE_HEIGHT // 2 + i * 50))
             self.screen.blit(option_text, option_rect)
 
             if i == self.selected_option:
@@ -399,7 +558,7 @@ class Game:
 
         controls_font = pygame.font.Font(None, 24)
         controls_text = controls_font.render("↑/↓: Navigate   Enter: Select", True, (150, 150, 150))
-        controls_rect = controls_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT*3//4 + 50))
+        controls_rect = controls_text.get_rect(center=(VISIBLE_WIDTH // 2, VISIBLE_HEIGHT * 3 // 4 + 50))
         self.screen.blit(controls_text, controls_rect)
 
         pygame.display.flip()
@@ -410,24 +569,24 @@ class Game:
         self.screen.blit(victory_surface, (0, 0))
 
         title_font = pygame.font.Font(None, 72)
-        winner_name = self.fighters[self.winner-1].name
+        winner_name = self.fighters[self.winner - 1].name
         title_text = title_font.render(f"PLAYER {self.winner} WINS!", True, (255, 215, 0))
-        name_text = title_font.render(f"{winner_name}", True, self.fighters[self.winner-1].color)
+        name_text = title_font.render(f"{winner_name}", True, self.fighters[self.winner - 1].color)
 
-        title_rect = title_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//4))
-        name_rect = name_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//4 + 80))
+        title_rect = title_text.get_rect(center=(VISIBLE_WIDTH // 2, VISIBLE_HEIGHT // 4))
+        name_rect = name_text.get_rect(center=(VISIBLE_WIDTH // 2, VISIBLE_HEIGHT // 4 + 80))
 
         self.screen.blit(title_text, title_rect)
         self.screen.blit(name_text, name_rect)
 
         pulse = abs(pygame.time.get_ticks() % 2000 - 1000) / 1000
         size = 150 + pulse * 50
-        pygame.draw.circle(self.screen, self.fighters[self.winner-1].color,
-                           (VISIBLE_WIDTH//2, VISIBLE_HEIGHT//2 + 50), size, 5)
+        pygame.draw.circle(self.screen, self.fighters[self.winner - 1].color,
+                           (VISIBLE_WIDTH // 2, VISIBLE_HEIGHT // 2 + 50), size, 5)
 
         continue_font = pygame.font.Font(None, 36)
         continue_text = continue_font.render("Press ENTER to continue", True, (200, 200, 200))
-        continue_rect = continue_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT*3//4 + 50))
+        continue_rect = continue_text.get_rect(center=(VISIBLE_WIDTH // 2, VISIBLE_HEIGHT * 3 // 4 + 50))
 
         if (pygame.time.get_ticks() // 500) % 2 == 0:
             self.screen.blit(continue_text, continue_rect)
@@ -476,9 +635,9 @@ class Game:
                             self.selected_option = (self.selected_option + 1) % len(self.menu_options)
                             pygame.time.delay(200)
                     except Exception as e:
-                        logging.error(f"Erreur lors de la navigation du D-pad: {e}")
+                        logging.error(f"Error navigating D-pad: {e}")
             except Exception as e:
-                logging.error(f"Erreur lors de la gestion des entrées du contrôleur: {e}")
+                logging.error(f"Error handling controller input: {e}")
 
         if keys:
             if fighter.player == 1:
@@ -535,14 +694,14 @@ class Game:
                         try:
                             self.menu_sound.play()
                         except Exception as e:
-                            logging.error(f"Erreur lors de la lecture du son de menu: {e}")
+                            logging.error(f"Error playing menu sound: {e}")
                 elif event.key == pygame.K_DOWN:
                     self.selected_option = (self.selected_option + 1) % len(self.menu_options)
                     if self.sounds_loaded and self.menu_sound:
                         try:
                             self.menu_sound.play()
                         except Exception as e:
-                            logging.error(f"Erreur lors de la lecture du son de menu: {e}")
+                            logging.error(f"Error playing menu sound: {e}")
                 elif event.key == pygame.K_RETURN:
                     self.execute_menu_option()
                 elif event.key == pygame.K_ESCAPE:
@@ -567,14 +726,14 @@ class Game:
 
         title_font = pygame.font.Font(None, 72)
         title_text = title_font.render("OPTIONS", True, (255, 255, 255))
-        title_rect = title_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//4))
+        title_rect = title_text.get_rect(center=(VISIBLE_WIDTH // 2, VISIBLE_HEIGHT // 4))
         self.screen.blit(title_text, title_rect)
 
         options = ["Sound: ON" if self.sounds_loaded else "Sound: OFF", "Back to Game"]
         for i, option in enumerate(options):
             color = (255, 255, 0) if i == 0 else (200, 200, 200)
             option_text = self.font.render(option, True, color)
-            option_rect = option_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT//2 + i * 50))
+            option_rect = option_text.get_rect(center=(VISIBLE_WIDTH // 2, VISIBLE_HEIGHT // 2 + i * 50))
             self.screen.blit(option_text, option_rect)
 
             if i == 0:
@@ -582,7 +741,7 @@ class Game:
 
         controls_font = pygame.font.Font(None, 24)
         controls_text = controls_font.render("↑/↓: Navigate   Enter: Select", True, (150, 150, 150))
-        controls_rect = controls_text.get_rect(center=(VISIBLE_WIDTH//2, VISIBLE_HEIGHT*3//4 + 50))
+        controls_rect = controls_text.get_rect(center=(VISIBLE_WIDTH // 2, VISIBLE_HEIGHT * 3 // 4 + 50))
         self.screen.blit(controls_text, controls_rect)
 
         pygame.display.flip()
@@ -600,19 +759,19 @@ class Game:
 
         font = pygame.font.Font(None, 200)
         text = font.render(str(number), True, (255, 255, 255))
-        text_rect = text.get_rect(center=(VISIBLE_WIDTH/2, VISIBLE_HEIGHT/2))
+        text_rect = text.get_rect(center=(VISIBLE_WIDTH // 2, VISIBLE_HEIGHT // 2))
 
         for i in range(20, 0, -5):
-            glow = pygame.Surface((text.get_width() + i*2, text.get_height() + i*2), pygame.SRCALPHA)
+            glow = pygame.Surface((text.get_width() + i * 2, text.get_height() + i * 2), pygame.SRCALPHA)
             glow.fill((0, 0, 0, 0))
-            pygame.draw.rect(glow, (255, 255, 0, 10), (0, 0, text.get_width() + i*2, text.get_height() + i*2), border_radius=10)
+            pygame.draw.rect(glow, (255, 255, 0, 10), (0, 0, text.get_width() + i * 2, text.get_height() + i * 2), border_radius=10)
             self.screen.blit(glow, (text_rect.x - i, text_rect.y - i))
 
         self.screen.blit(text, text_rect)
 
         ready_font = pygame.font.Font(None, 72)
         ready_text = ready_font.render("GET READY!", True, (255, 255, 255))
-        ready_rect = ready_text.get_rect(center=(VISIBLE_WIDTH/2, VISIBLE_HEIGHT/2 - 150))
+        ready_rect = ready_text.get_rect(center=(VISIBLE_WIDTH // 2, VISIBLE_HEIGHT // 2 - 150))
         self.screen.blit(ready_text, ready_rect)
 
         pygame.display.flip()

@@ -13,10 +13,10 @@ class Fighter:
         self.special = special
         self.weakness = weakness
 
-class AgileFighter(Fighter):
+class Mitsu(Fighter):
     def __init__(self):
         super().__init__(
-            "Ben (Benjamin)", speed=7, damage=8,
+            "Mitsu", speed=7, damage=8,
             abilities=["Dodge", "Quick Strike"],
             style="Agile", stats={"Force": 7, "Défense": 4, "Vitesse": 7, "Vie": 100},
             description="Rapide et insaisissable, il excelle dans l'esquive et la contre-attaque.",
@@ -41,10 +41,10 @@ class Tank(Fighter):
             weakness="Très lent (difficile d'atteindre les cibles mobiles)"
         )
 
-class BurstDamage(Fighter):
+class Noya(Fighter):
     def __init__(self):
         super().__init__(
-            "Moinécha", speed=6, damage=7,
+            "Noya", speed=6, damage=7,
             abilities=["Flame Burst", "Inferno"],
             style="Burst", stats={"Force": 7, "Défense": 4, "Vitesse": 6, "Vie": 100},
             description="Un moine du feu, infligeant des brûlures continues à ses ennemis.",

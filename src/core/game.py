@@ -4,6 +4,7 @@ import time
 import os
 from enum import Enum
 import logging
+import random
 
 # Configuration des logs
 logging.basicConfig(filename='launcher.log', level=logging.DEBUG,
@@ -76,7 +77,7 @@ def load_animation(path, action, frame_count, fighter_width, fighter_height):
     return frames
 
 class Fighter:
-    def __init__(self, player, x, y, fighter_data):
+    def __init__(self, player, x, y, fighter_data, ground_y):
         self.player = player
         self.name = fighter_data.name
         self.color = fighter_data.color
@@ -87,7 +88,7 @@ class Fighter:
         self.max_stamina = 80
         self.stamina = self.max_stamina
         self.pos_x = float(x)
-        self.pos_y = float(91)
+        self.pos_y = float(y)
         self.vel_x = 0.0
         self.vel_y = 0.0
         self.direction = 1 if player == 1 else -1
@@ -109,6 +110,7 @@ class Fighter:
         self.current_animation = "idle"
         self.animation_frame = 0
         self.animation_speed = 0.2
+        self.ground_y = ground_y  # Nouvelle ligne
 
         # Charger les animations pour le personnage
         logging.info(f"Chargement des animations pour {self.name}...")
@@ -283,8 +285,8 @@ class Fighter:
             self.pos_y = MAX_JUMP_HEIGHT
             self.vel_y = 0
 
-        if self.pos_y + self.rect.height >= GROUND_Y:
-            self.pos_y = GROUND_Y - self.rect.height
+        if self.pos_y + self.rect.height >= self.ground_y:  # Utilisez ground_y local
+            self.pos_y = self.ground_y - self.rect.height
             self.vel_y = 0
             self.on_ground = True
         else:
@@ -311,7 +313,8 @@ class Game:
         pygame.display.set_caption("PythFighter")
 
         try:
-            bg_path = os.path.join("src", "assets", "backgrounds", "backg.jpg")
+            bg_selected = random.choice(["bg_2.png", "backg.png"])
+            bg_path = os.path.join("src", "assets", "backgrounds", bg_selected)
             self.bg_image = pygame.image.load(bg_path)
             self.bg_image = pygame.transform.scale(self.bg_image, (VISIBLE_WIDTH, VISIBLE_HEIGHT))
             logging.info(f"Image de fond chargée avec succès: {bg_path}")
@@ -320,6 +323,13 @@ class Game:
             # Créer une image de fond par défaut si l'image ne peut pas être chargée
             self.bg_image = pygame.Surface((VISIBLE_WIDTH, VISIBLE_HEIGHT))
             self.bg_image.fill((50, 50, 80))  # Fond bleu foncé par défaut
+
+        # Définir la hauteur du sol en fonction du background
+        self.ground_y = GROUND_Y
+        if bg_selected == "backg.png":
+            self.ground_y = VISIBLE_HEIGHT - 91
+        else:  # bg_2.png
+            self.ground_y = VISIBLE_HEIGHT - 98
 
         self.controllers = []
         for i in range(min(2, pygame.joystick.get_count())):
@@ -349,8 +359,8 @@ class Game:
             player2_type = "Tank"
 
         self.fighters = [
-            Fighter(1, VISIBLE_WIDTH//4, GROUND_Y - fighter_height, fighter_map[player1_type]()),
-            Fighter(2, VISIBLE_WIDTH*3//4, GROUND_Y - fighter_height, fighter_map[player2_type]())
+            Fighter(1, VISIBLE_WIDTH//4, self.ground_y - fighter_height, fighter_map[player1_type](), self.ground_y),
+            Fighter(2, VISIBLE_WIDTH*3//4, self.ground_y - fighter_height, fighter_map[player2_type](), self.ground_y)
         ]
 
         self.clock = pygame.time.Clock()

@@ -11,13 +11,13 @@ import random
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from config.settings import GameSettings
-from config.fighters import AgileFighter, Tank, BurstDamage, ThunderStrike, Bruiser
+from config.fighters import Mitsu, Tank, Noya, ThunderStrike, Bruiser
 from managers.position_manager import PositionManager
 
 FIGHTERS = {
-    "AgileFighter": AgileFighter(),
+    "Mitsu": Mitsu(),
     "Tank": Tank(),
-    "BurstDamage": BurstDamage(),
+    "Noya": Noya(),
     "ThunderStrike": ThunderStrike(),
     "Bruiser": Bruiser()
 }

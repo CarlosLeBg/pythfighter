@@ -1,14 +1,14 @@
 import pygame
 from math import sin
 from config.settings import GameSettings
-from config.fighters import AgileFighter, Tank, BurstDamage, ThunderStrike, Bruiser
+from config.fighters import Mitsu, Tank, Noya, ThunderStrike, Bruiser
 
 SETTINGS = GameSettings()
 
 FIGHTERS = {
-    'AgileFighter': AgileFighter(),
+    'Mitsu': Mitsu(),
     'Tank': Tank(),
-    'BurstDamage': BurstDamage(),
+    'Noya': Noya(),
     'ThunderStrike': ThunderStrike(),
     'Bruiser': Bruiser()
 }

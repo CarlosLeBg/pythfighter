@@ -548,11 +548,20 @@ class CharacterSelect:
             pass
 
     def run(self):
+        """Boucle principale du sélecteur de personnages"""
         clock = pygame.time.Clock()
         running = True
         last_hover = None
         self.joystick_cursor_pos = [SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2]
-
+        selection_cooldown = 0
+        
+        try:
+            pygame.mixer.music.load("assets/sounds/character_select.mp3")
+            pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.play(-1)
+        except:
+            pass
+        
         while running:
             self.animation_time = pygame.time.get_ticks() / 1000
 
@@ -582,6 +591,13 @@ class CharacterSelect:
                 self.hover_sound.play()
             last_hover = current_hover
 
+            # Gérer le cooldown de sélection
+            if selection_cooldown > 0:
+                selection_cooldown -= 1
+
+            # Traiter les entrées
+            joy_moved = self.handle_input()
+
             # Draw everything
             self.screen.fill(BACKGROUND_COLOR)
             self.draw_gradient_background()
@@ -596,28 +612,13 @@ class CharacterSelect:
 
             self.draw_detail_panel()
             self.draw_player_prompts()
+            self.draw_cursor()  # Nouveau curseur personnalisé
             self.handle_transition()
 
             # Handle game launch with transition
             if self.selection_done:
-                # Create final selection effect
-                for char_name in [self.selected["player1"], self.selected["player2"]]:
-                    pos = self.position_manager.card_positions[char_name].center
-                    self.particles.create_explosion(pos, (255, 255, 255))
-
-                pygame.display.flip()
-                time.sleep(0.5)
-
-                # Fade out
-                alpha = 0
-                fade_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-                fade_surface.fill((0, 0, 0))
-                while alpha < 255:
-                    self.screen.blit(fade_surface, (0, 0))
-                    fade_surface.set_alpha(alpha)
-                    pygame.display.flip()
-                    alpha += 5
-                    time.sleep(0.01)
+                self.play_character_intro(self.selected["player1"])
+                self.show_versus_screen()
 
                 # Launch the game
                 subprocess.run([sys.executable, "src/core/game.py",

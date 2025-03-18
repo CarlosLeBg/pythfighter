@@ -18,7 +18,7 @@ Inspiré par le célèbre jeu vidéo Street Fighter, Pyth Fighter vise à offrir
 
 - **Combats en 1 contre 1** : Affrontez un ami dans des duels.
 - **Graphismes animés** : Personnages et environnements artistiques et animés.
-- **Support des manettes** : Compatible avec les manettes PS4 et PS5.
+- **Support des manettes** : Compatible avec les manettes DualShock PS4 et DualSense PS5.
 - **Musique d'ambiance** : Pour une expérience de jeu immersive.
 
 ## Installation

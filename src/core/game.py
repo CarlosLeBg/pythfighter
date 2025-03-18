@@ -97,12 +97,18 @@ class Fighter:
         self.vel_x = 0.0
         self.vel_y = 0.0
         self.direction = 1 if player == 1 else -1
-        self.fighter_width = VISIBLE_WIDTH // 16
-        self.fighter_height = VISIBLE_HEIGHT // 4
+
+        # Ajustez la taille des personnages ici
+        self.fighter_width = VISIBLE_WIDTH // 32  # Réduit la taille
+        self.fighter_height = VISIBLE_HEIGHT // 8  # Réduit la taille
+
         self.ground_y = ground_y
         self.rect = pygame.Rect(x, y, self.fighter_width, self.fighter_height)
-        self.hitbox = pygame.Rect(x + self.fighter_width // 4, y + self.fighter_height // 4,
-                                  self.fighter_width // 2, self.fighter_height * 3 // 4)
+
+        # Ajustez la hitbox en fonction de la nouvelle taille
+        self.hitbox = pygame.Rect(x + self.fighter_width // 8, y + self.fighter_height // 8,
+                                  self.fighter_width * 3 // 4, self.fighter_height * 3 // 4)
+
         self.on_ground = True
         self.attacking = False
         self.can_attack = True
@@ -123,7 +129,7 @@ class Fighter:
         self.special_attack_effect_duration = 60
 
         logging.info(f"Loading animations for {self.name}...")
-        base_path = os.path.join("src", "assets", "characters", "tank")
+        base_path = os.path.join("src", "assets", "characters", self.name.lower())
 
         if not os.path.exists(base_path):
             logging.error(f"Base folder for animations not found: {base_path}")
@@ -140,6 +146,7 @@ class Fighter:
 
             for anim_name, frames in self.animations.items():
                 logging.info(f"Animation '{anim_name}': {len(frames)} frames loaded")
+
 
     def draw(self, surface):
         if self.special_attack_effect and self.special_attack_effect_duration > 0:

@@ -2,20 +2,8 @@ import subprocess
 import pygame
 import sys
 import os
-import pygame.gfxdraw
-<<<<<<< HEAD
-import subprocess
-import time
-from math import sin, cos, radians
-from dataclasses import dataclass
-from typing import List, Dict, Tuple
+from math import sin
 import random
-=======
-import random
-from math import sin, cos, radians
-from dataclasses import dataclass
-from typing import List, Dict, Tuple
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -36,10 +24,7 @@ SCREEN_WIDTH = SETTINGS.SCREEN_WIDTH
 SCREEN_HEIGHT = SETTINGS.SCREEN_HEIGHT
 FPS = SETTINGS.FPS
 
-<<<<<<< HEAD
 # Enhanced colors with alpha support
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
 BACKGROUND_COLOR = (15, 15, 25)
 TEXT_COLOR = (230, 230, 230)
 HOVER_COLOR = (255, 255, 255, 200)
@@ -47,116 +32,86 @@ CARD_SHADOW_COLOR = (0, 0, 0, 120)
 GRADIENT_TOP = (40, 40, 60)
 GRADIENT_BOTTOM = (15, 15, 25)
 
+class ResourceManager:
+    def __init__(self, base_path="assets"):
+        self.assets = {
+            "images": {},
+            "sounds": {},
+            "fonts": {}
+        }
+        self.paths = {
+            "images": os.path.join(base_path, "images"),
+            "sounds": os.path.join(base_path, "sounds"),
+            "fonts": os.path.join(base_path, "fonts")
+        }
+        self.load_resources()
+
+    def load_resources(self):
+        self.load_images()
+        self.load_sounds()
+        self.load_fonts()
+
+    def load_images(self):
+        if os.path.exists(self.paths["images"]):
+            for file in os.listdir(self.paths["images"]):
+                if file.endswith(('.png', '.jpg', '.jpeg')):
+                    try:
+                        key = os.path.splitext(file)[0]
+                        self.assets["images"][key] = pygame.image.load(
+                            os.path.join(self.paths["images"], file)).convert_alpha()
+                    except Exception as e:
+                        print(f"Failed to load image {file}: {e}")
+
+    def load_sounds(self):
+        if os.path.exists(self.paths["sounds"]):
+            sound_files = {
+                "hover": "hover.wav",
+                "select": "select.wav",
+                "character_select": "character_select.mp3",
+                "fight": "fight.wav",
+                "versus": "versus.wav"
+            }
+            for key, file in sound_files.items():
+                try:
+                    self.assets["sounds"][key] = pygame.mixer.Sound(
+                        os.path.join(self.paths["sounds"], file))
+                except Exception as e:
+                    print(f"Failed to load sound {file}: {e}")
+
+    def load_fonts(self):
+        try:
+            font_path = os.path.join(self.paths["fonts"], "your-fancy-font.ttf")
+            self.assets["fonts"] = {
+                'title': pygame.font.Font(font_path if os.path.exists(font_path) else None, 72),
+                'subtitle': pygame.font.Font(font_path if os.path.exists(font_path) else None, 48),
+                'normal': pygame.font.Font(font_path if os.path.exists(font_path) else None, 36),
+                'small': pygame.font.Font(font_path if os.path.exists(font_path) else None, 24)
+            }
+        except Exception as e:
+            print(f"Failed to load fonts: {e}")
+            self.assets["fonts"] = {
+                'title': pygame.font.Font(None, 72),
+                'subtitle': pygame.font.Font(None, 48),
+                'normal': pygame.font.Font(None, 36),
+                'small': pygame.font.Font(None, 24)
+            }
+
 class EnhancedParticleSystem:
     def __init__(self):
         self.particles = []
-<<<<<<< HEAD
-        self.max_particles = 500  # Limit to prevent slowdowns
-=======
-        self.max_particles = 500
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-        self.particle_types = {
-            'sparkle': self._create_sparkle,
-            'trail': self._create_trail,
-            'explosion': self._create_explosion,
-<<<<<<< HEAD
-            # 'fire': self._create_fire,  # Removed as the method is not defined
-            # 'electricity': self._create_electricity  # Removed as the method is not defined
-        }
-        # Pre-render common particle surfaces
-        self.particle_surfaces = {}
-        for size in range(1, 20, 2):
-            self.particle_surfaces[size] = self._create_particle_surface(size)
-    
-    def _create_particle_surface(self, size):
-        """Pre-render particle surfaces for better performance"""
-        surf = pygame.Surface((size * 2, size * 2), pygame.SRCALPHA)
-        pygame.gfxdraw.filled_circle(surf, size, size, size, (255, 255, 255, 255))
-        return surf
-    
-    def _create_sparkle(self, pos, color):
-        angle = random.uniform(0, 360)
-        speed = random.uniform(2, 4)
-        return {
-            'pos': list(pos),
-            'velocity': [speed * cos(radians(angle)), speed * sin(radians(angle))],
-            'lifetime': random.randint(40, 80),
-            'color': (*color, 255),
-            'size': random.uniform(2, 4),
-            'type': 'sparkle'
-        }
 
-    def _create_trail(self, pos, color):
-        return {
+    def create_particle(self, pos, color, particle_type):
+        self.particles.append({
             'pos': list(pos),
-            'velocity': [random.uniform(-0.5, 0.5), random.uniform(-1, -2)],
-            'lifetime': random.randint(30, 50),
-            'color': (*color, 255),
-            'size': random.uniform(3, 6),
-            'type': 'trail'
-        }
-=======
-        }
-        self.particle_surfaces = {size: self._create_particle_surface(size) for size in range(1, 20, 2)}
-
-    def _create_particle_surface(self, size):
-        surf = pygame.Surface((size * 2, size * 2), pygame.SRCALPHA)
-        pygame.gfxdraw.filled_circle(surf, size, size, size, (255, 255, 255, 255))
-        return surf
-
-    def _create_particle(self, pos, color, velocity, lifetime, size, particle_type):
-        return {
-            'pos': list(pos),
-            'velocity': velocity,
-            'lifetime': lifetime,
-            'color': (*color, 255),
-            'size': size,
+            'velocity': [random.uniform(-1, 1), random.uniform(-1, 1)],
+            'color': color,
+            'size': random.uniform(5, 10),
+            'lifetime': random.randint(30, 60),
             'type': particle_type
-        }
+        })
 
-    def _create_sparkle(self, pos, color):
-        angle = random.uniform(0, 360)
-        speed = random.uniform(2, 4)
-        velocity = [speed * cos(radians(angle)), speed * sin(radians(angle))]
-        return self._create_particle(pos, color, velocity, random.randint(40, 80), random.uniform(2, 4), 'sparkle')
-
-    def _create_trail(self, pos, color):
-        velocity = [random.uniform(-0.5, 0.5), random.uniform(-1, -2)]
-        return self._create_particle(pos, color, velocity, random.randint(30, 50), random.uniform(3, 6), 'trail')
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-
-    def _create_explosion(self, pos, color):
-        angle = random.uniform(0, 360)
-        speed = random.uniform(4, 8)
-<<<<<<< HEAD
-        return {
-            'pos': list(pos),
-            'velocity': [speed * cos(radians(angle)), speed * sin(radians(angle))],
-            'lifetime': random.randint(20, 40),
-            'color': (*color, 255),
-            'size': random.uniform(4, 8),
-            'type': 'explosion'
-        }
-
-    def create_particle(self, pos, color, particle_type='sparkle'):
-        particle = self.particle_types[particle_type](pos, color)
-        self.particles.append(particle)
-=======
-        velocity = [speed * cos(radians(angle)), speed * sin(radians(angle))]
-        return self._create_particle(pos, color, velocity, random.randint(20, 40), random.uniform(4, 8), 'explosion')
-
-    def create_particle(self, pos, color, particle_type='sparkle'):
-        if len(self.particles) < self.max_particles:
-            particle = self.particle_types[particle_type](pos, color)
-            self.particles.append(particle)
-
-    def create_explosion(self, pos, color, num_particles=20):
-        for _ in range(num_particles):
-            self.create_particle(pos, color, 'explosion')
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-
-    def create_explosion(self, pos, color, num_particles=20):
-        for _ in range(num_particles):
+    def create_explosion(self, pos, color, count=20):
+        for _ in range(count):
             self.create_particle(pos, color, 'explosion')
 
     def update(self):
@@ -168,11 +123,7 @@ class EnhancedParticleSystem:
             if particle['type'] == 'sparkle':
                 particle['size'] *= 0.95
             elif particle['type'] == 'trail':
-<<<<<<< HEAD
                 particle['velocity'][1] += 0.1  # Gravity effect
-=======
-                particle['velocity'][1] += 0.1
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
             elif particle['type'] == 'explosion':
                 particle['size'] *= 0.9
                 particle['velocity'][0] *= 0.95
@@ -188,8 +139,8 @@ class EnhancedParticleSystem:
 
             if particle['type'] == 'sparkle':
                 pygame.draw.circle(screen, color,
-                                 (int(particle['pos'][0]), int(particle['pos'][1])),
-                                 int(particle['size']))
+                                   (int(particle['pos'][0]), int(particle['pos'][1])),
+                                   int(particle['size']))
             elif particle['type'] in ['trail', 'explosion']:
                 size = int(particle['size'])
                 surf = pygame.Surface((size * 2, size * 2), pygame.SRCALPHA)
@@ -207,55 +158,24 @@ class CharacterSelect:
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("Pyth Fighter - Character Selection")
 
+        self.resource_manager = ResourceManager()
         self.position_manager = PositionManager(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.selected = {"player1": None, "player2": None}
         self.current_player = "player1"
+        self.player_devices = {"player1": None, "player2": None}
         self.animation_time = 0
         self.hovered_character = None
         self.particles = EnhancedParticleSystem()
         self.selection_done = False
+        self.selection_cooldown = 0
+        self.selection_cooldown_kb = 0
+        self.joystick_cursor_pos = [SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2]
 
-<<<<<<< HEAD
         # Sound effects
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-        pygame.mixer.init()
-        self.hover_sound = pygame.mixer.Sound("assets/sounds/hover.wav") if os.path.exists("assets/sounds/hover.wav") else None
-        self.select_sound = pygame.mixer.Sound("assets/sounds/select.wav") if os.path.exists("assets/sounds/select.wav") else None
-
-<<<<<<< HEAD
-        # Load and create fonts with fallback
-        try:
-            font_path = "assets/fonts/your-fancy-font.ttf"
-            self.fonts = {
-                'title': pygame.font.Font(font_path if os.path.exists(font_path) else None, 72),
-                'subtitle': pygame.font.Font(font_path if os.path.exists(font_path) else None, 48),
-                'normal': pygame.font.Font(font_path if os.path.exists(font_path) else None, 36),
-                'small': pygame.font.Font(font_path if os.path.exists(font_path) else None, 24)
-            }
-        except:
-            self.fonts = {
-                'title': pygame.font.Font(None, 72),
-                'subtitle': pygame.font.Font(None, 48),
-                'normal': pygame.font.Font(None, 36),
-                'small': pygame.font.Font(None, 24)
-            }
+        self.hover_sound = self.resource_manager.assets["sounds"].get("hover")
+        self.select_sound = self.resource_manager.assets["sounds"].get("select")
 
         # Transition effects
-        self.transition_alpha = 255
-        self.fade_speed = 5
-        self.transition_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        self.transition_surface.fill((0, 0, 0))
-=======
-        font_path = "assets/fonts/your-fancy-font.ttf"
-        self.fonts = {
-            'title': pygame.font.Font(font_path if os.path.exists(font_path) else None, 72),
-            'subtitle': pygame.font.Font(font_path if os.path.exists(font_path) else None, 48),
-            'normal': pygame.font.Font(font_path if os.path.exists(font_path) else None, 36),
-            'small': pygame.font.Font(font_path if os.path.exists(font_path) else None, 24)
-        }
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-
         self.transition_alpha = 255
         self.fade_speed = 5
         self.transition_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -268,62 +188,41 @@ class CharacterSelect:
                 GRADIENT_TOP[i] + (GRADIENT_BOTTOM[i] - GRADIENT_TOP[i]) * progress
                 for i in range(3)
             ]
-<<<<<<< HEAD
-            # Add subtle wave effect
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-            wave_offset = sin(self.animation_time + y/100) * 20
+            wave_offset = sin(self.animation_time + y / 100) * 20
             pygame.draw.line(self.screen, color,
-                           (max(0, wave_offset), y),
-                           (SCREEN_WIDTH + min(0, wave_offset), y))
+                             (max(0, wave_offset), y),
+                             (SCREEN_WIDTH + min(0, wave_offset), y))
 
     def create_card_glow(self, surface, color, radius):
         glow = pygame.Surface((surface.get_width() + radius * 2,
-                             surface.get_height() + radius * 2),
-                            pygame.SRCALPHA)
+                               surface.get_height() + radius * 2),
+                              pygame.SRCALPHA)
         for i in range(radius, 0, -1):
             alpha = int(100 * (i / radius))
-<<<<<<< HEAD
-            # Add pulsing effect
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
             pulse = sin(self.animation_time * 4) * 0.3 + 0.7
             color_pulse = tuple(int(c * pulse) for c in color)
             pygame.draw.rect(glow, (*color_pulse, alpha),
-                           (radius - i, radius - i,
-                            surface.get_width() + i * 2,
-                            surface.get_height() + i * 2),
-                           border_radius=20)
+                             (radius - i, radius - i,
+                              surface.get_width() + i * 2,
+                              surface.get_height() + i * 2),
+                             border_radius=20)
         return glow
 
     def draw_character_card(self, name, data):
         card_rect = self.position_manager.card_positions[name]
         hover = card_rect.collidepoint(self.joystick_cursor_pos)
 
-<<<<<<< HEAD
-        # Enhanced card animation
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
         y_offset = sin(self.animation_time * 3) * 5
         x_offset = 0
         if hover:
             x_offset = sin(self.animation_time * 8) * 3
             self.hovered_character = name
-<<<<<<< HEAD
-            # Enhanced particle effects
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
             if pygame.time.get_ticks() % 5 == 0:
                 self.particles.create_particle(
-                    (card_rect.x + SETTINGS.CARD_WIDTH/2,
+                    (card_rect.x + SETTINGS.CARD_WIDTH / 2,
                      card_rect.y + SETTINGS.CARD_HEIGHT),
                     data.color,
                     'trail')
-
-<<<<<<< HEAD
-                # Add sparkles around the card
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
                 for _ in range(2):
                     edge_pos = (
                         card_rect.x + random.uniform(0, SETTINGS.CARD_WIDTH),
@@ -331,27 +230,15 @@ class CharacterSelect:
                     )
                     self.particles.create_particle(edge_pos, data.color, 'sparkle')
 
-<<<<<<< HEAD
-        # Create card surface with enhanced effects
         card_surface = pygame.Surface((SETTINGS.CARD_WIDTH, SETTINGS.CARD_HEIGHT),
-                                    pygame.SRCALPHA)
+                                      pygame.SRCALPHA)
 
-        # Enhanced card shadow and background
-=======
-        card_surface = pygame.Surface((SETTINGS.CARD_WIDTH, SETTINGS.CARD_HEIGHT),
-                                    pygame.SRCALPHA)
-
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
         shadow_offset = abs(sin(self.animation_time * 2)) * 4 + 4
         pygame.draw.rect(card_surface, CARD_SHADOW_COLOR,
-                        (shadow_offset, shadow_offset,
-                         SETTINGS.CARD_WIDTH, SETTINGS.CARD_HEIGHT),
-                        border_radius=20)
+                         (shadow_offset, shadow_offset,
+                          SETTINGS.CARD_WIDTH, SETTINGS.CARD_HEIGHT),
+                         border_radius=20)
 
-<<<<<<< HEAD
-        # Enhanced card gradient with animation
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
         for y in range(SETTINGS.CARD_HEIGHT):
             progress = y / SETTINGS.CARD_HEIGHT
             wave = sin(self.animation_time * 2 + progress * 3) * 0.1
@@ -361,76 +248,47 @@ class CharacterSelect:
             ]
             alpha = 230 if hover else 200
             pygame.draw.line(card_surface, (*color, alpha),
-                           (0, y), (SETTINGS.CARD_WIDTH, y))
+                             (0, y), (SETTINGS.CARD_WIDTH, y))
 
-<<<<<<< HEAD
-        # Card content with enhanced animations
         self._draw_card_content(card_surface, data, hover)
 
-        # Selection indicators with enhanced effects
-=======
-        self._draw_card_content(card_surface, data, hover)
-
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
         if name in [self.selected['player1'], self.selected['player2']]:
             glow_color = SETTINGS.PLAYER1_COLOR if name == self.selected['player1'] else SETTINGS.PLAYER2_COLOR
             glow = self.create_card_glow(card_surface, glow_color, 10)
             self.screen.blit(glow,
-                           (card_rect.x + x_offset - 10,
-                            card_rect.y + y_offset - 10))
+                             (card_rect.x + x_offset - 10,
+                              card_rect.y + y_offset - 10))
 
         self.screen.blit(card_surface,
-                        (card_rect.x + x_offset, card_rect.y + y_offset))
+                         (card_rect.x + x_offset, card_rect.y + y_offset))
 
     def _draw_card_content(self, surface, data, hover):
         y_content = 20
-
-<<<<<<< HEAD
-        # Animated character name
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-        name_parts = data.name.split(" ")
         scale = 1 + sin(self.animation_time * 4) * 0.05 if hover else 1
-        text = self.fonts['subtitle'].render(name_parts[0], True, TEXT_COLOR)
+        text = self.resource_manager.assets["fonts"]['subtitle'].render(data.name.split(" ")[0], True, TEXT_COLOR)
         scaled_text = pygame.transform.scale(text,
-                                          (int(text.get_width() * scale),
-                                           int(text.get_height() * scale)))
+                                             (int(text.get_width() * scale),
+                                              int(text.get_height() * scale)))
         surface.blit(scaled_text,
-                    (SETTINGS.CARD_WIDTH//2 - scaled_text.get_width()//2, y_content))
+                     (SETTINGS.CARD_WIDTH // 2 - scaled_text.get_width() // 2, y_content))
         y_content += 50
 
-<<<<<<< HEAD
-        # Fighting style with hover effect
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
         style_color = (*TEXT_COLOR[:3], 255 if hover else 200)
-        style = self.fonts['normal'].render(f"Style: {data.style}", True, style_color)
+        style = self.resource_manager.assets["fonts"]['normal'].render(f"Style: {data.style}", True, style_color)
         surface.blit(style,
-                    (SETTINGS.CARD_WIDTH//2 - style.get_width()//2, y_content))
+                     (SETTINGS.CARD_WIDTH // 2 - style.get_width() // 2, y_content))
         y_content += 40
 
-<<<<<<< HEAD
-        # Enhanced stats bars with animations
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
         for stat_name, value in list(data.stats.items())[:3]:
-            stat_text = self.fonts['small'].render(stat_name, True, TEXT_COLOR)
+            stat_text = self.resource_manager.assets["fonts"]['small'].render(stat_name, True, TEXT_COLOR)
             surface.blit(stat_text, (20, y_content))
 
             bar_width = SETTINGS.CARD_WIDTH - 40
-<<<<<<< HEAD
-            # Background bar with subtle animation
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
             bg_height = 10 + sin(self.animation_time * 3) * 2 if hover else 10
             pygame.draw.rect(surface, (50, 50, 50),
-                           (20, y_content + 20, bar_width, bg_height))
+                             (20, y_content + 20, bar_width, bg_height))
 
-<<<<<<< HEAD
-            # Animated value bar with enhanced gradient
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-            value_width = int(bar_width * (value/10 if isinstance(value, (int, float)) else value/120))
+            value_width = int(bar_width * (value / 10 if isinstance(value, (int, float)) else value / 120))
             for x in range(value_width):
                 progress = x / bar_width
                 wave = sin(self.animation_time * 4 + progress * 10) * 0.1 if hover else 0
@@ -439,8 +297,8 @@ class CharacterSelect:
                     for i in range(3)
                 ]
                 pygame.draw.line(surface, color,
-                               (20 + x, y_content + 20),
-                               (20 + x, y_content + 20 + bg_height))
+                                 (20 + x, y_content + 20),
+                                 (20 + x, y_content + 20 + bg_height))
             y_content += 40
 
     def draw_detail_panel(self):
@@ -450,65 +308,38 @@ class CharacterSelect:
         char_data = FIGHTERS[self.hovered_character]
         panel_rect = self.position_manager.get_detail_panel_position()
         surface = pygame.Surface((panel_rect.width, panel_rect.height),
-                               pygame.SRCALPHA)
+                                 pygame.SRCALPHA)
 
-<<<<<<< HEAD
-        # Enhanced panel background with animated gradient - Fixed color handling
         for y in range(panel_rect.height):
             progress = y / panel_rect.height
             wave = sin(self.animation_time * 2 + progress * 3) * 0.1
-            # Ensure color values are integers and clamped between 0 and 255
-=======
-        for y in range(panel_rect.height):
-            progress = y / panel_rect.height
-            wave = sin(self.animation_time * 2 + progress * 3) * 0.1
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
             color = [
                 max(0, min(255, int(40 * (1 - progress + wave)))),
                 max(0, min(255, int(40 * (1 - progress + wave)))),
                 max(0, min(255, int(60 * (1 - progress + wave)))),
-<<<<<<< HEAD
-                180  # Fixed alpha value
-            ]
-            pygame.draw.line(surface, color, (0, y), (panel_rect.width, y))
-
-        # Panel content with enhanced animations
-        y = 20
-        title = self.fonts['title'].render(char_data.name.split(" ")[0], True, TEXT_COLOR)
-        # Add title scale animation
-=======
                 180
             ]
             pygame.draw.line(surface, color, (0, y), (panel_rect.width, y))
 
         y = 20
-        title = self.fonts['title'].render(char_data.name.split(" ")[0], True, TEXT_COLOR)
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
+        title = self.resource_manager.assets["fonts"]['title'].render(char_data.name.split(" ")[0], True, TEXT_COLOR)
         scale = 1 + sin(self.animation_time * 3) * 0.05
         scaled_title = pygame.transform.scale(title,
-                                           (int(title.get_width() * scale),
-                                            int(title.get_height() * scale)))
+                                               (int(title.get_width() * scale),
+                                                int(title.get_height() * scale)))
         surface.blit(scaled_title, (20, y))
         y += 60
 
-<<<<<<< HEAD
-        # Enhanced description with animated word wrap and highlight effects
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
         words = char_data.description.split()
         line = ""
         highlight_color = (*char_data.color, 150)
         for word in words:
             test_line = line + word + " "
-            test_surface = self.fonts['normal'].render(test_line, True, TEXT_COLOR)
+            test_surface = self.resource_manager.assets["fonts"]['normal'].render(test_line, True, TEXT_COLOR)
             if test_surface.get_width() > panel_rect.width - 40:
-                desc = self.fonts['normal'].render(line, True, TEXT_COLOR)
-<<<<<<< HEAD
-                # Add subtle highlight effect
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
+                desc = self.resource_manager.assets["fonts"]['normal'].render(line, True, TEXT_COLOR)
                 highlight = pygame.Surface((desc.get_width(), desc.get_height()),
-                                        pygame.SRCALPHA)
+                                           pygame.SRCALPHA)
                 highlight.fill(highlight_color)
                 highlight.set_alpha(int(abs(sin(self.animation_time * 2)) * 30))
                 surface.blit(highlight, (20, y))
@@ -518,9 +349,9 @@ class CharacterSelect:
             else:
                 line = test_line
         if line:
-            desc = self.fonts['normal'].render(line, True, TEXT_COLOR)
+            desc = self.resource_manager.assets["fonts"]['normal'].render(line, True, TEXT_COLOR)
             highlight = pygame.Surface((desc.get_width(), desc.get_height()),
-                                    pygame.SRCALPHA)
+                                       pygame.SRCALPHA)
             highlight.fill(highlight_color)
             highlight.set_alpha(int(abs(sin(self.animation_time * 2)) * 30))
             surface.blit(highlight, (20, y))
@@ -529,33 +360,21 @@ class CharacterSelect:
         self.screen.blit(surface, (panel_rect.x, panel_rect.y))
 
     def draw_player_prompts(self):
-<<<<<<< HEAD
-        # Enhanced player prompts with animations and effects
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
         for player_num, player_type in [("1", "player1"), ("2", "player2")]:
             is_current = self.current_player == player_type
             text_color = list(TEXT_COLOR)
 
-<<<<<<< HEAD
-            # Pulse effect for current player
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
             if is_current:
                 pulse = abs(sin(self.animation_time * 4))
                 text_color = [min(255, c + 50 * pulse) for c in text_color]
 
-            player_text = self.fonts['normal'].render(
+            player_text = self.resource_manager.assets["fonts"]['normal'].render(
                 f"Joueur {player_num}: {self.selected[player_type]}"
                 if self.selected[player_type] else
                 f"Joueur {player_num}: Sélectionner",
                 True, text_color
             )
 
-<<<<<<< HEAD
-            # Position with bounce effect
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
             y_pos = SCREEN_HEIGHT - 80
             if is_current:
                 y_pos += sin(self.animation_time * 5) * 5
@@ -564,25 +383,14 @@ class CharacterSelect:
             self.screen.blit(player_text, (x_pos, y_pos))
 
     def handle_character_selection(self, char_name):
-<<<<<<< HEAD
-        """Handle character selection with enhanced feedback"""
         if self.current_player == "player1" and self.selected['player1'] is None:
             self.selected['player1'] = char_name
-            # Create selection effect
-=======
-        if self.current_player == "player1" and self.selected['player1'] is None:
-            self.selected['player1'] = char_name
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
             pos = self.position_manager.card_positions[char_name].center
             self.particles.create_explosion(pos, SETTINGS.PLAYER1_COLOR)
             if self.select_sound:
                 self.select_sound.play()
         elif self.current_player == "player2" and self.selected['player2'] is None:
             self.selected['player2'] = char_name
-<<<<<<< HEAD
-            # Create selection effect
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
             pos = self.position_manager.card_positions[char_name].center
             self.particles.create_explosion(pos, SETTINGS.PLAYER2_COLOR)
             if self.select_sound:
@@ -591,185 +399,21 @@ class CharacterSelect:
         if self.selected['player1'] and self.selected['player2']:
             self.selection_done = True
 
-        self.current_player = "player2" if self.current_player == "player1" else "player1"
+        if self.current_player == "player1" and self.selected['player1']:
+            self.current_player = "player2"
+        elif self.current_player == "player2" and self.selected['player2']:
+            self.current_player = "player1"
 
     def handle_transition(self):
-<<<<<<< HEAD
-        """Handle screen transition effects"""
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
         if self.transition_alpha > 0:
             self.transition_surface.set_alpha(self.transition_alpha)
             self.screen.blit(self.transition_surface, (0, 0))
             self.transition_alpha = max(0, self.transition_alpha - self.fade_speed)
 
-    def handle_input(self):
-<<<<<<< HEAD
-        """Gère les entrées clavier et manette"""
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-        keys = pygame.key.get_pressed()
-        joy_moved = False
-        cursor_speed = 15
-
-<<<<<<< HEAD
-        # Contrôles clavier
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-        if keys[pygame.K_LEFT]:
-            self.joystick_cursor_pos[0] -= cursor_speed
-        if keys[pygame.K_RIGHT]:
-            self.joystick_cursor_pos[0] += cursor_speed
-        if keys[pygame.K_UP]:
-            self.joystick_cursor_pos[1] -= cursor_speed
-        if keys[pygame.K_DOWN]:
-            self.joystick_cursor_pos[1] += cursor_speed
-
-<<<<<<< HEAD
-        # Contrôles manette
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-        for joystick in self.joysticks:
-            deadzone = 0.2
-            x_axis = joystick.get_axis(0)
-            y_axis = joystick.get_axis(1)
-
-            if abs(x_axis) > deadzone:
-                self.joystick_cursor_pos[0] += int(x_axis * cursor_speed)
-                joy_moved = True
-            if abs(y_axis) > deadzone:
-                self.joystick_cursor_pos[1] += int(y_axis * cursor_speed)
-                joy_moved = True
-
-<<<<<<< HEAD
-            # Support du D-pad
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-            if joystick.get_numhats() > 0:
-                hat = joystick.get_hat(0)
-                if hat[0] != 0 or hat[1] != 0:
-                    self.joystick_cursor_pos[0] += hat[0] * cursor_speed
-                    self.joystick_cursor_pos[1] -= hat[1] * cursor_speed
-                    joy_moved = True
-
-<<<<<<< HEAD
-        # Limiter la position du curseur
-        self.joystick_cursor_pos[0] = max(0, min(SCREEN_WIDTH, self.joystick_cursor_pos[0]))
-        self.joystick_cursor_pos[1] = max(0, min(SCREEN_HEIGHT, self.joystick_cursor_pos[1]))
-
-        # Effet visuel
-=======
-        self.joystick_cursor_pos[0] = max(0, min(SCREEN_WIDTH, self.joystick_cursor_pos[0]))
-        self.joystick_cursor_pos[1] = max(0, min(SCREEN_HEIGHT, self.joystick_cursor_pos[1]))
-
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-        if joy_moved and pygame.time.get_ticks() % 3 == 0:
-            color = SETTINGS.PLAYER1_COLOR if self.current_player == "player1" else SETTINGS.PLAYER2_COLOR
-            self.particles.create_particle(self.joystick_cursor_pos, color)
-
-        return joy_moved
-
-    def draw_cursor(self):
-<<<<<<< HEAD
-        """Dessine le curseur de sélection"""
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-        player_color = SETTINGS.PLAYER1_COLOR if self.current_player == "player1" else SETTINGS.PLAYER2_COLOR
-        time_pulse = abs(sin(self.animation_time * 8)) * 0.5 + 0.5
-        size = 15 + int(time_pulse * 10)
-
-        for i in range(3):
-            scaled_size = size - (i * 4)
-            if scaled_size <= 0:
-                continue
-
-            alpha = int(255 * (1 - i/3) * time_pulse)
-            color = (*player_color, alpha)
-
-            cursor_surface = pygame.Surface((scaled_size * 2, scaled_size * 2), pygame.SRCALPHA)
-            pygame.draw.circle(cursor_surface, color, (scaled_size, scaled_size), scaled_size, 2)
-
-            self.screen.blit(cursor_surface,
-                          (self.joystick_cursor_pos[0] - scaled_size,
-                           self.joystick_cursor_pos[1] - scaled_size))
-
-    def show_versus_screen(self):
-<<<<<<< HEAD
-        """Affiche l'écran de confrontation"""
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-        vs_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        player1_data = FIGHTERS[self.selected["player1"]]
-        player2_data = FIGHTERS[self.selected["player2"]]
-
-        zoom_duration = 60
-        for frame in range(zoom_duration):
-            progress = frame / zoom_duration
-            vs_surface.fill(BACKGROUND_COLOR)
-
-<<<<<<< HEAD
-            # Éclairs
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-            for _ in range(5):
-                start_pos = (random.randint(0, SCREEN_WIDTH), random.randint(0, SCREEN_HEIGHT//2))
-                end_pos = (random.randint(0, SCREEN_WIDTH), random.randint(SCREEN_HEIGHT//2, SCREEN_HEIGHT))
-                pygame.draw.line(vs_surface, (255, 255, 255, 100), start_pos, end_pos, 2)
-
-<<<<<<< HEAD
-            # VS Text
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-            vs_text = self.fonts['title'].render("VS", True, (255, 255, 255))
-            vs_scale = 1 + sin(progress * 10) * 0.3
-            vs_scaled = pygame.transform.scale(vs_text,
-                                            (int(vs_text.get_width() * vs_scale),
-                                             int(vs_text.get_height() * vs_scale)))
-            vs_surface.blit(vs_scaled,
-                          (SCREEN_WIDTH//2 - vs_scaled.get_width()//2,
-                           SCREEN_HEIGHT//2 - vs_scaled.get_height()//2))
-
-<<<<<<< HEAD
-            # Player names
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-            p1_name = self.fonts['normal'].render(player1_data.name, True, SETTINGS.PLAYER1_COLOR)
-            p2_name = self.fonts['normal'].render(player2_data.name, True, SETTINGS.PLAYER2_COLOR)
-            vs_surface.blit(p1_name, (SCREEN_WIDTH//4 - p1_name.get_width()//2, SCREEN_HEIGHT//2 + 50))
-            vs_surface.blit(p2_name, (3*SCREEN_WIDTH//4 - p2_name.get_width()//2, SCREEN_HEIGHT//2 + 50))
-
-            if frame % 5 == 0:
-                self.particles.create_explosion((SCREEN_WIDTH//2, SCREEN_HEIGHT//2), (255, 200, 50), 10)
-
-            self.particles.update()
-            self.particles.draw(vs_surface)
-
-            self.screen.blit(vs_surface, (0, 0))
-            pygame.display.flip()
-            pygame.time.delay(16)
-
-        pygame.time.delay(1000)
-
-    def play_character_intro(self, character_name):
-<<<<<<< HEAD
-        """Joue le son d'introduction du personnage"""
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-        try:
-            sound_file = f"assets/sounds/{character_name.lower()}_intro.wav"
-            if os.path.exists(sound_file):
-                intro_sound = pygame.mixer.Sound(sound_file)
-                intro_sound.play()
-        except:
-            pass
-
     def run(self):
-        """Boucle principale du sélecteur de personnages"""
         clock = pygame.time.Clock()
         running = True
         last_hover = None
-        self.joystick_cursor_pos = [SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2]
-        selection_cooldown = 0
 
         try:
             pygame.mixer.music.load("assets/sounds/character_select.mp3")
@@ -784,31 +428,16 @@ class CharacterSelect:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                elif event.type == pygame.JOYAXISMOTION:
-<<<<<<< HEAD
-                    if event.axis == 0:  # X axis
-                        self.joystick_cursor_pos[0] = max(0, min(SCREEN_WIDTH, self.joystick_cursor_pos[0] + int(event.value * 10)))
-                    elif event.axis == 1:  # Y axis
-                        self.joystick_cursor_pos[1] = max(0, min(SCREEN_HEIGHT, self.joystick_cursor_pos[1] + int(event.value * 10)))
-                elif event.type == pygame.JOYBUTTONDOWN:
-                    if event.button == 0:  # A button (Cross on PS)
-=======
-                    if event.axis == 0:
-                        self.joystick_cursor_pos[0] = max(0, min(SCREEN_WIDTH, self.joystick_cursor_pos[0] + int(event.value * 10)))
-                    elif event.axis == 1:
-                        self.joystick_cursor_pos[1] = max(0, min(SCREEN_HEIGHT, self.joystick_cursor_pos[1] + int(event.value * 10)))
                 elif event.type == pygame.JOYBUTTONDOWN:
                     if event.button == 0:
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-                        for char_name, char_rect in self.position_manager.card_positions.items():
-                            if char_rect.collidepoint(self.joystick_cursor_pos):
-                                self.handle_character_selection(char_name)
-                                break
+                        joystick = pygame.joystick.Joystick(event.instance_id)
+                        if self.current_player == "player1":
+                            if self.player_devices["player1"] is None or self.player_devices["player1"] == joystick.get_instance_id():
+                                self.select_character(joystick.get_instance_id())
+                        elif self.current_player == "player2":
+                            if self.player_devices["player2"] is None or self.player_devices["player2"] == joystick.get_instance_id():
+                                self.select_character(joystick.get_instance_id())
 
-<<<<<<< HEAD
-            # Handle hover sound effects
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
             current_hover = None
             for char_name, char_rect in self.position_manager.card_positions.items():
                 if char_rect.collidepoint(self.joystick_cursor_pos):
@@ -819,18 +448,12 @@ class CharacterSelect:
                 self.hover_sound.play()
             last_hover = current_hover
 
-<<<<<<< HEAD
-            # Gérer le cooldown de sélection
-            if selection_cooldown > 0:
-                selection_cooldown -= 1
+            if self.selection_cooldown > 0:
+                self.selection_cooldown -= 1
+            if self.selection_cooldown_kb > 0:
+                self.selection_cooldown_kb -= 1
 
-            # Traiter les entrées
-=======
-            if selection_cooldown > 0:
-                selection_cooldown -= 1
-
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-            joy_moved = self.handle_input()
+            self.handle_input()
 
             self.screen.fill(BACKGROUND_COLOR)
             self.draw_gradient_background()
@@ -844,26 +467,15 @@ class CharacterSelect:
 
             self.draw_detail_panel()
             self.draw_player_prompts()
-<<<<<<< HEAD
-            self.draw_cursor()  # Nouveau curseur personnalisé
-            self.handle_transition()
-
-            # Handle game launch with transition
-=======
             self.draw_cursor()
             self.handle_transition()
 
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
             if self.selection_done:
                 self.play_character_intro(self.selected["player1"])
                 self.show_versus_screen()
 
-<<<<<<< HEAD
-                # Launch the game
-=======
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
                 subprocess.run([sys.executable, "src/core/game.py",
-                              self.selected["player1"], self.selected["player2"]])
+                               self.selected["player1"], self.selected["player2"]])
                 sys.exit()
 
             pygame.display.flip()
@@ -872,73 +484,137 @@ class CharacterSelect:
         pygame.quit()
         sys.exit()
 
-def preload_assets(base_path="assets"):
-    assets = {
-        "images": {},
-        "sounds": {},
-        "fonts": {}
-    }
-<<<<<<< HEAD
-    
-    # Define paths to look for assets
-=======
+    def handle_input(self):
+        keys = pygame.key.get_pressed()
+        cursor_speed = 15
 
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-    paths = {
-        "images": os.path.join(base_path, "images"),
-        "sounds": os.path.join(base_path, "sounds"),
-        "fonts": os.path.join(base_path, "fonts")
-    }
-<<<<<<< HEAD
-    
-    # Load images
-=======
+        if self.current_player == "player1" and (self.player_devices["player1"] is None or self.player_devices["player1"] == "keyboard"):
+            if keys[pygame.K_LEFT]:
+                self.joystick_cursor_pos[0] -= cursor_speed
+            if keys[pygame.K_RIGHT]:
+                self.joystick_cursor_pos[0] += cursor_speed
+            if keys[pygame.K_UP]:
+                self.joystick_cursor_pos[1] -= cursor_speed
+            if keys[pygame.K_DOWN]:
+                self.joystick_cursor_pos[1] += cursor_speed
+            if keys[pygame.K_RETURN] and self.selection_cooldown_kb <= 0:
+                self.select_character("keyboard")
+                self.selection_cooldown_kb = 30
 
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-    if os.path.exists(paths["images"]):
-        for file in os.listdir(paths["images"]):
-            if file.endswith(('.png', '.jpg', '.jpeg')):
-                try:
-                    key = os.path.splitext(file)[0]
-                    assets["images"][key] = pygame.image.load(
-                        os.path.join(paths["images"], file)).convert_alpha()
-                except:
-                    pass
-<<<<<<< HEAD
-    
-    # Load sounds
-=======
+        if self.current_player == "player2" and (self.player_devices["player2"] is None or self.player_devices["player2"] == "keyboard"):
+            if keys[pygame.K_a]:
+                self.joystick_cursor_pos[0] -= cursor_speed
+            if keys[pygame.K_d]:
+                self.joystick_cursor_pos[0] += cursor_speed
+            if keys[pygame.K_w]:
+                self.joystick_cursor_pos[1] -= cursor_speed
+            if keys[pygame.K_s]:
+                self.joystick_cursor_pos[1] += cursor_speed
+            if keys[pygame.K_SPACE] and self.selection_cooldown_kb <= 0:
+                self.select_character("keyboard")
+                self.selection_cooldown_kb = 30
 
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-    if os.path.exists(paths["sounds"]):
-        sound_files = {
-            "hover": "hover.wav",
-            "select": "select.wav",
-            "character_select": "character_select.mp3",
-            "fight": "fight.wav",
-            "versus": "versus.wav"
-        }
-<<<<<<< HEAD
-        
-=======
+        for joystick in self.joysticks:
+            deadzone = 0.2
+            x_axis = joystick.get_axis(0)
+            y_axis = joystick.get_axis(1)
 
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
-        for key, file in sound_files.items():
-            try:
-                assets["sounds"][key] = pygame.mixer.Sound(
-                    os.path.join(paths["sounds"], file))
-            except:
-                pass
-<<<<<<< HEAD
-    
-    return assets
+            if abs(x_axis) > deadzone or abs(y_axis) > deadzone:
+                if self.current_player == "player1" and (self.player_devices["player1"] is None or
+                                                       self.player_devices["player1"] == joystick.get_instance_id()):
+                    self.joystick_cursor_pos[0] += int(x_axis * cursor_speed)
+                    self.joystick_cursor_pos[1] += int(y_axis * cursor_speed)
+                    self.player_devices["player1"] = joystick.get_instance_id()
+                elif self.current_player == "player2" and (self.player_devices["player2"] is None or
+                                                         self.player_devices["player2"] == joystick.get_instance_id()):
+                    self.joystick_cursor_pos[0] += int(x_axis * cursor_speed)
+                    self.joystick_cursor_pos[1] += int(y_axis * cursor_speed)
+                    self.player_devices["player2"] = joystick.get_instance_id()
 
-# Run the game
-=======
+        self.joystick_cursor_pos[0] = max(0, min(SCREEN_WIDTH, self.joystick_cursor_pos[0]))
+        self.joystick_cursor_pos[1] = max(0, min(SCREEN_HEIGHT, self.joystick_cursor_pos[1]))
 
-    return assets
+    def select_character(self, device_id):
+        if self.selection_cooldown > 0:
+            return
 
->>>>>>> 48c502d5ab1040a077d596a87b5e382a081df687
+        for char_name, char_rect in self.position_manager.card_positions.items():
+            if char_rect.collidepoint(self.joystick_cursor_pos):
+                self.handle_character_selection(char_name)
+                self.player_devices[self.current_player] = device_id
+                self.selection_cooldown = 30
+                break
+
+    def draw_cursor(self):
+        player_color = SETTINGS.PLAYER1_COLOR if self.current_player == "player1" else SETTINGS.PLAYER2_COLOR
+        time_pulse = abs(sin(self.animation_time * 8)) * 0.5 + 0.5
+        size = 15 + int(time_pulse * 10)
+
+        for i in range(3):
+            scaled_size = size - (i * 4)
+            if scaled_size <= 0:
+                continue
+
+            alpha = int(255 * (1 - i / 3) * time_pulse)
+            color = (*player_color, alpha)
+
+            cursor_surface = pygame.Surface((scaled_size * 2, scaled_size * 2), pygame.SRCALPHA)
+            pygame.draw.circle(cursor_surface, color, (scaled_size, scaled_size), scaled_size, 2)
+
+            self.screen.blit(cursor_surface,
+                             (self.joystick_cursor_pos[0] - scaled_size,
+                              self.joystick_cursor_pos[1] - scaled_size))
+
+    def show_versus_screen(self):
+        vs_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        player1_data = FIGHTERS[self.selected["player1"]]
+        player2_data = FIGHTERS[self.selected["player2"]]
+
+        zoom_duration = 60
+        for frame in range(zoom_duration):
+            progress = frame / zoom_duration
+            vs_surface.fill(BACKGROUND_COLOR)
+
+            for _ in range(5):
+                start_pos = (random.randint(0, SCREEN_WIDTH), random.randint(0, SCREEN_HEIGHT // 2))
+                end_pos = (random.randint(0, SCREEN_WIDTH), random.randint(SCREEN_HEIGHT // 2, SCREEN_HEIGHT))
+                pygame.draw.line(vs_surface, (255, 255, 255, 100), start_pos, end_pos, 2)
+
+            vs_text = self.resource_manager.assets["fonts"]['title'].render("VS", True, (255, 255, 255))
+            vs_scale = 1 + sin(progress * 10) * 0.3
+            vs_scaled = pygame.transform.scale(vs_text,
+                                               (int(vs_text.get_width() * vs_scale),
+                                                int(vs_text.get_height() * vs_scale)))
+            vs_surface.blit(vs_scaled,
+                            (SCREEN_WIDTH // 2 - vs_scaled.get_width() // 2,
+                             SCREEN_HEIGHT // 2 - vs_scaled.get_height() // 2))
+
+            p1_name = self.resource_manager.assets["fonts"]['normal'].render(player1_data.name, True, SETTINGS.PLAYER1_COLOR)
+            p2_name = self.resource_manager.assets["fonts"]['normal'].render(player2_data.name, True, SETTINGS.PLAYER2_COLOR)
+            vs_surface.blit(p1_name, (SCREEN_WIDTH // 4 - p1_name.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
+            vs_surface.blit(p2_name, (3 * SCREEN_WIDTH // 4 - p2_name.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
+
+            if frame % 5 == 0:
+                self.particles.create_explosion((SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2), (255, 200, 50), 10)
+
+            self.particles.update()
+            self.particles.draw(vs_surface)
+
+            self.screen.blit(vs_surface, (0, 0))
+            pygame.display.flip()
+            pygame.time.delay(16)
+
+        pygame.time.delay(1000)
+
+    def play_character_intro(self, character_name):
+        try:
+            sound_file = f"assets/sounds/{character_name.lower()}_intro.wav"
+            if os.path.exists(sound_file):
+                intro_sound = pygame.mixer.Sound(sound_file)
+                intro_sound.play()
+        except:
+            pass
+
 if __name__ == "__main__":
     game = CharacterSelect()
     game.run()

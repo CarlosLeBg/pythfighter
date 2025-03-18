@@ -5,6 +5,7 @@ import os
 from enum import Enum
 import logging
 import random
+from threading import Thread
 
 # Configuration des logs
 logging.basicConfig(filename='launcher.log', level=logging.DEBUG,
@@ -33,6 +34,20 @@ class GameState(Enum):
     VICTORY = "victory"
     OPTIONS = "options"
 
+# Cache pour les images chargées
+image_cache = {}
+
+def load_image(path):
+    if path not in image_cache:
+        try:
+            image = pygame.image.load(path).convert_alpha()
+            image_cache[path] = image
+            logging.info(f"Image loaded successfully: {path}")
+        except Exception as e:
+            logging.error(f"Error loading image {path}: {e}")
+            return None
+    return image_cache[path]
+
 def load_animation(path, action, frame_count, fighter_width, fighter_height):
     frames = []
     animation_folder = os.path.join(path, action)
@@ -50,13 +65,11 @@ def load_animation(path, action, frame_count, fighter_width, fighter_height):
             logging.error(f"File not found - {frame_path}")
             continue
 
-        try:
-            img = pygame.image.load(frame_path).convert_alpha()
+        img = load_image(frame_path)
+        if img:
             img = pygame.transform.scale(img, (fighter_width, fighter_height))
             frames.append(img)
             logging.debug(f"Image loaded successfully: {frame_path}")
-        except Exception as e:
-            logging.error(f"Error loading {frame_path}: {e}")
 
     if not frames:
         logging.error(f"No frames loaded for action {action} in {animation_folder}")

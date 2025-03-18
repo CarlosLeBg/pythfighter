@@ -40,6 +40,7 @@ Pour installer et jouer à Pyth Fighter, suivez ces étapes :
 ### Joueur 1
 
 - ⚪ (touche O) : Attaquer.
+- 🔼 (touche triangle) : Attaque spéciale
 - 🇽 (touche X) : Sauter.
 - ⬅️⬆️➡️⬇️🕹️ (joystick gauche) : Se déplacer.
 - ⚙️ (touche option) : Pour ouvir le menu pause.
@@ -47,6 +48,7 @@ Pour installer et jouer à Pyth Fighter, suivez ces étapes :
 ### Joueur 2
 
 - ⚪ (touche O) : Attaquer.
+- 🔼 (touche triangle) : Attaque spéciale
 - 🇽 (touche X) : Sauter.
 - ⬅️⬆️➡️⬇️🕹️ (joystick gauche) : Se déplacer.
 - ⚙️ (touche option) : Pour ouvir le menu pause.

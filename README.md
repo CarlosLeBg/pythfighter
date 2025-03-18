@@ -63,12 +63,14 @@ Pour installer et jouer à Pyth Fighter, suivez ces étapes :
 - 🇩 : Se déplacer vers la droite.
 - 🇼 : Sauter.
 - 🇷 : Attaquer.
+- 🇹 : Attaque spéciale
 
 ### Joueur 2
 
 - ⬅️➡️ (flèche de droite  et gauche) : Se déplacer.
 - ⬆️ (flèche du haut) : Sauter.
 - ↪️ (entrée) : Attaquer.
+- 🇵 : Attaque spéciale
 
 ## Crédits
 

@@ -12,7 +12,7 @@ Inspiré par le célèbre jeu vidéo Street Fighter, Pyth Fighter vise à offrir
 - **Carl-Albert LIEVAL**
 - **Benjamin COURAM**
 - **Rémi POLVERINI**
-- **Thimothé PICHOT**
+- **Timothé PICHOT**
 
 ## Fonctionnalités
 

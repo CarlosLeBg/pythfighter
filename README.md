@@ -39,32 +39,32 @@ Pour installer et jouer à Pyth Fighter, suivez ces étapes :
 ## Touches manettes
 ### Joueur 1
 
--⚪ (touche O) : Attaquer
--🇽 (touche X) : Sauter
--⬅️⬆️➡️⬇️🕹️ (joystick gauche) : Se déplacer
--⚙️ (touche option) : Pour ouvir le menu pause
+-⚪ (touche O) : Attaquer.
+-🇽 (touche X) : Sauter.
+-⬅️⬆️➡️⬇️🕹️ (joystick gauche) : Se déplacer.
+-⚙️ (touche option) : Pour ouvir le menu pause.
 
 ### Joueur 2
 
--⚪ (touche O) : Attaquer
--🇽 (touche X) : Sauter
--⬅️⬆️➡️⬇️🕹️ (joystick gauche) : Se déplacer
--⚙️ (touche option) : Pour ouvir le menu pause
+-⚪ (touche O) : Attaquer.
+-🇽 (touche X) : Sauter.
+-⬅️⬆️➡️⬇️🕹️ (joystick gauche) : Se déplacer.
+-⚙️ (touche option) : Pour ouvir le menu pause.
 
 
 ## Touches clavier 
 ### Joueur 1
 
-- 🇦 : Se déplacer vers la gauche
-- 🇩 : Se déplacer vers la droite
-- 🇼 : Sauter
-- 🇷 : Attaquer
+- 🇦 : Se déplacer vers la gauche.
+- 🇩 : Se déplacer vers la droite.
+- 🇼 : Sauter.
+- 🇷 : Attaquer.
 
 ### Joueur 2
 
-- ⬅️➡️ (flèche de droite  et gauche) : Se déplacer
-- ⬆️ (flèche du haut) : Sauter
-- ↪️ (entrée) : Attaquer
+- ⬅️➡️ (flèche de droite  et gauche) : Se déplacer.
+- ⬆️ (flèche du haut) : Sauter.
+- ↪️ (entrée) : Attaquer.
 
 ## Crédits
 

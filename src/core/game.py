@@ -38,6 +38,9 @@ class GameState(Enum):
 image_cache = {}
 
 def load_image(path):
+    if not os.path.exists(path):
+        logging.error(f"Image file not found: {path}")
+        return None
     if path not in image_cache:
         try:
             image = pygame.image.load(path).convert_alpha()
@@ -120,7 +123,7 @@ class Fighter:
         self.special_attack_effect_duration = 60
 
         logging.info(f"Loading animations for {self.name}...")
-        base_path = os.path.join("src", "assets", "characters", self.name.lower())
+        base_path = os.path.join("src", "assets", "characters", "tank")
 
         if not os.path.exists(base_path):
             logging.error(f"Base folder for animations not found: {base_path}")

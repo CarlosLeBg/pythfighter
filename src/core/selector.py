@@ -1,6 +1,7 @@
 import pygame
 import sys
 import os
+import pygame.gfxdraw
 import subprocess
 import time
 from math import sin, cos, radians
@@ -38,12 +39,25 @@ GRADIENT_BOTTOM = (15, 15, 25)
 class EnhancedParticleSystem:
     def __init__(self):
         self.particles = []
+        self.max_particles = 500  # Limit to prevent slowdowns
         self.particle_types = {
             'sparkle': self._create_sparkle,
             'trail': self._create_trail,
-            'explosion': self._create_explosion
+            'explosion': self._create_explosion,
+            # 'fire': self._create_fire,  # Removed as the method is not defined
+            # 'electricity': self._create_electricity  # Removed as the method is not defined
         }
-
+        # Pre-render common particle surfaces
+        self.particle_surfaces = {}
+        for size in range(1, 20, 2):
+            self.particle_surfaces[size] = self._create_particle_surface(size)
+    
+    def _create_particle_surface(self, size):
+        """Pre-render particle surfaces for better performance"""
+        surf = pygame.Surface((size * 2, size * 2), pygame.SRCALPHA)
+        pygame.gfxdraw.filled_circle(surf, size, size, size, (255, 255, 255, 255))
+        return surf
+    
     def _create_sparkle(self, pos, color):
         angle = random.uniform(0, 360)
         speed = random.uniform(2, 4)
@@ -630,6 +644,50 @@ class CharacterSelect:
 
         pygame.quit()
         sys.exit()
+
+def preload_assets(base_path="assets"):
+    assets = {
+        "images": {},
+        "sounds": {},
+        "fonts": {}
+    }
+    
+    # Define paths to look for assets
+    paths = {
+        "images": os.path.join(base_path, "images"),
+        "sounds": os.path.join(base_path, "sounds"),
+        "fonts": os.path.join(base_path, "fonts")
+    }
+    
+    # Load images
+    if os.path.exists(paths["images"]):
+        for file in os.listdir(paths["images"]):
+            if file.endswith(('.png', '.jpg', '.jpeg')):
+                try:
+                    key = os.path.splitext(file)[0]
+                    assets["images"][key] = pygame.image.load(
+                        os.path.join(paths["images"], file)).convert_alpha()
+                except:
+                    pass
+    
+    # Load sounds
+    if os.path.exists(paths["sounds"]):
+        sound_files = {
+            "hover": "hover.wav",
+            "select": "select.wav",
+            "character_select": "character_select.mp3",
+            "fight": "fight.wav",
+            "versus": "versus.wav"
+        }
+        
+        for key, file in sound_files.items():
+            try:
+                assets["sounds"][key] = pygame.mixer.Sound(
+                    os.path.join(paths["sounds"], file))
+            except:
+                pass
+    
+    return assets
 
 # Run the game
 if __name__ == "__main__":

@@ -42,5 +42,4 @@ Pour installer et jouer à Pyth Fighter, suivez ces étapes :
 -Graphismes par LuizMelo sur le Site Itch.io
 -Chat GPT, Claude, Mistral AI
 
-
 Nous espérons que vous apprécierez jouer à Pyth Fighter autant que nous avons aimé le développer !

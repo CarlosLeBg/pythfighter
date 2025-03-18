@@ -68,9 +68,9 @@ Pour installer et jouer à Pyth Fighter, suivez ces étapes :
 
 ## Crédits
 
--Creative Commons 4 CC BY-NC-SA
--Graphismes par LuizMelo sur le Site Itch.io
--Chat GPT, Claude, Mistral AI
+- Creative Commons 4 CC BY-NC-SA
+- Graphismes par LuizMelo sur le Site Itch.io
+- Chat GPT, Claude, Mistral AI
 
 
 Nous espérons que vous apprécierez jouer à Pyth Fighter autant que nous avons aimé le développer !

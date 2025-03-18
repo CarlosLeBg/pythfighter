@@ -428,7 +428,7 @@ class CharacterSelect:
         keys = pygame.key.get_pressed()
         joy_moved = False
         cursor_speed = 15
-        
+
         # Contrôles clavier
         if keys[pygame.K_LEFT]:
             self.joystick_cursor_pos[0] -= cursor_speed
@@ -438,20 +438,20 @@ class CharacterSelect:
             self.joystick_cursor_pos[1] -= cursor_speed
         if keys[pygame.K_DOWN]:
             self.joystick_cursor_pos[1] += cursor_speed
-        
+
         # Contrôles manette
         for joystick in self.joysticks:
             deadzone = 0.2
             x_axis = joystick.get_axis(0)
             y_axis = joystick.get_axis(1)
-            
+
             if abs(x_axis) > deadzone:
                 self.joystick_cursor_pos[0] += int(x_axis * cursor_speed)
                 joy_moved = True
             if abs(y_axis) > deadzone:
                 self.joystick_cursor_pos[1] += int(y_axis * cursor_speed)
                 joy_moved = True
-                
+
             # Support du D-pad
             if joystick.get_numhats() > 0:
                 hat = joystick.get_hat(0)
@@ -459,16 +459,16 @@ class CharacterSelect:
                     self.joystick_cursor_pos[0] += hat[0] * cursor_speed
                     self.joystick_cursor_pos[1] -= hat[1] * cursor_speed
                     joy_moved = True
-        
+
         # Limiter la position du curseur
         self.joystick_cursor_pos[0] = max(0, min(SCREEN_WIDTH, self.joystick_cursor_pos[0]))
         self.joystick_cursor_pos[1] = max(0, min(SCREEN_HEIGHT, self.joystick_cursor_pos[1]))
-        
+
         # Effet visuel
         if joy_moved and pygame.time.get_ticks() % 3 == 0:
             color = SETTINGS.PLAYER1_COLOR if self.current_player == "player1" else SETTINGS.PLAYER2_COLOR
             self.particles.create_particle(self.joystick_cursor_pos, color)
-        
+
         return joy_moved
 
     def draw_cursor(self):
@@ -476,20 +476,20 @@ class CharacterSelect:
         player_color = SETTINGS.PLAYER1_COLOR if self.current_player == "player1" else SETTINGS.PLAYER2_COLOR
         time_pulse = abs(sin(self.animation_time * 8)) * 0.5 + 0.5
         size = 15 + int(time_pulse * 10)
-        
+
         for i in range(3):
             scaled_size = size - (i * 4)
             if scaled_size <= 0:
                 continue
-            
+
             alpha = int(255 * (1 - i/3) * time_pulse)
             color = (*player_color, alpha)
-            
+
             cursor_surface = pygame.Surface((scaled_size * 2, scaled_size * 2), pygame.SRCALPHA)
             pygame.draw.circle(cursor_surface, color, (scaled_size, scaled_size), scaled_size, 2)
-            
-            self.screen.blit(cursor_surface, 
-                          (self.joystick_cursor_pos[0] - scaled_size, 
+
+            self.screen.blit(cursor_surface,
+                          (self.joystick_cursor_pos[0] - scaled_size,
                            self.joystick_cursor_pos[1] - scaled_size))
 
     def show_versus_screen(self):
@@ -497,44 +497,44 @@ class CharacterSelect:
         vs_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         player1_data = FIGHTERS[self.selected["player1"]]
         player2_data = FIGHTERS[self.selected["player2"]]
-        
+
         zoom_duration = 60
         for frame in range(zoom_duration):
             progress = frame / zoom_duration
             vs_surface.fill(BACKGROUND_COLOR)
-            
+
             # Éclairs
             for _ in range(5):
                 start_pos = (random.randint(0, SCREEN_WIDTH), random.randint(0, SCREEN_HEIGHT//2))
                 end_pos = (random.randint(0, SCREEN_WIDTH), random.randint(SCREEN_HEIGHT//2, SCREEN_HEIGHT))
                 pygame.draw.line(vs_surface, (255, 255, 255, 100), start_pos, end_pos, 2)
-            
+
             # VS Text
             vs_text = self.fonts['title'].render("VS", True, (255, 255, 255))
             vs_scale = 1 + sin(progress * 10) * 0.3
-            vs_scaled = pygame.transform.scale(vs_text, 
-                                            (int(vs_text.get_width() * vs_scale), 
+            vs_scaled = pygame.transform.scale(vs_text,
+                                            (int(vs_text.get_width() * vs_scale),
                                              int(vs_text.get_height() * vs_scale)))
-            vs_surface.blit(vs_scaled, 
-                          (SCREEN_WIDTH//2 - vs_scaled.get_width()//2, 
+            vs_surface.blit(vs_scaled,
+                          (SCREEN_WIDTH//2 - vs_scaled.get_width()//2,
                            SCREEN_HEIGHT//2 - vs_scaled.get_height()//2))
-            
+
             # Player names
             p1_name = self.fonts['normal'].render(player1_data.name, True, SETTINGS.PLAYER1_COLOR)
             p2_name = self.fonts['normal'].render(player2_data.name, True, SETTINGS.PLAYER2_COLOR)
             vs_surface.blit(p1_name, (SCREEN_WIDTH//4 - p1_name.get_width()//2, SCREEN_HEIGHT//2 + 50))
             vs_surface.blit(p2_name, (3*SCREEN_WIDTH//4 - p2_name.get_width()//2, SCREEN_HEIGHT//2 + 50))
-            
+
             if frame % 5 == 0:
                 self.particles.create_explosion((SCREEN_WIDTH//2, SCREEN_HEIGHT//2), (255, 200, 50), 10)
-            
+
             self.particles.update()
             self.particles.draw(vs_surface)
-            
+
             self.screen.blit(vs_surface, (0, 0))
             pygame.display.flip()
             pygame.time.delay(16)
-        
+
         pygame.time.delay(1000)
 
     def play_character_intro(self, character_name):
@@ -554,14 +554,14 @@ class CharacterSelect:
         last_hover = None
         self.joystick_cursor_pos = [SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2]
         selection_cooldown = 0
-        
+
         try:
             pygame.mixer.music.load("assets/sounds/character_select.mp3")
             pygame.mixer.music.set_volume(0.5)
             pygame.mixer.music.play(-1)
         except:
             pass
-        
+
         while running:
             self.animation_time = pygame.time.get_ticks() / 1000
 

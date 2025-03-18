@@ -99,8 +99,8 @@ class Fighter:
         self.direction = 1 if player == 1 else -1
 
         # Ajustez la taille des personnages ici
-        self.fighter_width = VISIBLE_WIDTH // 32  # Réduit la taille
-        self.fighter_height = VISIBLE_HEIGHT // 8  # Réduit la taille
+        self.fighter_width = VISIBLE_WIDTH // 16  # Réduit la taille
+        self.fighter_height = VISIBLE_HEIGHT // 4  # Réduit la taille
 
         self.ground_y = ground_y
         self.rect = pygame.Rect(x, y, self.fighter_width, self.fighter_height)
@@ -131,22 +131,22 @@ class Fighter:
         logging.info(f"Loading animations for {self.name}...")
         base_path = os.path.join("src", "assets", "characters", self.name.lower())
 
-        if not os.path.exists(base_path):
-            logging.error(f"Base folder for animations not found: {base_path}")
-        else:
-            logging.info(f"Base folder found: {base_path}")
-            self.animations = {
-                "idle": load_animation(base_path, "idle", 10, self.fighter_width, self.fighter_height),
-                "walk": load_animation(base_path, "walk", 8, self.fighter_width, self.fighter_height),
-                "attack": load_animation(base_path, "attack", 21, self.fighter_width, self.fighter_height),
-                "dead": load_animation(base_path, "dead", 16, self.fighter_width, self.fighter_height),
-                "special_attack": load_animation(base_path, "special_attack", 15, self.fighter_width, self.fighter_height),
-                "block": load_animation(base_path, "block", 10, self.fighter_width, self.fighter_height),
-            }
+        if self.name.lower() == "tank":
+            if not os.path.exists(base_path):
+                logging.error(f"Base folder for animations not found: {base_path}")
+            else:
+                logging.info(f"Base folder found: {base_path}")
+                self.animations = {
+                    "idle": load_animation(base_path, "idle", 10, self.fighter_width, self.fighter_height),
+                    "walk": load_animation(base_path, "walk", 8, self.fighter_width, self.fighter_height),
+                    "attack": load_animation(base_path, "attack", 21, self.fighter_width, self.fighter_height),
+                    "dead": load_animation(base_path, "dead", 16, self.fighter_width, self.fighter_height),
+                    "special_attack": load_animation(base_path, "special_attack", 15, self.fighter_width, self.fighter_height),
+                    "block": load_animation(base_path, "block", 10, self.fighter_width, self.fighter_height),
+                }
 
-            for anim_name, frames in self.animations.items():
-                logging.info(f"Animation '{anim_name}': {len(frames)} frames loaded")
-
+                for anim_name, frames in self.animations.items():
+                    logging.info(f"Animation '{anim_name}': {len(frames)} frames loaded")
 
     def draw(self, surface):
         if self.special_attack_effect and self.special_attack_effect_duration > 0:

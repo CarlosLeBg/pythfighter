@@ -5,6 +5,7 @@ import os
 from enum import Enum
 import logging
 import random
+from threading import Thread
 
 # Configuration des logs
 logging.basicConfig(filename='launcher.log', level=logging.DEBUG,
@@ -33,6 +34,23 @@ class GameState(Enum):
     VICTORY = "victory"
     OPTIONS = "options"
 
+# Cache pour les images chargées
+image_cache = {}
+
+def load_image(path):
+    if not os.path.exists(path):
+        logging.error(f"Image file not found: {path}")
+        return None
+    if path not in image_cache:
+        try:
+            image = pygame.image.load(path).convert_alpha()
+            image_cache[path] = image
+            logging.info(f"Image loaded successfully: {path}")
+        except Exception as e:
+            logging.error(f"Error loading image {path}: {e}")
+            return None
+    return image_cache[path]
+
 def load_animation(path, action, frame_count, fighter_width, fighter_height):
     frames = []
     animation_folder = os.path.join(path, action)
@@ -50,13 +68,11 @@ def load_animation(path, action, frame_count, fighter_width, fighter_height):
             logging.error(f"File not found - {frame_path}")
             continue
 
-        try:
-            img = pygame.image.load(frame_path).convert_alpha()
+        img = load_image(frame_path)
+        if img:
             img = pygame.transform.scale(img, (fighter_width, fighter_height))
             frames.append(img)
             logging.debug(f"Image loaded successfully: {frame_path}")
-        except Exception as e:
-            logging.error(f"Error loading {frame_path}: {e}")
 
     if not frames:
         logging.error(f"No frames loaded for action {action} in {animation_folder}")
@@ -81,12 +97,18 @@ class Fighter:
         self.vel_x = 0.0
         self.vel_y = 0.0
         self.direction = 1 if player == 1 else -1
-        self.fighter_width = VISIBLE_WIDTH // 16
-        self.fighter_height = VISIBLE_HEIGHT // 4
+
+        # Ajustez la taille des personnages ici
+        self.fighter_width = VISIBLE_WIDTH // 16  # Réduit la taille
+        self.fighter_height = VISIBLE_HEIGHT // 4  # Réduit la taille
+
         self.ground_y = ground_y
         self.rect = pygame.Rect(x, y, self.fighter_width, self.fighter_height)
-        self.hitbox = pygame.Rect(x + self.fighter_width // 4, y + self.fighter_height // 4,
-                                  self.fighter_width // 2, self.fighter_height * 3 // 4)
+
+        # Ajustez la hitbox en fonction de la nouvelle taille
+        self.hitbox = pygame.Rect(x + self.fighter_width // 8, y + self.fighter_height // 8,
+                                  self.fighter_width * 3 // 4, self.fighter_height * 3 // 4)
+
         self.on_ground = True
         self.attacking = False
         self.can_attack = True
@@ -109,21 +131,22 @@ class Fighter:
         logging.info(f"Loading animations for {self.name}...")
         base_path = os.path.join("src", "assets", "characters", self.name.lower())
 
-        if not os.path.exists(base_path):
-            logging.error(f"Base folder for animations not found: {base_path}")
-        else:
-            logging.info(f"Base folder found: {base_path}")
-            self.animations = {
-                "idle": load_animation(base_path, "idle", 10, self.fighter_width, self.fighter_height),
-                "walk": load_animation(base_path, "walk", 8, self.fighter_width, self.fighter_height),
-                "attack": load_animation(base_path, "attack", 21, self.fighter_width, self.fighter_height),
-                "dead": load_animation(base_path, "dead", 16, self.fighter_width, self.fighter_height),
-                "special_attack": load_animation(base_path, "special_attack", 15, self.fighter_width, self.fighter_height),
-                "block": load_animation(base_path, "block", 10, self.fighter_width, self.fighter_height),
-            }
+        if self.name.lower() == "tank":
+            if not os.path.exists(base_path):
+                logging.error(f"Base folder for animations not found: {base_path}")
+            else:
+                logging.info(f"Base folder found: {base_path}")
+                self.animations = {
+                    "idle": load_animation(base_path, "idle", 10, self.fighter_width, self.fighter_height),
+                    "walk": load_animation(base_path, "walk", 8, self.fighter_width, self.fighter_height),
+                    "attack": load_animation(base_path, "attack", 21, self.fighter_width, self.fighter_height),
+                    "dead": load_animation(base_path, "dead", 16, self.fighter_width, self.fighter_height),
+                    "special_attack": load_animation(base_path, "special_attack", 15, self.fighter_width, self.fighter_height),
+                    "block": load_animation(base_path, "block", 10, self.fighter_width, self.fighter_height),
+                }
 
-            for anim_name, frames in self.animations.items():
-                logging.info(f"Animation '{anim_name}': {len(frames)} frames loaded")
+                for anim_name, frames in self.animations.items():
+                    logging.info(f"Animation '{anim_name}': {len(frames)} frames loaded")
 
     def draw(self, surface):
         if self.special_attack_effect and self.special_attack_effect_duration > 0:

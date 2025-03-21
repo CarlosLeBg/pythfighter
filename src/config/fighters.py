@@ -61,7 +61,7 @@ class Noya(Fighter):
 class ThunderStrike(Fighter):
     def __init__(self):
         super().__init__(
-            "Timothy", speed=7, damage=6,  # Rapide avec dégâts moyens
+            "ThunderStrike", speed=7, damage=6,  # Rapide avec dégâts moyens
             abilities=["Lightning Bolt", "Thunderstorm"],
             style="Elemental", 
             stats={"Force": 6, "Défense": 5, "Vitesse": 7, "Vie": 95},  # Fragile mais mobile
@@ -76,7 +76,7 @@ class ThunderStrike(Fighter):
 class Bruiser(Fighter):
     def __init__(self):
         super().__init__(
-            "Rémi", speed=6, damage=6,  # Stats moyennes équilibrées
+            "Bruiser", speed=6, damage=6,  # Stats moyennes équilibrées
             abilities=["Balanced Strike", "Power Up"],
             style="Balanced", 
             stats={"Force": 6, "Défense": 6, "Vitesse": 6, "Vie": 105},  # Légèrement plus de vie

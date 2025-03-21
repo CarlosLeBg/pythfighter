@@ -50,7 +50,7 @@ class LauncherPythFighter:
         'credits': ("Arial", 20)
     }
 
-    NAV_COOLDOWN = 0.3  # Délai en secondes entre chaque mouvement du joystick
+    NAV_COOLDOWN = 0.3
 
     def __init__(self) -> None:
         """Initialise le launcher avec une configuration de base."""
@@ -68,8 +68,7 @@ class LauncherPythFighter:
         self.root.title("PythFighter Launcher")
         self.root.attributes('-fullscreen', True)
         self.root.configure(bg=self.COLORS['background'])
-        self.root.bind("<Button-1>", lambda e: None)
-        self.root.bind("<Key>", lambda e: None)
+        self.root.protocol("WM_DELETE_WINDOW", self.confirm_quit)
 
     def create_canvas(self) -> None:
         """Crée et configure le canvas principal."""
@@ -157,30 +156,37 @@ class LauncherPythFighter:
 
     def check_controller(self) -> None:
         """Vérifie les entrées de la manette."""
+        if not hasattr(self, 'root') or not self.root.winfo_exists():
+            return
+        
         buttons, axes = self.controller_manager.get_primary_input()
         current_time = time.time()
 
+        # Navigation verticale
         if current_time - self.last_nav_time > self.NAV_COOLDOWN:
-            if axes and (axes[1] < -0.5 or axes[3] < -0.5):  # Joystick gauche ou droit vers le haut
-                self.selected_index = (self.selected_index - 1) % len(self.buttons)
-                self._highlight_button(self.selected_index)
-                self.last_nav_time = current_time
-            elif axes and (axes[1] > 0.5 or axes[3] > 0.5):  # Joystick gauche ou droit vers le bas
-                self.selected_index = (self.selected_index + 1) % len(self.buttons)
-                self._highlight_button(self.selected_index)
-                self.last_nav_time = current_time
+            if axes and len(axes) > 1:
+                if axes[1] < -0.5:  # Haut
+                    self.selected_index = (self.selected_index - 1) % len(self.buttons)
+                    self._highlight_button(self.selected_index)
+                    self.last_nav_time = current_time
+                elif axes[1] > 0.5:  # Bas
+                    self.selected_index = (self.selected_index + 1) % len(self.buttons)
+                    self._highlight_button(self.selected_index)
+                    self.last_nav_time = current_time
 
-        if buttons and len(buttons) > 0 and buttons[0] and not self.button_pressed:
-            self.button_pressed = True
-            self.buttons[self.selected_index].invoke()
-        elif buttons and len(buttons) > 0 and not buttons[0]:
-            self.button_pressed = False
+        # Bouton A/X
+        if buttons and len(buttons) > 0:
+            if buttons[0] and not self.button_pressed:
+                self.button_pressed = True
+                self.buttons[self.selected_index].invoke()
+            elif not buttons[0]:
+                self.button_pressed = False
 
-        start_button_index = 9 if len(buttons) > 9 else (7 if len(buttons) > 7 else -1)
-        if start_button_index >= 0 and buttons[start_button_index]:
+        # Bouton Start
+        if buttons and len(buttons) > 7 and buttons[7]:
             self.confirm_quit()
 
-        self.root.after(50, self.check_controller)
+        self.root.after(100, self.check_controller)
 
     def launch_game(self) -> None:
         """Lance le jeu principal avec gestion d'erreurs améliorée."""
@@ -193,55 +199,68 @@ class LauncherPythFighter:
 
     def show_credits(self) -> None:
         """Affiche les crédits avec navigation par manette."""
-        self.credits_window = tk.Toplevel(self.root)
-        self.credits_window.attributes('-fullscreen', True)
-        self.credits_window.configure(bg=self.COLORS['background'])
-        self.credits_window.bind("<Button-1>", lambda e: None)
+        self.credit_button_pressed = False
+        
+        credits_window = tk.Toplevel(self.root)
+        credits_window.title("Crédits")
+        credits_window.attributes('-fullscreen', True)
+        credits_window.configure(bg=self.COLORS['background'])
 
         credits_text = self._get_credits_text()
-        self.credits_label = tk.Label(
-            self.credits_window,
+        credits_label = tk.Label(
+            credits_window,
             text=credits_text,
             font=self.FONTS['credits'],
             bg=self.COLORS['background'],
             fg=self.COLORS['primary'],
             justify=tk.CENTER
         )
-        self.credits_label.place(relx=0.5, rely=1.0, anchor=tk.S)
+        credits_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
         instruction = tk.Label(
-            self.credits_window,
-            text="Appuyez sur Croix/A pour fermer",
+            credits_window,
+            text="Appuyez sur Croix/A pour revenir",
             font=("Arial", 16),
             bg=self.COLORS['background'],
             fg=self.COLORS['text']
         )
         instruction.place(x=20, y=20)
 
-        self.credits_position = self.root.winfo_screenheight()
-        self._animate_credits()
-        self._check_credits_controller()
+        back_button = tk.Button(
+            credits_window,
+            text="Retour",
+            font=("Arial", 14),
+            bg=self.COLORS['secondary'],
+            fg=self.COLORS['text'],
+            command=credits_window.destroy
+        )
+        back_button.place(relx=0.5, rely=0.9, anchor=tk.CENTER)
 
-    def _check_credits_controller(self):
-        """Vérifie les entrées de la manette pour la fenêtre de crédits."""
-        if hasattr(self, 'credits_window') and self.credits_window.winfo_exists():
+        def check_credits_controller():
+            if not credits_window.winfo_exists():
+                return
+                
             buttons, axes = self.controller_manager.get_primary_input()
-            current_time = time.time()
-
-            if current_time - self.last_nav_time > self.NAV_COOLDOWN:
-                if axes and (axes[1] < -0.5 or axes[3] < -0.5):  # Joystick vers le haut
-                    self.credits_position += 20
-                    self.credits_label.place(relx=0.5, y=self.credits_position, anchor=tk.S)
-                    self.last_nav_time = current_time
-                elif axes and (axes[1] > 0.5 or axes[3] > 0.5):  # Joystick vers le bas
-                    self.credits_position -= 20
-                    self.credits_label.place(relx=0.5, y=self.credits_position, anchor=tk.S)
-                    self.last_nav_time = current_time
-
-            if buttons and len(buttons) > 0 and buttons[0]:  # Bouton Croix/A
-                self.credits_window.destroy()
-
-            self.credits_window.after(100, self._check_credits_controller)
+            
+            # Navigation verticale
+            if axes and len(axes) > 1:
+                if axes[1] < -0.5:  # Haut
+                    credits_label.place_configure(rely=float(credits_label.place_info()['rely']) - 0.01)
+                elif axes[1] > 0.5:  # Bas
+                    credits_label.place_configure(rely=float(credits_label.place_info()['rely']) + 0.01)
+            
+            # Fermeture par bouton
+            if buttons and len(buttons) > 0:
+                if buttons[0] and not self.credit_button_pressed:
+                    self.credit_button_pressed = True
+                    credits_window.destroy()
+                    return
+                elif not buttons[0]:
+                    self.credit_button_pressed = False
+            
+            credits_window.after(100, check_credits_controller)
+        
+        credits_window.after(100, check_credits_controller)
 
     def _get_credits_text(self) -> str:
         """Retourne le texte des crédits."""
@@ -273,23 +292,20 @@ class LauncherPythFighter:
         Merci à tous les contributeurs !
         """
 
-    def _animate_credits(self) -> None:
-        """Anime le défilement des crédits."""
-        self.credits_position -= 2
-        self.credits_label.place(relx=0.5, y=self.credits_position, anchor=tk.S)
-        if self.credits_position > -self.credits_label.winfo_reqheight():
-            self.credits_window.after(50, self._animate_credits)
-        else:
-            self.credits_window.destroy()
-
     def show_options(self) -> None:
         """Affiche le menu des options avec prise en charge de la manette."""
+        self.option_button_pressed = False
+        
         options_window = tk.Toplevel(self.root)
         options_window.title("Options")
         options_window.geometry("400x300")
         options_window.configure(bg=self.COLORS['background'])
-        options_window.bind("<Button-1>", lambda e: None)
-        options_window.bind("<Key>", lambda e: None)
+        
+        # Centrer la fenêtre
+        options_window.geometry("+{}+{}".format(
+            int(self.root.winfo_screenwidth()/2 - 200),
+            int(self.root.winfo_screenheight()/2 - 150)
+        ))
 
         tk.Label(
             options_window,
@@ -332,7 +348,7 @@ class LauncherPythFighter:
                     activebackground=self.COLORS['hover'],
                     command=options_window.destroy
                 )
-            btn.pack(pady=10, fill=tk.X)
+            btn.pack(pady=10, fill=tk.X, padx=20)
             option_buttons.append(btn)
 
         selected_option = 0
@@ -345,40 +361,50 @@ class LauncherPythFighter:
 
         def check_options_controller():
             nonlocal selected_option
-            if options_window.winfo_exists():
-                buttons, axes = self.controller_manager.get_primary_input()
-                current_time = time.time()
+            if not options_window.winfo_exists():
+                return
+                
+            buttons, axes = self.controller_manager.get_primary_input()
+            current_time = time.time()
 
-                if current_time - self.last_nav_time > self.NAV_COOLDOWN:
-                    if axes and (axes[1] < -0.5 or axes[3] < -0.5):
-                        selected_option = (selected_option - 1) % len(option_buttons)
+            # Navigation verticale
+            if current_time - self.last_nav_time > self.NAV_COOLDOWN:
+                if axes and len(axes) > 1:
+                    if axes[1] < -0.5:  # Haut
+                        selected_option = max(0, selected_option - 1)
                         highlight_option(selected_option)
                         self.last_nav_time = current_time
-                    elif axes and (axes[1] > 0.5 or axes[3] > 0.5):
-                        selected_option = (selected_option + 1) % len(option_buttons)
+                    elif axes[1] > 0.5:  # Bas
+                        selected_option = min(len(option_buttons) - 1, selected_option + 1)
                         highlight_option(selected_option)
                         self.last_nav_time = current_time
 
-                if buttons and len(buttons) > 0 and buttons[0] and not self.button_pressed:
-                    self.button_pressed = True
+            # Action par bouton
+            if buttons and len(buttons) > 0:
+                if buttons[0] and not self.option_button_pressed:
+                    self.option_button_pressed = True
                     if selected_option == len(option_buttons) - 1:
                         options_window.destroy()
+                        return
                     else:
                         option_buttons[selected_option].invoke()
-                elif buttons and len(buttons) > 0 and not buttons[0]:
-                    self.button_pressed = False
-
-                options_window.after(50, check_options_controller)
-
-        check_options_controller()
+                elif not buttons[0]:
+                    self.option_button_pressed = False
+            
+            options_window.after(100, check_options_controller)
+        
+        options_window.after(100, check_options_controller)
 
     def confirm_quit(self) -> None:
-        """Demande confirmation avant de quitter avec prise en charge de la manette."""
+        """Demande confirmation avant de quitter."""
+        self.quit_button_pressed = False
+        
         quit_window = tk.Toplevel(self.root)
-        quit_window.attributes('-topmost', True)
-        quit_window.geometry("400x200")
         quit_window.title("Confirmation")
+        quit_window.geometry("400x200")
         quit_window.configure(bg=self.COLORS['background'])
+        
+        # Centrer la fenêtre
         quit_window.geometry("+{}+{}".format(
             int(self.root.winfo_screenwidth()/2 - 200),
             int(self.root.winfo_screenheight()/2 - 100)
@@ -395,16 +421,6 @@ class LauncherPythFighter:
         buttons_frame = tk.Frame(quit_window, bg=self.COLORS['background'])
         buttons_frame.pack(pady=20)
 
-        yes_button = tk.Button(
-            buttons_frame,
-            text="Oui",
-            font=("Arial", 12),
-            bg=self.COLORS['secondary'],
-            fg=self.COLORS['text'],
-            command=self.root.quit
-        )
-        yes_button.pack(side=tk.LEFT, padx=20)
-
         no_button = tk.Button(
             buttons_frame,
             text="Non",
@@ -413,9 +429,19 @@ class LauncherPythFighter:
             fg=self.COLORS['text'],
             command=quit_window.destroy
         )
-        no_button.pack(side=tk.RIGHT, padx=20)
+        no_button.pack(side=tk.LEFT, padx=20)
 
-        selected_button = 0
+        yes_button = tk.Button(
+            buttons_frame,
+            text="Oui",
+            font=("Arial", 12),
+            bg=self.COLORS['secondary'],
+            fg=self.COLORS['text'],
+            command=self.root.quit
+        )
+        yes_button.pack(side=tk.RIGHT, padx=20)
+
+        selected_button = 0  # 0 = Non (gauche), 1 = Oui (droite)
         confirmation_buttons = [no_button, yes_button]
 
         def highlight_confirmation(index):
@@ -426,25 +452,35 @@ class LauncherPythFighter:
 
         def check_confirmation_controller():
             nonlocal selected_button
-            if quit_window.winfo_exists():
-                buttons, axes = self.controller_manager.get_primary_input()
-
-                if axes and axes[0] < -0.5:
+            if not quit_window.winfo_exists():
+                return
+                
+            buttons, axes = self.controller_manager.get_primary_input()
+            
+            # Navigation horizontale
+            if axes and len(axes) > 0:
+                if axes[0] < -0.5:  # Gauche (Non)
                     selected_button = 0
                     highlight_confirmation(selected_button)
-                elif axes and axes[0] > 0.5:
+                elif axes[0] > 0.5:  # Droite (Oui)
                     selected_button = 1
                     highlight_confirmation(selected_button)
 
-                if buttons and len(buttons) > 0 and buttons[0]:
-                    if selected_button == 0:
+            # Action par bouton
+            if buttons and len(buttons) > 0:
+                if buttons[0] and not self.quit_button_pressed:
+                    self.quit_button_pressed = True
+                    if selected_button == 0:  # Non
                         quit_window.destroy()
-                    else:
+                        return
+                    else:  # Oui
                         self.root.quit()
-
-                quit_window.after(50, check_confirmation_controller)
-
-        check_confirmation_controller()
+                elif not buttons[0]:
+                    self.quit_button_pressed = False
+            
+            quit_window.after(100, check_confirmation_controller)
+        
+        quit_window.after(100, check_confirmation_controller)
 
     def run(self) -> None:
         """Lance le launcher."""

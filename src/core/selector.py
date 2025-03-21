@@ -168,9 +168,22 @@ class CharacterSelect:
         self.particles = EnhancedParticleSystem()
         self.selection_done = False
         self.selection_cooldown = 0
-        self.selection_cooldown_kb = 0
-        self.joystick_cursor_pos = [SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2]
 
+        # Separate cursor positions for each player
+        self.cursor_positions = {
+            "player1": [SCREEN_WIDTH // 4, SCREEN_HEIGHT // 2],
+            "player2": [3 * SCREEN_WIDTH // 4, SCREEN_HEIGHT // 2]
+        }
+        
+        # Input cooldowns to prevent multiple inputs
+        self.input_cooldowns = {
+            "keyboard_p1": 0,
+            "keyboard_p2": 0
+        }
+        
+        # Map joysticks to players
+        self.joystick_player_map = {}
+        
         # Sound effects
         self.hover_sound = self.resource_manager.assets["sounds"].get("hover")
         self.select_sound = self.resource_manager.assets["sounds"].get("select")
@@ -180,6 +193,12 @@ class CharacterSelect:
         self.fade_speed = 5
         self.transition_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.transition_surface.fill((0, 0, 0))
+        
+        # Track hovered characters for each player
+        self.player_hovered = {
+            "player1": None,
+            "player2": None
+        }
 
     def draw_gradient_background(self):
         for y in range(SCREEN_HEIGHT):
@@ -210,7 +229,18 @@ class CharacterSelect:
 
     def draw_character_card(self, name, data):
         card_rect = self.position_manager.card_positions[name]
-        hover = card_rect.collidepoint(self.joystick_cursor_pos)
+        
+        # Check if card is hovered by either player
+        p1_hover = card_rect.collidepoint(self.cursor_positions["player1"])
+        p2_hover = card_rect.collidepoint(self.cursor_positions["player2"])
+        
+        # Update player hovered states
+        if p1_hover:
+            self.player_hovered["player1"] = name
+        if p2_hover:
+            self.player_hovered["player2"] = name
+            
+        hover = p1_hover or p2_hover
 
         y_offset = sin(self.animation_time * 3) * 5
         x_offset = 0
@@ -252,12 +282,18 @@ class CharacterSelect:
 
         self._draw_card_content(card_surface, data, hover)
 
-        if name in [self.selected['player1'], self.selected['player2']]:
-            glow_color = SETTINGS.PLAYER1_COLOR if name == self.selected['player1'] else SETTINGS.PLAYER2_COLOR
-            glow = self.create_card_glow(card_surface, glow_color, 10)
+        # Show selection glows for both players if selected
+        if name == self.selected['player1']:
+            glow = self.create_card_glow(card_surface, SETTINGS.PLAYER1_COLOR, 10)
             self.screen.blit(glow,
-                             (card_rect.x + x_offset - 10,
-                              card_rect.y + y_offset - 10))
+                            (card_rect.x + x_offset - 10,
+                             card_rect.y + y_offset - 10))
+                             
+        if name == self.selected['player2']:
+            glow = self.create_card_glow(card_surface, SETTINGS.PLAYER2_COLOR, 10)
+            self.screen.blit(glow,
+                            (card_rect.x + x_offset - 10,
+                             card_rect.y + y_offset - 10))
 
         self.screen.blit(card_surface,
                          (card_rect.x + x_offset, card_rect.y + y_offset))
@@ -361,17 +397,24 @@ class CharacterSelect:
 
     def draw_player_prompts(self):
         for player_num, player_type in [("1", "player1"), ("2", "player2")]:
-            is_current = self.current_player == player_type
+            is_current = not self.selected[player_type]  # Both players can select simultaneously
+            
             text_color = list(TEXT_COLOR)
-
             if is_current:
                 pulse = abs(sin(self.animation_time * 4))
                 text_color = [min(255, c + 50 * pulse) for c in text_color]
 
+            # Show device info
+            device_info = ""
+            if self.player_devices[player_type] == "keyboard":
+                device_info = "(Clavier)" if player_num == "1" else "(WASD+Espace)"
+            elif self.player_devices[player_type] is not None and self.player_devices[player_type] != "keyboard":
+                device_info = "(Manette)"
+                
             player_text = self.resource_manager.assets["fonts"]['normal'].render(
-                f"Joueur {player_num}: {self.selected[player_type]}"
+                f"Joueur {player_num}: {self.selected[player_type]} {device_info}"
                 if self.selected[player_type] else
-                f"Joueur {player_num}: Sélectionner",
+                f"Joueur {player_num}: Sélectionner {device_info}",
                 True, text_color
             )
 
@@ -382,27 +425,21 @@ class CharacterSelect:
             x_pos = 20 if player_num == "1" else SCREEN_WIDTH - player_text.get_width() - 20
             self.screen.blit(player_text, (x_pos, y_pos))
 
-    def handle_character_selection(self, char_name):
-        if self.current_player == "player1" and self.selected['player1'] is None:
-            self.selected['player1'] = char_name
+    def handle_character_selection(self, player, char_name, device_id):
+        if not self.selected[player]:
+            self.selected[player] = char_name
             pos = self.position_manager.card_positions[char_name].center
-            self.particles.create_explosion(pos, SETTINGS.PLAYER1_COLOR)
+            color = SETTINGS.PLAYER1_COLOR if player == "player1" else SETTINGS.PLAYER2_COLOR
+            self.particles.create_explosion(pos, color)
             if self.select_sound:
                 self.select_sound.play()
-        elif self.current_player == "player2" and self.selected['player2'] is None:
-            self.selected['player2'] = char_name
-            pos = self.position_manager.card_positions[char_name].center
-            self.particles.create_explosion(pos, SETTINGS.PLAYER2_COLOR)
-            if self.select_sound:
-                self.select_sound.play()
-
-        if self.selected['player1'] and self.selected['player2']:
-            self.selection_done = True
-
-        if self.current_player == "player1" and self.selected['player1']:
-            self.current_player = "player2"
-        elif self.current_player == "player2" and self.selected['player2']:
-            self.current_player = "player1"
+            
+            # Store the device used for selection
+            self.player_devices[player] = device_id
+            
+            # If both players have selected, we're done
+            if self.selected['player1'] and self.selected['player2']:
+                self.selection_done = True
 
     def handle_transition(self):
         if self.transition_alpha > 0:
@@ -413,7 +450,8 @@ class CharacterSelect:
     def run(self):
         clock = pygame.time.Clock()
         running = True
-        last_hover = None
+        last_hover_p1 = None
+        last_hover_p2 = None
 
         try:
             pygame.mixer.music.load("assets/sounds/character_select.mp3")
@@ -429,29 +467,43 @@ class CharacterSelect:
                 if event.type == pygame.QUIT:
                     running = False
                 elif event.type == pygame.JOYBUTTONDOWN:
-                    if event.button == 0:
+                    if event.button == 0:  # A button
                         joystick = pygame.joystick.Joystick(event.instance_id)
-                        if self.current_player == "player1":
-                            if self.player_devices["player1"] is None or self.player_devices["player1"] == joystick.get_instance_id():
-                                self.select_character(joystick.get_instance_id())
-                        elif self.current_player == "player2":
-                            if self.player_devices["player2"] is None or self.player_devices["player2"] == joystick.get_instance_id():
-                                self.select_character(joystick.get_instance_id())
+                        joystick_id = joystick.get_instance_id()
+                        
+                        # If this joystick isn't mapped to a player yet
+                        if joystick_id not in self.joystick_player_map:
+                            # Assign to first available player
+                            if self.player_devices["player1"] is None:
+                                self.joystick_player_map[joystick_id] = "player1"
+                                self.player_devices["player1"] = joystick_id
+                            elif self.player_devices["player2"] is None:
+                                self.joystick_player_map[joystick_id] = "player2"
+                                self.player_devices["player2"] = joystick_id
+                        
+                        # Get which player this joystick is assigned to
+                        player = self.joystick_player_map.get(joystick_id)
+                        if player and not self.selected[player]:
+                            hovered_char = self.player_hovered[player]
+                            if hovered_char:
+                                self.handle_character_selection(player, hovered_char, joystick_id)
 
-            current_hover = None
-            for char_name, char_rect in self.position_manager.card_positions.items():
-                if char_rect.collidepoint(self.joystick_cursor_pos):
-                    current_hover = char_name
-                    break
-
-            if current_hover != last_hover and self.hover_sound:
+            # Update hover state for each player
+            current_hover_p1 = self.player_hovered["player1"]
+            current_hover_p2 = self.player_hovered["player2"]
+            
+            if current_hover_p1 != last_hover_p1 and self.hover_sound:
                 self.hover_sound.play()
-            last_hover = current_hover
+            if current_hover_p2 != last_hover_p2 and self.hover_sound:
+                self.hover_sound.play()
+                
+            last_hover_p1 = current_hover_p1
+            last_hover_p2 = current_hover_p2
 
-            if self.selection_cooldown > 0:
-                self.selection_cooldown -= 1
-            if self.selection_cooldown_kb > 0:
-                self.selection_cooldown_kb -= 1
+            # Update cooldowns
+            for key in self.input_cooldowns:
+                if self.input_cooldowns[key] > 0:
+                    self.input_cooldowns[key] -= 1
 
             self.handle_input()
 
@@ -460,14 +512,19 @@ class CharacterSelect:
             self.particles.update()
             self.particles.draw(self.screen)
 
+            # Reset hovered characters
             self.hovered_character = None
+            self.player_hovered = {
+                "player1": None,
+                "player2": None
+            }
 
             for fighter_name, fighter in FIGHTERS.items():
                 self.draw_character_card(fighter_name, fighter)
 
             self.draw_detail_panel()
             self.draw_player_prompts()
-            self.draw_cursor()
+            self.draw_cursors()
             self.handle_transition()
 
             if self.selection_done:
@@ -488,82 +545,106 @@ class CharacterSelect:
         keys = pygame.key.get_pressed()
         cursor_speed = 15
 
-        if self.current_player == "player1" and (self.player_devices["player1"] is None or self.player_devices["player1"] == "keyboard"):
+        # Player 1 keyboard controls
+        if not self.selected["player1"] and (self.player_devices["player1"] is None or self.player_devices["player1"] == "keyboard"):
+            moved = False
             if keys[pygame.K_LEFT]:
-                self.joystick_cursor_pos[0] -= cursor_speed
+                self.cursor_positions["player1"][0] -= cursor_speed
+                moved = True
             if keys[pygame.K_RIGHT]:
-                self.joystick_cursor_pos[0] += cursor_speed
+                self.cursor_positions["player1"][0] += cursor_speed
+                moved = True
             if keys[pygame.K_UP]:
-                self.joystick_cursor_pos[1] -= cursor_speed
+                self.cursor_positions["player1"][1] -= cursor_speed
+                moved = True
             if keys[pygame.K_DOWN]:
-                self.joystick_cursor_pos[1] += cursor_speed
-            if keys[pygame.K_RETURN] and self.selection_cooldown_kb <= 0:
-                self.select_character("keyboard")
-                self.selection_cooldown_kb = 30
+                self.cursor_positions["player1"][1] += cursor_speed
+                moved = True
+                
+            if moved and self.player_devices["player1"] is None:
+                self.player_devices["player1"] = "keyboard"
+                
+            if keys[pygame.K_RETURN] and self.input_cooldowns["keyboard_p1"] <= 0:
+                self.input_cooldowns["keyboard_p1"] = 15
+                hovered_char = self.player_hovered["player1"]
+                if hovered_char:
+                    self.handle_character_selection("player1", hovered_char, "keyboard")
 
-        if self.current_player == "player2" and (self.player_devices["player2"] is None or self.player_devices["player2"] == "keyboard"):
+        # Player 2 keyboard controls
+        if not self.selected["player2"] and (self.player_devices["player2"] is None or self.player_devices["player2"] == "keyboard"):
+            moved = False
             if keys[pygame.K_a]:
-                self.joystick_cursor_pos[0] -= cursor_speed
+                self.cursor_positions["player2"][0] -= cursor_speed
+                moved = True
             if keys[pygame.K_d]:
-                self.joystick_cursor_pos[0] += cursor_speed
+                self.cursor_positions["player2"][0] += cursor_speed
+                moved = True
             if keys[pygame.K_w]:
-                self.joystick_cursor_pos[1] -= cursor_speed
+                self.cursor_positions["player2"][1] -= cursor_speed
+                moved = True
             if keys[pygame.K_s]:
-                self.joystick_cursor_pos[1] += cursor_speed
-            if keys[pygame.K_SPACE] and self.selection_cooldown_kb <= 0:
-                self.select_character("keyboard")
-                self.selection_cooldown_kb = 30
+                self.cursor_positions["player2"][1] += cursor_speed
+                moved = True
+                
+            if moved and self.player_devices["player2"] is None:
+                self.player_devices["player2"] = "keyboard"
+                
+            if keys[pygame.K_SPACE] and self.input_cooldowns["keyboard_p2"] <= 0:
+                self.input_cooldowns["keyboard_p2"] = 15
+                hovered_char = self.player_hovered["player2"]
+                if hovered_char:
+                    self.handle_character_selection("player2", hovered_char, "keyboard")
 
+        # Handle joystick input
+        deadzone = 0.2
         for joystick in self.joysticks:
-            deadzone = 0.2
+            joystick_id = joystick.get_instance_id()
             x_axis = joystick.get_axis(0)
             y_axis = joystick.get_axis(1)
-
+            
             if abs(x_axis) > deadzone or abs(y_axis) > deadzone:
-                if self.current_player == "player1" and (self.player_devices["player1"] is None or
-                                                       self.player_devices["player1"] == joystick.get_instance_id()):
-                    self.joystick_cursor_pos[0] += int(x_axis * cursor_speed)
-                    self.joystick_cursor_pos[1] += int(y_axis * cursor_speed)
-                    self.player_devices["player1"] = joystick.get_instance_id()
-                elif self.current_player == "player2" and (self.player_devices["player2"] is None or
-                                                         self.player_devices["player2"] == joystick.get_instance_id()):
-                    self.joystick_cursor_pos[0] += int(x_axis * cursor_speed)
-                    self.joystick_cursor_pos[1] += int(y_axis * cursor_speed)
-                    self.player_devices["player2"] = joystick.get_instance_id()
+                # Determine which player this joystick controls
+                if joystick_id not in self.joystick_player_map:
+                    # Assign to first available player
+                    if self.player_devices["player1"] is None:
+                        self.joystick_player_map[joystick_id] = "player1"
+                        self.player_devices["player1"] = joystick_id
+                    elif self.player_devices["player2"] is None:
+                        self.joystick_player_map[joystick_id] = "player2"
+                        self.player_devices["player2"] = joystick_id
+                
+                player = self.joystick_player_map.get(joystick_id)
+                if player and not self.selected[player]:
+                    self.cursor_positions[player][0] += int(x_axis * cursor_speed)
+                    self.cursor_positions[player][1] += int(y_axis * cursor_speed)
 
-        self.joystick_cursor_pos[0] = max(0, min(SCREEN_WIDTH, self.joystick_cursor_pos[0]))
-        self.joystick_cursor_pos[1] = max(0, min(SCREEN_HEIGHT, self.joystick_cursor_pos[1]))
+        # Ensure cursors stay within bounds
+        for player in ["player1", "player2"]:
+            self.cursor_positions[player][0] = max(0, min(SCREEN_WIDTH, self.cursor_positions[player][0]))
+            self.cursor_positions[player][1] = max(0, min(SCREEN_HEIGHT, self.cursor_positions[player][1]))
 
-    def select_character(self, device_id):
-        if self.selection_cooldown > 0:
-            return
+    def draw_cursors(self):
+        # Draw both player cursors if they're active
+        for player, position in self.cursor_positions.items():
+            if not self.selected[player] and self.player_devices[player] is not None:
+                player_color = SETTINGS.PLAYER1_COLOR if player == "player1" else SETTINGS.PLAYER2_COLOR
+                time_pulse = abs(sin(self.animation_time * 8)) * 0.5 + 0.5
+                size = 15 + int(time_pulse * 10)
 
-        for char_name, char_rect in self.position_manager.card_positions.items():
-            if char_rect.collidepoint(self.joystick_cursor_pos):
-                self.handle_character_selection(char_name)
-                self.player_devices[self.current_player] = device_id
-                self.selection_cooldown = 30
-                break
+                for i in range(3):
+                    scaled_size = size - (i * 4)
+                    if scaled_size <= 0:
+                        continue
 
-    def draw_cursor(self):
-        player_color = SETTINGS.PLAYER1_COLOR if self.current_player == "player1" else SETTINGS.PLAYER2_COLOR
-        time_pulse = abs(sin(self.animation_time * 8)) * 0.5 + 0.5
-        size = 15 + int(time_pulse * 10)
+                    alpha = int(255 * (1 - i / 3) * time_pulse)
+                    color = (*player_color, alpha)
 
-        for i in range(3):
-            scaled_size = size - (i * 4)
-            if scaled_size <= 0:
-                continue
+                    cursor_surface = pygame.Surface((scaled_size * 2, scaled_size * 2), pygame.SRCALPHA)
+                    pygame.draw.circle(cursor_surface, color, (scaled_size, scaled_size), scaled_size, 2)
 
-            alpha = int(255 * (1 - i / 3) * time_pulse)
-            color = (*player_color, alpha)
-
-            cursor_surface = pygame.Surface((scaled_size * 2, scaled_size * 2), pygame.SRCALPHA)
-            pygame.draw.circle(cursor_surface, color, (scaled_size, scaled_size), scaled_size, 2)
-
-            self.screen.blit(cursor_surface,
-                             (self.joystick_cursor_pos[0] - scaled_size,
-                              self.joystick_cursor_pos[1] - scaled_size))
+                    self.screen.blit(cursor_surface,
+                                    (position[0] - scaled_size,
+                                     position[1] - scaled_size))
 
     def show_versus_screen(self):
         vs_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))

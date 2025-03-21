@@ -198,69 +198,53 @@ class LauncherPythFighter:
             messagebox.showerror("Erreur de lancement", f"Impossible de lancer le jeu:\n{str(e)}")
 
     def show_credits(self) -> None:
-        """Affiche les crédits avec navigation par manette."""
-        self.credit_button_pressed = False
-        
+        """Affiche les crédits en version très simplifiée."""
         credits_window = tk.Toplevel(self.root)
         credits_window.title("Crédits")
         credits_window.attributes('-fullscreen', True)
         credits_window.configure(bg=self.COLORS['background'])
-
-        credits_text = self._get_credits_text()
+        
+        # Conteneur principal
+        main_frame = tk.Frame(credits_window, bg=self.COLORS['background'])
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Texte des crédits simple
         credits_label = tk.Label(
-            credits_window,
-            text=credits_text,
+            main_frame,
+            text=self._get_credits_text(),
             font=self.FONTS['credits'],
             bg=self.COLORS['background'],
             fg=self.COLORS['primary'],
             justify=tk.CENTER
         )
-        credits_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-
+        credits_label.pack(pady=50, expand=True)
+        
+        # Instruction
         instruction = tk.Label(
             credits_window,
-            text="Appuyez sur Croix/A pour revenir",
+            text="Appuyez sur Échap ou Croix/A pour revenir",
             font=("Arial", 16),
             bg=self.COLORS['background'],
             fg=self.COLORS['text']
         )
-        instruction.place(x=20, y=20)
-
-        back_button = tk.Button(
-            credits_window,
-            text="Retour",
-            font=("Arial", 14),
-            bg=self.COLORS['secondary'],
-            fg=self.COLORS['text'],
-            command=credits_window.destroy
-        )
-        back_button.place(relx=0.5, rely=0.9, anchor=tk.CENTER)
-
-        def check_credits_controller():
+        instruction.pack(side=tk.BOTTOM, pady=20)
+        
+        # Gestion des touches clavier
+        credits_window.bind("<Escape>", lambda e: credits_window.destroy())
+        
+        # Vérification du contrôleur
+        def check_credits_input():
             if not credits_window.winfo_exists():
                 return
-                
-            buttons, axes = self.controller_manager.get_primary_input()
             
-            # Navigation verticale
-            if axes and len(axes) > 1:
-                if axes[1] < -0.5:  # Haut
-                    credits_label.place_configure(rely=float(credits_label.place_info()['rely']) - 0.01)
-                elif axes[1] > 0.5:  # Bas
-                    credits_label.place_configure(rely=float(credits_label.place_info()['rely']) + 0.01)
+            buttons, _ = self.controller_manager.get_primary_input()
+            if buttons and len(buttons) > 0 and buttons[0]:
+                credits_window.destroy()
+                return
             
-            # Fermeture par bouton
-            if buttons and len(buttons) > 0:
-                if buttons[0] and not self.credit_button_pressed:
-                    self.credit_button_pressed = True
-                    credits_window.destroy()
-                    return
-                elif not buttons[0]:
-                    self.credit_button_pressed = False
-            
-            credits_window.after(100, check_credits_controller)
+            credits_window.after(100, check_credits_input)
         
-        credits_window.after(100, check_credits_controller)
+        credits_window.after(100, check_credits_input)
 
     def _get_credits_text(self) -> str:
         """Retourne le texte des crédits."""

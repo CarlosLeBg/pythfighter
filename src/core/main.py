@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from tkinter import messagebox
-from dotenv import load_dotenv, set_key
+from dotenv import load_dotenv
 import os
 import sys
 import subprocess
@@ -15,7 +15,6 @@ class ControllerManager:
     def __init__(self):
         load_dotenv()  # Charge les variables d'environnement depuis le fichier .env
         self.input_mode = os.getenv('INPUT_MODE', 'keyboard')  # Lit le mode d'entrée depuis le fichier .env
-        self.language = os.getenv('LANGUAGE', 'fr')  # Langue par défaut
         pygame.init()
         pygame.joystick.init()
         self.joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
@@ -128,7 +127,6 @@ class LauncherPythFighter:
         self.button_pressed = False
         self.particles = []
         self.input_mode = os.getenv('INPUT_MODE', 'keyboard')
-        self.language = self.controller_manager.language
         self.setup_window()
         self.create_canvas()
         self.load_background()
@@ -248,21 +246,6 @@ class LauncherPythFighter:
             )
             self.buttons.append(button)
 
-        # Bouton de changement de langue avec un style différent
-        self.language_button = ctk.CTkButton(
-            self.root,
-            text="Changer de Langue",
-            font=self.FONTS['button'],
-            fg_color=self.COLORS['highlight'],
-            text_color=self.COLORS['text'],
-            hover_color=self.COLORS['hover'],
-            command=self.change_language,
-            corner_radius=10,
-            border_width=2,
-            border_color=self.COLORS['button_border']
-        )
-        self.language_button.place(relx=1.0, rely=1.0, anchor="se", x=-10, y=-10)
-
     def _create_version_info(self) -> None:
         """Ajoute les informations de version en bas de l'écran."""
         version_text = "Version 2.0.0 - © 2025 PythFighter Team"
@@ -362,7 +345,7 @@ class LauncherPythFighter:
         instruction.pack(side=ctk.BOTTOM, pady=20)
 
         # Gestion des touches clavier
-        credits_window.bind("<Escape>", lambda e: credits_window.destroy())
+        credits_window.bind("<Escape>", lambda _: credits_window.destroy())
 
         # Vérification du contrôleur
         def check_credits_input():
@@ -420,8 +403,8 @@ class LauncherPythFighter:
 
         # Centrer la fenêtre
         options_window.geometry("+{}+{}".format(
-            int(self.root.winfo_screenwidth()/2 - 200),
-            int(self.root.winfo_screenheight()/2 - 150)
+            int(self.root.winfo_screenwidth() / 2 - 200),
+            int(self.root.winfo_screenheight() / 2 - 150)
         ))
 
         ctk.CTkLabel(
@@ -530,8 +513,8 @@ class LauncherPythFighter:
 
         # Centrer la fenêtre
         quit_window.geometry("+{}+{}".format(
-            int(self.root.winfo_screenwidth()/2 - 200),
-            int(self.root.winfo_screenheight()/2 - 100)
+            int(self.root.winfo_screenwidth() / 2 - 200),
+            int(self.root.winfo_screenheight() / 2 - 100)
         ))
 
         ctk.CTkLabel(
@@ -643,63 +626,461 @@ class LauncherPythFighter:
         # Continuer l'animation
         self.root.after(50, self.animate)
 
-    def change_language(self) -> None:
-        """Change la langue entre Français et Anglais."""
-        if self.language == "fr":
-            self.language = "en"
-            messagebox.showinfo("Langue", "Langue changée en Anglais.")
-        else:
-            self.language = "fr"
-            messagebox.showinfo("Langue", "Langue changée en Français.")
+    def _add_tutorial_particles(self, canvas):
+        """Adds dynamic particles to the tutorial screen."""
+        colors = ["#E94560", "#FFA500", "#44AAFF"]
 
-        # Sauvegarder la langue dans le fichier .env
-        set_key('.env', 'LANGUAGE', self.language)
+        for _ in range(3):
+            x = random.randint(0, self.width)
+            y = random.randint(0, self.height)
+            color = random.choice(colors)
+            particle_system = ParticleSystem(canvas, x, y, color, count=15, lifetime=1.5)
+            self.particles.append(particle_system)
+
+    def _create_controller_icon(self, canvas, x, y, tags=None):
+        """Creates a placeholder controller icon on the canvas."""
+        icon_id = canvas.create_oval(
+            x - 50, y - 50, x + 50, y + 50,
+            fill="#E94560", outline="#FFFFFF", width=2, tags=tags
+        )
+        canvas.create_text(
+            x, y, text="🎮", font=("Arial", 30), fill="#FFFFFF", tags=tags
+        )
+        return icon_id
+
+    def _create_tips_icon(self, canvas, x, y, tags=None):
+        """Creates a placeholder tips icon on the canvas."""
+        icon_id = canvas.create_rectangle(
+            x - 50, y - 50, x + 50, y + 50,
+            fill="#FFA500", outline="#FFFFFF", width=2, tags=tags
+        )
+        canvas.create_text(
+            x, y, text="💡", font=("Arial", 30), fill="#FFFFFF", tags=tags
+        )
+        return icon_id
+
+    def _create_combo_icon(self, canvas, x, y, tags=None):
+        """Creates a placeholder combo icon on the canvas."""
+        icon_id = canvas.create_oval(
+            x - 50, y - 50, x + 50, y + 50,
+            fill="#44AAFF", outline="#FFFFFF", width=2, tags=tags
+        )
+        canvas.create_text(
+            x, y, text="⚡", font=("Arial", 30), fill="#FFFFFF", tags=tags
+        )
+        return icon_id
 
     def show_tutorial(self) -> None:
-        """Affiche un tutoriel simple pour aider les nouveaux joueurs."""
+        """Displays an interactive, visually rich tutorial with Street Fighter style elements."""
+        # Create the tutorial window
         tutorial_window = ctk.CTkToplevel(self.root)
-        tutorial_window.title("Tutoriel")
+        tutorial_window.title("Tutoriel PythFighter")
         tutorial_window.attributes('-topmost', True)
-        tutorial_window.geometry("600x400")
-        tutorial_window.configure(bg=self.COLORS['background'])
+        tutorial_window.geometry(f"{self.width}x{self.height}")
+        tutorial_window.attributes('-fullscreen', True)
 
-        # Contenu du tutoriel
-        tutorial_text = """
-        Bienvenue dans PythFighter !
+        tutorial_canvas = ctk.CTkCanvas(tutorial_window, bg=self.COLORS['background'], highlightthickness=0)
+        tutorial_canvas.pack(fill=ctk.BOTH, expand=True)
 
-        Voici quelques conseils pour bien commencer :
-        - Utilisez les touches directionnelles ou la manette pour naviguer dans les menus.
-        - Appuyez sur Entrée ou le bouton A pour sélectionner une option.
-        - Vous pouvez changer la langue dans les options.
-        - N'oubliez pas de vérifier régulièrement les mises à jour pour profiter des dernières améliorations.
+        grid_color = "#223366"
+        grid_spacing = 50
 
-        Amusez-vous bien !
-        """
+        # Create background gradient
+        for y in range(0, self.height, 4):
+            darkness = int(25 + (y / self.height) * 30)
+            color = f"#{darkness:02x}{darkness:02x}{darkness + 15:02x}"
+            tutorial_canvas.create_line(0, y, self.width, y, fill=color)
 
-        tutorial_label = ctk.CTkLabel(
-            tutorial_window,
-            text=tutorial_text,
-            font=self.FONTS['credits'],
-            bg_color=self.COLORS['background'],
-            text_color=self.COLORS['primary'],
-            justify=ctk.CENTER
+        # Add grid effect
+        for x in range(0, self.width + grid_spacing, grid_spacing):
+            tutorial_canvas.create_line(x, 0, x, self.height, fill=grid_color, width=1)
+        for y in range(0, self.height + grid_spacing, grid_spacing):
+            tutorial_canvas.create_line(0, y, self.width, y, fill=grid_color, width=1)
+
+        # Create tutorial header
+        tutorial_canvas.create_text(
+            self.width // 2,
+            80,
+            text="TUTORIEL",
+            font=("Impact", 80, "bold"),
+            fill="#E94560"
         )
-        tutorial_label.pack(pady=20, padx=20, fill=ctk.BOTH, expand=True)
-
-        # Bouton pour fermer le tutoriel
-        close_button = ctk.CTkButton(
-            tutorial_window,
-            text="Fermer",
-            font=self.FONTS['button'],
-            fg_color=self.COLORS['secondary'],
-            text_color=self.COLORS['text'],
-            hover_color=self.COLORS['hover'],
-            command=tutorial_window.destroy,
-            corner_radius=10,
-            border_width=2,
-            border_color=self.COLORS['button_border']
+        tutorial_canvas.create_text(
+            self.width // 2 + 3,
+            80 + 3,
+            text="TUTORIEL",
+            font=("Impact", 80, "bold"),
+            fill="#121220"
         )
-        close_button.pack(pady=10)
+
+        # Create sections for different tutorial elements
+        sections = [
+            {
+                "title": "COMMANDES DE BASE",
+                "icon": self._create_controller_icon,
+                "content": [
+                    "🎮 MANETTE PS4/PS5:",
+                    "⬅️➡️ Joystick gauche: Se déplacer",
+                    "🇽 Touche X: Sauter",
+                    "⚪ Touche O: Attaque",
+                    "🔼 Touche triangle: Attaque spéciale",
+                    "⚙️ Touche options: Menu pause",
+                    "",
+                    "⌨️ CLAVIER JOUEUR 1:",
+                    "🇦/🇩: Gauche/Droite",
+                    "🇼: Sauter",
+                    "🇷: Attaquer",
+                    "🇹: Attaque spéciale",
+                    "",
+                    "⌨️ CLAVIER JOUEUR 2:",
+                    "⬅️➡️: Gauche/Droite",
+                    "⬆️: Sauter",
+                    "↪️ Entrée: Attaquer",
+                    "🇵: Attaque spéciale"
+                ]
+            },
+            {
+                "title": "COMBOS SPÉCIAUX",
+                "icon": self._create_combo_icon,
+                "content": [
+                    "⚡ QUARTIER DE CERCLE:",
+                    "⬇️↘️➡️ + Attaque: Projette une boule d'énergie",
+                    "",
+                    "🔄 DRAGON PUNCH:",
+                    "➡️⬇️↘️ + Attaque: Uppercut puissant",
+                    "",
+                    "💥 SUPER ATTAQUE:",
+                    "⬇️↘️➡️⬇️↘️➡️ + Attaque: Déclenche une super attaque",
+                    "lorsque votre jauge d'énergie est pleine"
+                ]
+            },
+            {
+                "title": "CONSEILS DE COMBAT",
+                "icon": self._create_tips_icon,
+                "content": [
+                    "🛡️ BLOQUER: Maintenez la direction opposée à votre",
+                    "adversaire pour bloquer ses attaques",
+                    "",
+                    "⏱️ TIMING: Les combos doivent être exécutés rapidement",
+                    "et avec précision",
+                    "",
+                    "📊 JAUGE D'ÉNERGIE: Se remplit quand vous donnez ou",
+                    "recevez des coups",
+                    "",
+                    "🔄 CONTRE-ATTAQUE: Bloquez puis ripostez immédiatement",
+                    "pour surprendre votre adversaire"
+                ]
+            }
+        ]
+
+        # Variables for navigation
+        self.current_section = 0
+        self.total_sections = len(sections)
+
+        # Function to display current section
+        def display_section(index):
+            # Clear previous content
+            for item in tutorial_canvas.find_withtag("section_content"):
+                tutorial_canvas.delete(item)
+
+            section = sections[index]
+
+            # Create section title with shadow effect
+            y_pos = 180
+            shadow_offset = 3
+
+            # Shadow for title
+            tutorial_canvas.create_text(
+                self.width // 2 + shadow_offset,
+                y_pos + shadow_offset,
+                text=section["title"],
+                font=("Arial Black", 36, "bold"),
+                fill="#121220",
+                tags="section_content"
+            )
+
+            # Title
+            tutorial_canvas.create_text(
+                self.width // 2,
+                y_pos,
+                text=section["title"],
+                font=("Arial Black", 36, "bold"),
+                fill="#FFA500",
+                tags="section_content"
+            )
+
+            # Section icon
+            icon_id = section["icon"](tutorial_canvas, self.width // 4, 300, tags="section_content")
+
+            # Content
+            content_x = self.width // 2 + 100
+            content_y = 250
+
+            for line in section["content"]:
+                tutorial_canvas.create_text(
+                    content_x,
+                    content_y,
+                    text=line,
+                    font=("Arial", 20),
+                    fill="#FFFFFF",
+                    anchor="w",
+                    tags="section_content"
+                )
+                content_y += 30
+
+            # Navigation indicators
+            indicator_y = self.height - 100
+            for i in range(self.total_sections):
+                color = "#E94560" if i == index else "#555555"
+                tutorial_canvas.create_oval(
+                    self.width // 2 - 50 + i * 40,
+                    indicator_y,
+                    self.width // 2 - 30 + i * 40,
+                    indicator_y + 20,
+                    fill=color,
+                    outline="",
+                    tags="section_content"
+                )
+
+            # Navigation instructions
+            tutorial_canvas.create_text(
+                self.width // 2,
+                self.height - 60,
+                text="◀ ▶ : Naviguer | X/B : Fermer",
+                font=("Arial", 18),
+                fill="#FFFFFF",
+                tags="section_content"
+            )
+
+            # Add particle effects
+            self._add_tutorial_particles(tutorial_canvas)
+
+        # Create the icons for each section
+        def _create_controller_icon(canvas, x, y, tags=""):
+            # Controller base
+            canvas.create_rectangle(x-60, y, x+60, y+120, fill="#303030", outline="#000000", width=2, tags=tags)
+            canvas.create_oval(x-40, y+20, x+40, y+100, fill="#202020", outline="#000000", width=2, tags=tags)
+
+            # D-pad
+            canvas.create_rectangle(x-40, y+130, x+40, y+210, fill="#303030", outline="#000000", width=2, tags=tags)
+            canvas.create_polygon(x, y+140, x-30, y+170, x, y+200, x+30, y+170, fill="#404040", outline="#000000", width=2, tags=tags)
+
+            # Buttons
+            button_colors = ["#FF4444", "#44FF44", "#4444FF", "#FFFF44"]
+            for i, color in enumerate(button_colors):
+                angle = i * math.pi/2
+                bx = x + 30 * math.cos(angle)
+                by = y + 60 + 30 * math.sin(angle)
+                canvas.create_oval(bx-15, by-15, bx+15, by+15, fill=color, outline="#000000", width=2, tags=tags)
+
+            return canvas.create_text(x, y-20, text="CONTRÔLES", font=("Arial Black", 14), fill="#FFFFFF", tags=tags)
+
+        def _create_combo_icon(canvas, x, y, tags=""):
+            # Create a combo chart
+            width, height = 120, 120
+            canvas.create_rectangle(x-width//2, y, x+width//2, y+height, fill="#303030", outline="#E94560", width=3, tags=tags)
+
+            # Draw arrow sequence for a hadouken
+            arrow_size = 15
+            start_x = x - 45
+            start_y = y + 30
+
+            # Down arrow
+            canvas.create_polygon(
+                start_x, start_y,
+                start_x - arrow_size, start_y - arrow_size,
+                start_x - arrow_size/2, start_y - arrow_size,
+                start_x - arrow_size/2, start_y - arrow_size*2,
+                start_x + arrow_size/2, start_y - arrow_size*2,
+                start_x + arrow_size/2, start_y - arrow_size,
+                start_x + arrow_size, start_y - arrow_size,
+                fill="#44AAFF", outline="#000000", width=1, tags=tags
+            )
+
+            # Down-right arrow
+            start_x += 30
+            canvas.create_polygon(
+                start_x, start_y,
+                start_x - arrow_size, start_y - arrow_size,
+                start_x - arrow_size/2, start_y - arrow_size/2,
+                start_x - arrow_size, start_y,
+                start_x - arrow_size/2, start_y + arrow_size/2,
+                start_x, start_y + arrow_size,
+                start_x + arrow_size, start_y,
+                fill="#44AAFF", outline="#000000", width=1, tags=tags
+            )
+
+            # Right arrow
+            start_x += 30
+            canvas.create_polygon(
+                start_x + arrow_size, start_y,
+                start_x, start_y - arrow_size,
+                start_x, start_y - arrow_size/2,
+                start_x - arrow_size, start_y - arrow_size/2,
+                start_x - arrow_size, start_y + arrow_size/2,
+                start_x, start_y + arrow_size/2,
+                start_x, start_y + arrow_size,
+                fill="#44AAFF", outline="#000000", width=1, tags=tags
+            )
+
+            # Punch button
+            canvas.create_oval(start_x + 30, start_y - 10, start_x + 50, start_y + 10, fill="#FF4444", outline="#000000", width=2, tags=tags)
+            canvas.create_text(start_x + 40, start_y, text="P", font=("Arial Black", 10), fill="#FFFFFF", tags=tags)
+
+            # Fire effect
+            for i in range(8):
+                angle = i * math.pi/4
+                radius = 20 + random.randint(0, 10)
+                fx = x
+                fy = y + 80
+                canvas.create_oval(
+                   fx + radius * math.cos(angle) - 5,
+                   fy + radius * math.sin(angle) - 5,
+                    fx + radius * math.cos(angle) + 5,
+                    fy + radius * math.sin(angle) + 5,
+                    fill="#FF8800", outline="", tags=tags
+            )
+
+            canvas.create_oval(x-15, y+80-15, x+15, y+80+15, fill="#FFAA00", outline="#FF4400", width=2, tags=tags)
+
+            return canvas.create_text(x, y-20, text="COMBOS", font=("Arial Black", 14), fill="#FFFFFF", tags=tags)
+
+        def _create_tips_icon(canvas, x, y, tags=""):
+            # Create a health and energy bar diagram
+            width, height = 120, 120
+
+            # Background
+            canvas.create_rectangle(x-width//2, y, x+width//2, y+height, fill="#303030", outline="#E94560", width=3, tags=tags)
+
+            # Health bar - P1
+            bar_width = 100
+            canvas.create_rectangle(x-bar_width//2, y+20, x+bar_width//2, y+30, fill="#222222", outline="#000000", width=1, tags=tags)
+            canvas.create_rectangle(x-bar_width//2, y+20, x-bar_width//2+70, y+30, fill="#FF4444", outline="", tags=tags)
+
+            # Health bar - P2
+            canvas.create_rectangle(x-bar_width//2, y+40, x+bar_width//2, y+50, fill="#222222", outline="#000000", width=1, tags=tags)
+            canvas.create_rectangle(x-bar_width//2, y+40, x-bar_width//2+40, y+50, fill="#FF4444", outline="", tags=tags)
+
+            # Energy bar
+            canvas.create_rectangle(x-bar_width//2, y+70, x+bar_width//2, y+85, fill="#222222", outline="#000000", width=1, tags=tags)
+
+            # Energy segments (flashing)
+            segments = 5
+            segment_width = bar_width / segments
+
+            for i in range(segments):
+                if i < 3:  # First 3 segments filled
+                    color = "#FFAA00"
+                else:
+                    color = "#444444"
+
+                canvas.create_rectangle(
+                    x-bar_width//2 + i*segment_width, y+70,
+                    x-bar_width//2 + (i+1)*segment_width, y+85,
+                    fill=color, outline="#000000", width=1, tags=tags
+                )
+
+            # Combat icons
+            icon_y = y + 110
+
+            # Block icon
+            block_x = x - 40
+            canvas.create_rectangle(block_x-10, icon_y-10, block_x+10, icon_y+10, fill="#4444FF", outline="#000000", width=1, tags=tags)
+            canvas.create_text(block_x, icon_y, text="🛡️", font=("Arial", 12), tags=tags)
+
+            # Timing icon
+            time_x = x
+            canvas.create_oval(time_x-10, icon_y-10, time_x+10, icon_y+10, fill="#44FF44", outline="#000000", width=1, tags=tags)
+            canvas.create_text(time_x, icon_y, text="⏱️", font=("Arial", 12), tags=tags)
+
+            # Counter icon
+            counter_x = x + 40
+            canvas.create_polygon(
+                counter_x, icon_y-10,
+                counter_x-10, icon_y+5,
+                counter_x, icon_y,
+                counter_x+10, icon_y+5,
+                fill="#FF4444", outline="#000000", width=1, tags=tags
+            )
+            canvas.create_text(counter_x, icon_y, text="↩️", font=("Arial", 12), tags=tags)
+
+            return canvas.create_text(x, y-20, text="STRATÉGIE", font=("Arial Black", 14), fill="#FFFFFF", tags=tags)
+
+        def _add_tutorial_particles(canvas):
+            """Adds dynamic particles to the tutorial screen."""
+            colors = ["#E94560", "#FFA500", "#44AAFF"]
+
+            for _ in range(3):
+                x = random.randint(0, self.width)
+                y = random.randint(0, self.height)
+                color = random.choice(colors)
+                particle_system = ParticleSystem(canvas, x, y, color, count=15, lifetime=1.5)
+                self.particles.append(particle_system)
+
+        # Navigation functions
+        def next_section():
+            self.current_section = (self.current_section + 1) % self.total_sections
+            display_section(self.current_section)
+
+        def prev_section():
+            self.current_section = (self.current_section - 1) % self.total_sections
+            display_section(self.current_section)
+
+        # Display first section
+        display_section(self.current_section)
+
+
+        # Add keyboard bindings
+        tutorial_window.bind("<Left>", lambda e: prev_section())
+        tutorial_window.bind("<Right>", lambda e: next_section())
+        tutorial_window.bind("<Escape>", lambda e: tutorial_window.destroy())
+
+        # Controller input checking
+        def check_tutorial_controller():
+            if not tutorial_window.winfo_exists():
+                return
+
+            buttons, axes = self.controller_manager.get_primary_input()
+            current_time = time.time()
+
+            # Navigation with axes
+            if current_time - self.last_nav_time > self.NAV_COOLDOWN:
+                if axes and len(axes) > 0:
+                    if axes[0] < -0.5:  # Left
+                        prev_section()
+                        self.last_nav_time = current_time
+                    elif axes[0] > 0.5:  # Right
+                        next_section()
+                        self.last_nav_time = current_time
+
+            # Exit with button
+            if buttons and len(buttons) > 0 and buttons[0]:
+                tutorial_window.destroy()
+                return
+
+            # Continue checking
+            tutorial_window.after(100, check_tutorial_controller)
+
+        # Start checking for controller input
+        tutorial_window.after(100, check_tutorial_controller)
+
+        # Animation update loop
+        def update_animations():
+            if not tutorial_window.winfo_exists():
+                return
+
+            # Update particles
+            active_particles = []
+            for particle_system in self.particles:
+                if particle_system.update():
+                    active_particles.append(particle_system)
+
+            self.particles = active_particles
+
+            # Continue animations
+            tutorial_window.after(50, update_animations)
+
+        update_animations()
 
     def run(self) -> None:
         """Lance le launcher."""

@@ -207,6 +207,56 @@ class CharacterSelect:
             "player2": None
         }
 
+        # Ajout pour les animations versus
+        self.versus_particles = []
+        self.lightning_bolts = []
+        self.character_portraits = {}
+        self.load_character_portraits()
+
+    def load_character_portraits(self):
+        """Charge les portraits des personnages pour l'écran versus"""
+        TARGET_SIZE = (200, 250)  # Taille cible désirée
+        for fighter_name in FIGHTERS.keys():
+            try:
+                portrait_path = os.path.join(self.resource_manager.paths["images"], f"{fighter_name.lower()}_portrait.png")
+                if os.path.exists(portrait_path):
+                    original = pygame.image.load(portrait_path).convert_alpha()
+                    # Calculer le ratio pour préserver les proportions
+                    width_ratio = TARGET_SIZE[0] / original.get_width()
+                    height_ratio = TARGET_SIZE[1] / original.get_height()
+                    scale_ratio = min(width_ratio, height_ratio)
+
+                    # Nouvelles dimensions qui préservent le ratio
+                    new_width = int(original.get_width() * scale_ratio)
+                    new_height = int(original.get_height() * scale_ratio)
+
+                    # Créer une surface de la taille cible
+                    portrait = pygame.Surface(TARGET_SIZE, pygame.SRCALPHA)
+
+                    # Redimensionner l'image originale
+                    scaled_image = pygame.transform.smoothscale(original, (new_width, new_height))
+
+                    # Centrer l'image redimensionnée
+                    x_offset = (TARGET_SIZE[0] - new_width) // 2
+                    y_offset = (TARGET_SIZE[1] - new_height) // 2
+
+                    # Coller l'image redimensionnée sur la surface cible
+                    portrait.blit(scaled_image, (x_offset, y_offset))
+
+                    self.character_portraits[fighter_name] = portrait
+                else:
+                    # Portrait par défaut coloré
+                    portrait = pygame.Surface(TARGET_SIZE, pygame.SRCALPHA)
+                    fighter_color = FIGHTERS[fighter_name].color
+                    pygame.draw.rect(portrait, fighter_color, (0, 0, TARGET_SIZE[0], TARGET_SIZE[1]), border_radius=10)
+                    self.character_portraits[fighter_name] = portrait
+            except Exception as e:
+                print(f"Erreur lors du chargement du portrait de {fighter_name}: {e}")
+                # Portrait par défaut en cas d'erreur
+                portrait = pygame.Surface(TARGET_SIZE, pygame.SRCALPHA)
+                pygame.draw.rect(portrait, (100, 100, 100), (0, 0, TARGET_SIZE[0], TARGET_SIZE[1]), border_radius=10)
+                self.character_portraits[fighter_name] = portrait
+
     def draw_gradient_background(self):
         for y in range(SCREEN_HEIGHT):
             progress = y / SCREEN_HEIGHT
@@ -654,45 +704,118 @@ class CharacterSelect:
                                      position[1] - scaled_size))
 
     def show_versus_screen(self):
-        vs_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        """Animation améliorée de l'écran versus"""
+        # Récupération des données des combattants
         player1_data = FIGHTERS[self.selected["player1"]]
         player2_data = FIGHTERS[self.selected["player2"]]
 
-        zoom_duration = 60
-        for frame in range(zoom_duration):
-            progress = frame / zoom_duration
+        # Préparation des sons
+        try:
+            versus_sound = self.resource_manager.assets["sounds"].get("versus")
+            if versus_sound:
+                versus_sound.play()
+        except:
+            pass
+
+        # Paramètres d'animation
+        animation_duration = 120  # frames
+        transition_in_duration = 30
+        hold_duration = 60
+        transition_out_duration = 30
+
+        # Surface principale
+        vs_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+        # Préparation des portraits
+        p1_portrait = self.character_portraits[self.selected["player1"]]
+        p2_portrait = self.character_portraits[self.selected["player2"]]
+        p1_target_x = SCREEN_WIDTH // 4 - p1_portrait.get_width() // 2
+        p2_target_x = 3 * SCREEN_WIDTH // 4 - p2_portrait.get_width() // 2
+        p1_target_y = SCREEN_HEIGHT // 2 - p1_portrait.get_height() // 2
+        p2_target_y = SCREEN_HEIGHT // 2 - p2_portrait.get_height() // 2
+
+        # Paramètres pour les éclairs
+        self.lightning_bolts = []
+
+        # Boucle d'animation
+        for frame in range(animation_duration):
+            # Calcul des progressions
+            if frame < transition_in_duration:
+                progress = frame / transition_in_duration
+            elif frame < transition_in_duration + hold_duration:
+                progress = 1.0
+            else:
+                progress = 1.0 - (frame - (transition_in_duration + hold_duration)) / transition_out_duration
+
+            # Remplissage du fond avec gradient
             vs_surface.fill(BACKGROUND_COLOR)
+            self._draw_versus_background(vs_surface, frame)
 
-            for _ in range(5):
-                start_pos = (random.randint(0, SCREEN_WIDTH), random.randint(0, SCREEN_HEIGHT // 2))
-                end_pos = (random.randint(0, SCREEN_WIDTH), random.randint(SCREEN_HEIGHT // 2, SCREEN_HEIGHT))
-                pygame.draw.line(vs_surface, (255, 255, 255, 100), start_pos, end_pos, 2)
+            # Animation des portraits
+            p1_current_x = int(-p1_portrait.get_width() + (p1_target_x + p1_portrait.get_width()) * min(1.0, progress * 1.5))
+            p2_current_x = int(SCREEN_WIDTH + (p2_target_x - SCREEN_WIDTH) * min(1.0, progress * 1.5))
 
-            vs_text = self.resource_manager.assets["fonts"]['title'].render("VS", True, (255, 255, 255))
-            vs_scale = 1 + sin(progress * 10) * 0.3
-            vs_scaled = pygame.transform.scale(vs_text,
-                                               (int(vs_text.get_width() * vs_scale),
-                                                int(vs_text.get_height() * vs_scale)))
-            vs_surface.blit(vs_scaled,
-                            (SCREEN_WIDTH // 2 - vs_scaled.get_width() // 2,
-                             SCREEN_HEIGHT // 2 - vs_scaled.get_height() // 2))
+            # Effet de zoom sur les portraits
+            portrait_zoom = 1.0 + sin(frame * 0.1) * 0.05 if progress > 0.8 else 1.0
 
-            p1_name = self.resource_manager.assets["fonts"]['normal'].render(player1_data.name, True, SETTINGS.PLAYER1_COLOR)
-            p2_name = self.resource_manager.assets["fonts"]['normal'].render(player2_data.name, True, SETTINGS.PLAYER2_COLOR)
-            vs_surface.blit(p1_name, (SCREEN_WIDTH // 4 - p1_name.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
-            vs_surface.blit(p2_name, (3 * SCREEN_WIDTH // 4 - p2_name.get_width() // 2, SCREEN_HEIGHT // 2 + 50))
+            # Affichage des portraits avec zoom et effets
+            p1_scaled = pygame.transform.scale(p1_portrait,
+                                               (int(p1_portrait.get_width() * portrait_zoom),
+                                                int(p1_portrait.get_height() * portrait_zoom)))
+            p2_scaled = pygame.transform.scale(p2_portrait,
+                                               (int(p2_portrait.get_width() * portrait_zoom),
+                                                int(p2_portrait.get_height() * portrait_zoom)))
 
-            if frame % 5 == 0:
-                self.particles.create_explosion((SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2), (255, 200, 50), 10)
+            # Aura autour des portraits
+            if progress > 0.5:
+                self._draw_portrait_aura(vs_surface, p1_current_x, p1_target_y, p1_scaled, player1_data.color, frame)
+                self._draw_portrait_aura(vs_surface, p2_current_x, p2_target_y, p2_scaled, player2_data.color, frame)
 
-            self.particles.update()
-            self.particles.draw(vs_surface)
+            # Affichage des portraits
+            vs_surface.blit(p1_scaled, (p1_current_x, p1_target_y))
+            vs_surface.blit(p2_scaled, (p2_current_x, p2_target_y))
 
+            # Texte VS au centre avec effets
+            if progress > 0.7:
+                vs_size = int(100 + 30 * sin(frame * 0.2))
+                vs_font = pygame.font.Font(None, vs_size)
+                vs_text = vs_font.render("VS", True, (255, 255, 255))
+                vs_surface.blit(vs_text,
+                                (SCREEN_WIDTH // 2 - vs_text.get_width() // 2,
+                                 SCREEN_HEIGHT // 2 - vs_text.get_height() // 2))
+
+            # Affichage de l'écran complet
             self.screen.blit(vs_surface, (0, 0))
             pygame.display.flip()
             pygame.time.delay(16)
 
-        pygame.time.delay(1000)
+        pygame.time.delay(500)
+
+    def _draw_versus_background(self, surface, frame):
+        # Draw a dynamic background with gradients and effects
+        for y in range(SCREEN_HEIGHT):
+            progress = y / SCREEN_HEIGHT
+            wave = sin(frame * 0.05 + progress * 3) * 20
+            color = [
+                int(GRADIENT_TOP[i] + (GRADIENT_BOTTOM[i] - GRADIENT_TOP[i]) * progress)
+                for i in range(3)
+            ]
+            pygame.draw.line(surface, color,
+                           (max(0, wave), y),
+                           (SCREEN_WIDTH + min(0, wave), y))
+
+    def _draw_portrait_aura(self, surface, x, y, portrait, color, frame):
+        # Draw a glowing aura effect around the portrait
+        aura_size = 20
+        for i in range(aura_size, 0, -1):
+            alpha = int(100 * (i / aura_size))
+            pulse = sin(frame * 0.2) * 0.3 + 0.7
+            color_pulse = tuple(int(c * pulse) for c in color)
+            pygame.draw.rect(surface, (*color_pulse, alpha),
+                           (x - i, y - i,
+                            portrait.get_width() + i * 2,
+                            portrait.get_height() + i * 2),
+                           border_radius=10)
 
     def play_character_intro(self, character_name):
         try:

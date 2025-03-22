@@ -105,13 +105,14 @@ class LauncherPythFighter:
         )
 
     def _create_menu_buttons(self) -> None:
+        """Crée les boutons du menu principal avec effets de survol."""
         menu_items = [
             ("Démarrer", self.launch_game),
             ("Crédits", self.show_credits),
             ("Options", self.show_options),
             ("Quitter", self.confirm_quit),
-        ("Mode de contrôle", self.toggle_input_mode)  # Bouton pour basculer le mode de contrôle
-    ]
+            ("Mode de contrôle", self.toggle_input_mode)  # Bouton pour basculer le mode de contrôle
+        ]
 
         self.buttons = []
         for i, (text, command) in enumerate(menu_items):
@@ -130,14 +131,14 @@ class LauncherPythFighter:
                 highlightbackground=self.COLORS['hover'],  # Couleur de la bordure de surbrillance
                 highlightcolor=self.COLORS['hover']  # Couleur de la bordure lorsque le bouton est actif
             )
-        self.canvas.create_window(
-            self.root.winfo_screenwidth() // 2,
-            400 + (i * 100),
-            window=button,
-            width=400,
-            height=70
-        )
-        self.buttons.append(button)
+            self.canvas.create_window(
+                self.root.winfo_screenwidth() // 2,
+                400 + (i * 100),
+                window=button,
+                width=400,
+                height=70
+            )
+            self.buttons.append(button)
 
     def _create_version_info(self) -> None:
         """Ajoute les informations de version en bas de l'écran."""
@@ -238,7 +239,7 @@ class LauncherPythFighter:
 
         # Gestion des touches clavier
         credits_window.bind("<Escape>", lambda e: credits_window.destroy())
-        credits_window.bind("<Escape>", lambda _: credits_window.destroy())
+
         # Vérification du contrôleur
         def check_credits_input():
             if not credits_window.winfo_exists():
@@ -474,6 +475,7 @@ class LauncherPythFighter:
         quit_window.after(100, check_confirmation_controller)
 
     def toggle_input_mode(self) -> None:
+        """Toggle between keyboard and controller input modes and save to .env file."""
         if self.input_mode == "keyboard":
             self.input_mode = "controller"
             messagebox.showinfo("Mode de contrôle", "Mode manette activé.")
@@ -485,6 +487,7 @@ class LauncherPythFighter:
         set_key('.env', 'INPUT_MODE', self.input_mode)
 
     def run(self) -> None:
+        """Lance le launcher."""
         self.root.mainloop()
 
 def main():

@@ -1,23 +1,25 @@
 import tkinter as tk
 from tkinter import messagebox
+from dotenv import load_dotenv, set_key
 import os
 import sys
 import subprocess
 import pygame
-from typing import Tuple, List, Callable
+from typing import Any
 import time
 
 class ControllerManager:
     """Gère les entrées des manettes."""
 
     def __init__(self):
+        load_dotenv()  # Charge les variables d'environnement depuis le fichier .env
+        self.input_mode = os.getenv('INPUT_MODE', 'keyboard')  # Lit le mode d'entrée depuis le fichier .env
         pygame.init()
         pygame.joystick.init()
         self.joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
         print(f"Nombre de manettes détectées : {len(self.joysticks)}")
         for joystick in self.joysticks:
-            joystick.init()
-            print(f"Manette {joystick.get_id()} : {joystick.get_name()}")
+            print(f"Manette {joystick.get_instance_id()} : {joystick.get_name()}")
         self.primary_joystick = self.joysticks[0] if self.joysticks else None
 
     def get_input(self):
@@ -58,6 +60,7 @@ class LauncherPythFighter:
         self.controller_manager = ControllerManager()
         self.last_nav_time = time.time()
         self.button_pressed = False
+        self.input_mode = "keyboard"  # Default mode
         self.setup_window()
         self.create_canvas()
         self.create_interface()
@@ -102,13 +105,13 @@ class LauncherPythFighter:
         )
 
     def _create_menu_buttons(self) -> None:
-        """Crée les boutons du menu principal avec effets de survol."""
         menu_items = [
             ("Démarrer", self.launch_game),
             ("Crédits", self.show_credits),
             ("Options", self.show_options),
-            ("Quitter", self.confirm_quit)
-        ]
+            ("Quitter", self.confirm_quit),
+        ("Mode de contrôle", self.toggle_input_mode)  # Bouton pour basculer le mode de contrôle
+    ]
 
         self.buttons = []
         for i, (text, command) in enumerate(menu_items):
@@ -121,16 +124,20 @@ class LauncherPythFighter:
                 activebackground=self.COLORS['primary'],
                 command=command,
                 relief=tk.FLAT,
-                cursor="hand2"
+                cursor="hand2",
+                bd=4,  # Ajoute une bordure
+                highlightthickness=2,  # Épaisseur de la bordure de surbrillance
+                highlightbackground=self.COLORS['hover'],  # Couleur de la bordure de surbrillance
+                highlightcolor=self.COLORS['hover']  # Couleur de la bordure lorsque le bouton est actif
             )
-            self.canvas.create_window(
-                self.root.winfo_screenwidth() // 2,
-                400 + (i * 100),
-                window=button,
-                width=400,
-                height=70
-            )
-            self.buttons.append(button)
+        self.canvas.create_window(
+            self.root.winfo_screenwidth() // 2,
+            400 + (i * 100),
+            window=button,
+            width=400,
+            height=70
+        )
+        self.buttons.append(button)
 
     def _create_version_info(self) -> None:
         """Ajoute les informations de version en bas de l'écran."""
@@ -158,7 +165,7 @@ class LauncherPythFighter:
         """Vérifie les entrées de la manette."""
         if not hasattr(self, 'root') or not self.root.winfo_exists():
             return
-        
+
         buttons, axes = self.controller_manager.get_primary_input()
         current_time = time.time()
 
@@ -203,11 +210,11 @@ class LauncherPythFighter:
         credits_window.title("Crédits")
         credits_window.attributes('-fullscreen', True)
         credits_window.configure(bg=self.COLORS['background'])
-        
+
         # Conteneur principal
         main_frame = tk.Frame(credits_window, bg=self.COLORS['background'])
         main_frame.pack(fill=tk.BOTH, expand=True)
-        
+
         # Texte des crédits simple
         credits_label = tk.Label(
             main_frame,
@@ -218,7 +225,7 @@ class LauncherPythFighter:
             justify=tk.CENTER
         )
         credits_label.pack(pady=50, expand=True)
-        
+
         # Instruction
         instruction = tk.Label(
             credits_window,
@@ -228,22 +235,22 @@ class LauncherPythFighter:
             fg=self.COLORS['text']
         )
         instruction.pack(side=tk.BOTTOM, pady=20)
-        
+
         # Gestion des touches clavier
         credits_window.bind("<Escape>", lambda e: credits_window.destroy())
-        
+        credits_window.bind("<Escape>", lambda _: credits_window.destroy())
         # Vérification du contrôleur
         def check_credits_input():
             if not credits_window.winfo_exists():
                 return
-            
+
             buttons, _ = self.controller_manager.get_primary_input()
             if buttons and len(buttons) > 0 and buttons[0]:
                 credits_window.destroy()
                 return
-            
+
             credits_window.after(100, check_credits_input)
-        
+
         credits_window.after(100, check_credits_input)
 
     def _get_credits_text(self) -> str:
@@ -279,12 +286,12 @@ class LauncherPythFighter:
     def show_options(self) -> None:
         """Affiche le menu des options avec prise en charge de la manette."""
         self.option_button_pressed = False
-        
+
         options_window = tk.Toplevel(self.root)
         options_window.title("Options")
         options_window.geometry("400x300")
         options_window.configure(bg=self.COLORS['background'])
-        
+
         # Centrer la fenêtre
         options_window.geometry("+{}+{}".format(
             int(self.root.winfo_screenwidth()/2 - 200),
@@ -347,7 +354,7 @@ class LauncherPythFighter:
             nonlocal selected_option
             if not options_window.winfo_exists():
                 return
-                
+
             buttons, axes = self.controller_manager.get_primary_input()
             current_time = time.time()
 
@@ -374,20 +381,20 @@ class LauncherPythFighter:
                         option_buttons[selected_option].invoke()
                 elif not buttons[0]:
                     self.option_button_pressed = False
-            
+
             options_window.after(100, check_options_controller)
-        
+
         options_window.after(100, check_options_controller)
 
     def confirm_quit(self) -> None:
         """Demande confirmation avant de quitter."""
         self.quit_button_pressed = False
-        
+
         quit_window = tk.Toplevel(self.root)
         quit_window.title("Confirmation")
         quit_window.geometry("400x200")
         quit_window.configure(bg=self.COLORS['background'])
-        
+
         # Centrer la fenêtre
         quit_window.geometry("+{}+{}".format(
             int(self.root.winfo_screenwidth()/2 - 200),
@@ -438,9 +445,9 @@ class LauncherPythFighter:
             nonlocal selected_button
             if not quit_window.winfo_exists():
                 return
-                
+
             buttons, axes = self.controller_manager.get_primary_input()
-            
+
             # Navigation horizontale
             if axes and len(axes) > 0:
                 if axes[0] < -0.5:  # Gauche (Non)
@@ -461,13 +468,23 @@ class LauncherPythFighter:
                         self.root.quit()
                 elif not buttons[0]:
                     self.quit_button_pressed = False
-            
+
             quit_window.after(100, check_confirmation_controller)
-        
+
         quit_window.after(100, check_confirmation_controller)
 
+    def toggle_input_mode(self) -> None:
+        if self.input_mode == "keyboard":
+            self.input_mode = "controller"
+            messagebox.showinfo("Mode de contrôle", "Mode manette activé.")
+        else:
+            self.input_mode = "keyboard"
+            messagebox.showinfo("Mode de contrôle", "Mode clavier activé.")
+
+        # Sauvegarder le mode d'entrée dans le fichier .env
+        set_key('.env', 'INPUT_MODE', self.input_mode)
+
     def run(self) -> None:
-        """Lance le launcher."""
         self.root.mainloop()
 
 def main():

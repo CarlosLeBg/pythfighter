@@ -194,7 +194,6 @@ class LauncherPythFighter:
         self._create_title()
         self._create_menu_buttons()
         self._create_version_info()
-        self._create_stats_section()
 
     def _create_title(self) -> None:
         """Crée le titre du jeu avec un effet d'ombre."""
@@ -223,17 +222,13 @@ class LauncherPythFighter:
             ("Crédits", self.show_credits),
             ("Options", self.show_options),
             ("Tutoriel", self.show_tutorial),
-            ("Changer de Langue", self.change_language),
             ("Quitter", self.confirm_quit)
         ]
 
         self.buttons = []
-        button_frame = ctk.CTkFrame(self.root, fg_color=self.COLORS['background'])
-        button_frame.place(relx=1.0, rely=1.0, anchor="se", x=-10, y=-10)
-
         for i, (text, command) in enumerate(menu_items):
             button = ctk.CTkButton(
-                button_frame,
+                self.root,
                 text=text,
                 font=self.FONTS['button'],
                 fg_color=self.COLORS['secondary'],
@@ -244,8 +239,29 @@ class LauncherPythFighter:
                 border_width=2,
                 border_color=self.COLORS['button_border']
             )
-            button.pack(pady=5, padx=10, anchor="e")
+            self.canvas.create_window(
+                self.root.winfo_screenwidth() // 2,
+                400 + (i * 100),
+                window=button,
+                width=400,
+                height=70
+            )
             self.buttons.append(button)
+
+        # Bouton de changement de langue avec un style différent
+        self.language_button = ctk.CTkButton(
+            self.root,
+            text="Changer de Langue",
+            font=self.FONTS['button'],
+            fg_color=self.COLORS['highlight'],
+            text_color=self.COLORS['text'],
+            hover_color=self.COLORS['hover'],
+            command=self.change_language,
+            corner_radius=10,
+            border_width=2,
+            border_color=self.COLORS['button_border']
+        )
+        self.language_button.place(relx=1.0, rely=1.0, anchor="se", x=-10, y=-10)
 
     def _create_version_info(self) -> None:
         """Ajoute les informations de version en bas de l'écran."""
@@ -257,36 +273,6 @@ class LauncherPythFighter:
             fill=self.COLORS['text'],
             anchor="sw"
         )
-
-    def _create_stats_section(self) -> None:
-        """Crée une section pour afficher les statistiques de jeu."""
-        stats_frame = ctk.CTkFrame(self.root, fg_color=self.COLORS['secondary'], border_width=2, border_color=self.COLORS['button_border'])
-        stats_frame.place(relx=0.02, rely=0.05, anchor="nw")
-
-        stats_label = ctk.CTkLabel(
-            stats_frame,
-            text="Statistiques de Jeu",
-            font=self.FONTS['subtitle'],
-            text_color=self.COLORS['primary']
-        )
-        stats_label.pack(pady=10)
-
-        # Exemple de statistiques
-        stats_info = [
-            ("Temps de Jeu", "10 heures"),
-            ("Score Max", "5000"),
-            ("Nombre de Parties", "25"),
-        ]
-
-        for text, value in stats_info:
-            stat_text = f"{text}: {value}"
-            stat_label = ctk.CTkLabel(
-                stats_frame,
-                text=stat_text,
-                font=self.FONTS['credits'],
-                text_color=self.COLORS['text']
-            )
-            stat_label.pack(anchor="w", padx=20)
 
     def bind_controller(self) -> None:
         """Configure les entrées de la manette."""

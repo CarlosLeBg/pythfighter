@@ -740,21 +740,6 @@ class LauncherPythFighter:
                 ]
             },
             {
-                "title": "COMBOS SPÉCIAUX",
-                "icon": self._create_combo_icon,
-                "content": [
-                    "⚡ QUARTIER DE CERCLE:",
-                    "⬇️↘️➡️ + Attaque: Projette une boule d'énergie",
-                    "",
-                    "🔄 DRAGON PUNCH:",
-                    "➡️⬇️↘️ + Attaque: Uppercut puissant",
-                    "",
-                    "💥 SUPER ATTAQUE:",
-                    "⬇️↘️➡️⬇️↘️➡️ + Attaque: Déclenche une super attaque",
-                    "lorsque votre jauge d'énergie est pleine"
-                ]
-            },
-            {
                 "title": "CONSEILS DE COMBAT",
                 "icon": self._create_tips_icon,
                 "content": [
@@ -815,6 +800,12 @@ class LauncherPythFighter:
             # Content
             content_x = self.width // 2 + 100
             content_y = 250
+
+    
+            # Add keyboard bindings for navigation
+            tutorial_window.bind("<Left>", lambda e: prev_section())
+            tutorial_window.bind("<Right>", lambda e: next_section())
+            tutorial_window.bind("<Escape>", lambda e: tutorial_window.destroy())
 
             for line in section["content"]:
                 tutorial_canvas.create_text(
@@ -1017,20 +1008,32 @@ class LauncherPythFighter:
                 particle_system = ParticleSystem(canvas, x, y, color, count=15, lifetime=1.5)
                 self.particles.append(particle_system)
 
-        # Navigation functions
+            # Ensure navigation functions are properly bound
         def next_section():
-            self.current_section = (self.current_section + 1) % self.total_sections
-            display_section(self.current_section)
-
+                self.current_section = (self.current_section + 1) % self.total_sections
+                display_section(self.current_section)
+    
         def prev_section():
-            self.current_section = (self.current_section - 1) % self.total_sections
-            display_section(self.current_section)
+                self.current_section = (self.current_section - 1) % self.total_sections
+                display_section(self.current_section)
 
         # Display first section
         display_section(self.current_section)
 
 
-        # Add keyboard bindings
+        # Add keyboard bindings for navigation
+        tutorial_window.bind("<Left>", lambda e: prev_section())
+        tutorial_window.bind("<Right>", lambda e: next_section())
+        tutorial_window.bind("<Escape>", lambda e: tutorial_window.destroy())
+
+        # Add mouse wheel scrolling for navigation
+        def on_mouse_wheel(event):
+            if event.delta > 0:  # Scroll up
+            prev_section()
+            elif event.delta < 0:  # Scroll down
+            next_section()
+
+        tutorial_window.bind("<MouseWheel>", on_mouse_wheel)
         tutorial_window.bind("<Left>", lambda e: prev_section())
         tutorial_window.bind("<Right>", lambda e: next_section())
         tutorial_window.bind("<Escape>", lambda e: tutorial_window.destroy())

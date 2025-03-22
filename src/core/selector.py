@@ -216,36 +216,43 @@ class CharacterSelect:
     def load_character_portraits(self):
         """Charge les portraits des personnages pour l'écran versus"""
         TARGET_SIZE = (200, 250)  # Taille cible désirée
+        VALID_EXTENSIONS = [".png", ".jpg", ".jpeg"]
         for fighter_name in FIGHTERS.keys():
             try:
-                portrait_path = os.path.join(self.resource_manager.paths["images"], f"{fighter_name.lower()}_portrait.png")
-                if os.path.exists(portrait_path):
+                portrait_path = None
+                # Chercher le fichier avec différentes extensions
+                for ext in VALID_EXTENSIONS:
+                    candidate = os.path.join(self.resource_manager.paths["images"], f"{fighter_name.lower()}_portrait{ext}")
+                    if os.path.exists(candidate):
+                        portrait_path = candidate
+                        break
+                if portrait_path:
                     original = pygame.image.load(portrait_path).convert_alpha()
-                    # Calculer le ratio pour préserver les proportions
+                    # Calculer le ratio pour préserver les proportions sans agrandir les petites images
                     width_ratio = TARGET_SIZE[0] / original.get_width()
                     height_ratio = TARGET_SIZE[1] / original.get_height()
-                    scale_ratio = min(width_ratio, height_ratio)
-
+                    scale_ratio = min(width_ratio, height_ratio, 1.0)
+    
                     # Nouvelles dimensions qui préservent le ratio
                     new_width = int(original.get_width() * scale_ratio)
                     new_height = int(original.get_height() * scale_ratio)
-
-                    # Créer une surface de la taille cible
+    
+                    # Créer une surface de la taille cible et effacer la zone
                     portrait = pygame.Surface(TARGET_SIZE, pygame.SRCALPHA)
-
+    
                     # Redimensionner l'image originale
                     scaled_image = pygame.transform.smoothscale(original, (new_width, new_height))
-
+    
                     # Centrer l'image redimensionnée
                     x_offset = (TARGET_SIZE[0] - new_width) // 2
                     y_offset = (TARGET_SIZE[1] - new_height) // 2
-
+    
                     # Coller l'image redimensionnée sur la surface cible
                     portrait.blit(scaled_image, (x_offset, y_offset))
-
+    
                     self.character_portraits[fighter_name] = portrait
                 else:
-                    # Portrait par défaut coloré
+                    # Portrait par défaut coloré si le fichier n'existe pas
                     portrait = pygame.Surface(TARGET_SIZE, pygame.SRCALPHA)
                     fighter_color = FIGHTERS[fighter_name].color
                     pygame.draw.rect(portrait, fighter_color, (0, 0, TARGET_SIZE[0], TARGET_SIZE[1]), border_radius=10)

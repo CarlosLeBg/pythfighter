@@ -1029,9 +1029,9 @@ class LauncherPythFighter:
         # Add mouse wheel scrolling for navigation
         def on_mouse_wheel(event):
             if event.delta > 0:  # Scroll up
-            prev_section()
+                prev_section()
             elif event.delta < 0:  # Scroll down
-            next_section()
+                next_section()
 
         tutorial_window.bind("<MouseWheel>", on_mouse_wheel)
         tutorial_window.bind("<Left>", lambda e: prev_section())

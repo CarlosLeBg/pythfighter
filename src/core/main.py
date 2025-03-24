@@ -260,14 +260,15 @@ class LauncherPythFighter:
         - Animation et effets visuels
 
         Audio:
-        - Composition musicale
+        - Freesound.org
         - Design sonore
-        - Voix et doublage
+
 
         Remerciements spéciaux:
         - Communauté Python
         - Nos testeurs dévoués
         - Tous nos joueurs
+        - "Coding with Russ" et ses sources
 
         PythFighter utilise des technologies open source.
         Merci à tous les contributeurs !

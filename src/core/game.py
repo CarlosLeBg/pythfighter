@@ -51,12 +51,9 @@ def load_image(path):
             return None
     return image_cache[path]
 
-
-
 def load_animation(path, action, frame_count, fighter_width, fighter_height):
     frames = []
     animation_folder = os.path.join(path, action)
-    logging.info(f"Loading animation from: {animation_folder}")
 
     if not os.path.exists(animation_folder):
         logging.error(f"Animation folder not found - {animation_folder}")
@@ -68,27 +65,17 @@ def load_animation(path, action, frame_count, fighter_width, fighter_height):
         frame_path = os.path.join(animation_folder, frame_name)
 
         if not os.path.exists(frame_path):
-            if frame_index == 0:
-                logging.error(f"No frames found in {animation_folder}")
             break
 
         img = load_image(frame_path)
         if img:
-            # Force le redimensionnement de l'image pour remplir la hitbox
+            # Redimensionner les images à la taille du personnage
             img = pygame.transform.scale(img, (fighter_width, fighter_height))
             frames.append(img)
-            logging.debug(f"Image loaded and resized to hitbox size: {frame_path}")
 
         frame_index += 1
 
-    if not frames:
-        logging.error(f"No frames loaded for action {action} in {animation_folder}")
-    else:
-        logging.info(f"Animation '{action}' loaded and resized to hitbox size: {len(frames)} frames")
-
     return frames
-
-
 
 class Fighter:
     def __init__(self, player, x, y, fighter_data, ground_y):
@@ -107,18 +94,18 @@ class Fighter:
         self.vel_y = 0.0
         self.direction = 1 if player == 1 else -1
 
-        # Ajustez la taille des personnages pour utiliser la taille d'origine en 800x800
-        self.fighter_width = getattr(fighter_data, "width", VISIBLE_WIDTH // 16)
-        self.fighter_height = getattr(fighter_data, "height", VISIBLE_HEIGHT // 4)
+        # Ajuster les dimensions des personnages
+        self.fighter_width = 113  # Largeur forcée à 600 pixels
+        self.fighter_height = 150  # Ratio d'aspect 4:3
 
         self.ground_y = ground_y
         self.rect = pygame.Rect(x, y, self.fighter_width, self.fighter_height)
 
-        # Calculez une hitbox carrée centrée dans le rect du personnage
-        side = min(self.rect.width, self.rect.height) * 3 // 4
-        x = self.rect.x + (self.rect.width - side) // 2
-        y = self.rect.y + (self.rect.height - side) // 2
-        self.hitbox = pygame.Rect(x, y, side, side)
+        # Créer une hitbox plus petite et centrée
+        hitbox_size = int(self.fighter_width * 0.1)  # 60% de la largeur du personnage
+        hitbox_x = self.rect.centerx - hitbox_size // 2
+        hitbox_y = self.rect.bottom - hitbox_size  # Hitbox alignée avec les pieds
+        self.hitbox = pygame.Rect(hitbox_x, hitbox_y, hitbox_size, hitbox_size)
 
         self.on_ground = True
         self.attacking = False
@@ -132,7 +119,7 @@ class Fighter:
         self.animations = None
         self.current_animation = "idle"
         self.animation_frame = 0
-        self.animation_speed = 0.2
+        self.animation_speed = 0.3
         self.special_attack_cooldown = 0
         self.using_special_attack = False
         self.special_attack_frames = 0
@@ -569,8 +556,6 @@ class Fighter:
 
         self.reset_attack()
 
-
-
 class Game:
     def __init__(self, player1_type="Mitsu", player2_type="Tank"):
         pygame.init()
@@ -584,7 +569,7 @@ class Game:
 
         try:
             bg_path = os.path.join("src", "assets", "backgrounds", self.bg_selected)
-            self.bg_image = pygame.image.load(bg_path)
+            self.bg_image = pygame.image.load(bg_path).convert_alpha()
             self.bg_image = pygame.transform.scale(self.bg_image, (VISIBLE_WIDTH, VISIBLE_HEIGHT))
             logging.info(f"Background image loaded successfully: {bg_path}")
         except Exception as e:
@@ -609,7 +594,6 @@ class Game:
             player1_type = "Mitsu"
         if player2_type not in fighter_map:
             logging.warning(f"Invalid fighter type: {player2_type}, defaulting to Tank")
-            player2_type = "Tank"
 
         # Ensure the background image is properly scaled to fit the screen
         if self.bg_image.get_width() != VISIBLE_WIDTH or self.bg_image.get_height() != VISIBLE_HEIGHT:
@@ -987,7 +971,6 @@ class Game:
                         side_length
                     )
                     opponent.take_damage(self.fighters[0].damage * SPECIAL_ATTACK_MULTIPLIER, time.time(), is_special=True)
-                    self.fighters[0].apply_special_effect(self.fighters[1])  # Applique l'effet spécial
                 else:
                     self.fighters[1].take_damage(self.fighters[0].damage, time.time())
                 if self.sounds_loaded:
@@ -996,7 +979,6 @@ class Game:
             if self.fighters[1].attacking and not self.fighters[0].stunned:
                 if self.fighters[1].special_attack():
                     self.fighters[0].take_damage(self.fighters[1].damage * SPECIAL_ATTACK_MULTIPLIER, time.time(), is_special=True)
-                    self.fighters[1].apply_special_effect(self.fighters[0])  # Applique l'effet spécial
                 else:
                     self.fighters[0].take_damage(self.fighters[1].damage, time.time())
                 if self.sounds_loaded:
@@ -1017,12 +999,12 @@ class Game:
         if self.game_state == GameState.COUNTDOWN:
             for i in range(3, 0, -1):
                 self.draw_countdown(i)
+            # Do not scale fighter graphics so that background and hitbox sizes remain correct.
             self.game_state = GameState.PLAYING
             self.game_start_time = time.time()
 
         while True:
             self.update()
-
 
 if __name__ == "__main__":
     if len(sys.argv) > 2:

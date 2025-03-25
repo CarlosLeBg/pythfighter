@@ -1,0 +1,342 @@
+Structure du dossier pour le volume WINDOWS
+Le numéro de série du volume est BCB4-CA7D
+C:.
+¦   .env
+¦   .gitignore
+¦   arbo.txt
+¦   LANCER JEU.lnk
+¦   launcher.log
+¦   README.md
+¦   
++---.vscode
+¦       settings.json
+¦       
++---src
+    +---assets
+    ¦   ¦   bg.jpg
+    ¦   ¦   logo-bg.png
+    ¦   ¦   
+    ¦   +---backgrounds
+    ¦   ¦       backg.png
+    ¦   ¦       bg-ile.png
+    ¦   ¦       bgjoconde.png
+    ¦   ¦       bgmatrix.png
+    ¦   ¦       bgtree.png
+    ¦   ¦       bg_2.png
+    ¦   ¦       fonc arbres violet.webp
+    ¦   ¦       jard.png
+    ¦   ¦       
+    ¦   +---characters
+    ¦   ¦   +---Bruiser
+    ¦   ¦   ¦   ¦   License.txt
+    ¦   ¦   ¦   ¦   
+    ¦   ¦   ¦   +---Sprites
+    ¦   ¦   ¦       ¦   Attack2.png
+    ¦   ¦   ¦       ¦   Attack3.png
+    ¦   ¦   ¦       ¦   Bruiser.png
+    ¦   ¦   ¦       ¦   Death.png
+    ¦   ¦   ¦       ¦   Fall.png
+    ¦   ¦   ¦       ¦   Idle.png
+    ¦   ¦   ¦       ¦   Jump.png
+    ¦   ¦   ¦       ¦   Run.png
+    ¦   ¦   ¦       ¦   Take Hit - white silhouette.png
+    ¦   ¦   ¦       ¦   Take Hit.png
+    ¦   ¦   ¦       ¦   Thumbs.db
+    ¦   ¦   ¦       ¦   
+    ¦   ¦   ¦       +---bruiser_attack 1
+    ¦   ¦   ¦       ¦       00.png
+    ¦   ¦   ¦       ¦       10.png
+    ¦   ¦   ¦       ¦       20.png
+    ¦   ¦   ¦       ¦       30.png
+    ¦   ¦   ¦       ¦       
+    ¦   ¦   ¦       +---bruiser_attack 2
+    ¦   ¦   ¦       ¦       00.png
+    ¦   ¦   ¦       ¦       10.png
+    ¦   ¦   ¦       ¦       20.png
+    ¦   ¦   ¦       ¦       30.png
+    ¦   ¦   ¦       ¦       
+    ¦   ¦   ¦       +---bruiser_dead
+    ¦   ¦   ¦       ¦       00.png
+    ¦   ¦   ¦       ¦       10.png
+    ¦   ¦   ¦       ¦       20.png
+    ¦   ¦   ¦       ¦       30.png
+    ¦   ¦   ¦       ¦       40.png
+    ¦   ¦   ¦       ¦       50.png
+    ¦   ¦   ¦       ¦       
+    ¦   ¦   ¦       +---bruiser_idle
+    ¦   ¦   ¦       ¦       00.png
+    ¦   ¦   ¦       ¦       10.png
+    ¦   ¦   ¦       ¦       20.png
+    ¦   ¦   ¦       ¦       30.png
+    ¦   ¦   ¦       ¦       40.png
+    ¦   ¦   ¦       ¦       50.png
+    ¦   ¦   ¦       ¦       60.png
+    ¦   ¦   ¦       ¦       70.png
+    ¦   ¦   ¦       ¦       
+    ¦   ¦   ¦       +---bruiser_jump
+    ¦   ¦   ¦       ¦       00.png
+    ¦   ¦   ¦       ¦       10.png
+    ¦   ¦   ¦       ¦       
+    ¦   ¦   ¦       +---bruiser_run
+    ¦   ¦   ¦       ¦       00.png
+    ¦   ¦   ¦       ¦       10.png
+    ¦   ¦   ¦       ¦       20.png
+    ¦   ¦   ¦       ¦       30.png
+    ¦   ¦   ¦       ¦       40.png
+    ¦   ¦   ¦       ¦       50.png
+    ¦   ¦   ¦       ¦       60.png
+    ¦   ¦   ¦       ¦       70.png
+    ¦   ¦   ¦       ¦       
+    ¦   ¦   ¦       +---bruiser_take hit
+    ¦   ¦   ¦               00.png
+    ¦   ¦   ¦               10.png
+    ¦   ¦   ¦               20.png
+    ¦   ¦   ¦               30.png
+    ¦   ¦   ¦               
+    ¦   ¦   +---Mitsu
+    ¦   ¦   ¦   +---Martial Hero
+    ¦   ¦   ¦       +---attack1
+    ¦   ¦   ¦       ¦       00.png
+    ¦   ¦   ¦       ¦       10.png
+    ¦   ¦   ¦       ¦       20.png
+    ¦   ¦   ¦       ¦       30.png
+    ¦   ¦   ¦       ¦       40.png
+    ¦   ¦   ¦       ¦       50.png
+    ¦   ¦   ¦       ¦       
+    ¦   ¦   ¦       +---death
+    ¦   ¦   ¦       ¦       00.png
+    ¦   ¦   ¦       ¦       10.png
+    ¦   ¦   ¦       ¦       20.png
+    ¦   ¦   ¦       ¦       30.png
+    ¦   ¦   ¦       ¦       40.png
+    ¦   ¦   ¦       ¦       50.png
+    ¦   ¦   ¦       ¦       
+    ¦   ¦   ¦       +---fall
+    ¦   ¦   ¦       ¦       00.png
+    ¦   ¦   ¦       ¦       10.png
+    ¦   ¦   ¦       ¦       
+    ¦   ¦   ¦       +---idle
+    ¦   ¦   ¦       ¦       00.png
+    ¦   ¦   ¦       ¦       10.png
+    ¦   ¦   ¦       ¦       20.png
+    ¦   ¦   ¦       ¦       30.png
+    ¦   ¦   ¦       ¦       40.png
+    ¦   ¦   ¦       ¦       50.png
+    ¦   ¦   ¦       ¦       60.png
+    ¦   ¦   ¦       ¦       70.png
+    ¦   ¦   ¦       ¦       
+    ¦   ¦   ¦       +---jump
+    ¦   ¦   ¦       ¦       00.png
+    ¦   ¦   ¦       ¦       10.png
+    ¦   ¦   ¦       ¦       
+    ¦   ¦   ¦       +---run
+    ¦   ¦   ¦       ¦       00.png
+    ¦   ¦   ¦       ¦       10.png
+    ¦   ¦   ¦       ¦       20.png
+    ¦   ¦   ¦       ¦       30.png
+    ¦   ¦   ¦       ¦       40.png
+    ¦   ¦   ¦       ¦       50.png
+    ¦   ¦   ¦       ¦       60.png
+    ¦   ¦   ¦       ¦       70.png
+    ¦   ¦   ¦       ¦       
+    ¦   ¦   ¦       +---takehit
+    ¦   ¦   ¦               00.png
+    ¦   ¦   ¦               10.png
+    ¦   ¦   ¦               20.png
+    ¦   ¦   ¦               30.png
+    ¦   ¦   ¦               
+    ¦   ¦   +---Noya
+    ¦   ¦   ¦   ¦   License.txt
+    ¦   ¦   ¦   ¦   
+    ¦   ¦   ¦   +---attack1
+    ¦   ¦   ¦   ¦       00.png
+    ¦   ¦   ¦   ¦       10.png
+    ¦   ¦   ¦   ¦       20.png
+    ¦   ¦   ¦   ¦       30.png
+    ¦   ¦   ¦   ¦       40.png
+    ¦   ¦   ¦   ¦       
+    ¦   ¦   ¦   +---death
+    ¦   ¦   ¦   ¦       00.png
+    ¦   ¦   ¦   ¦       10.png
+    ¦   ¦   ¦   ¦       20.png
+    ¦   ¦   ¦   ¦       30.png
+    ¦   ¦   ¦   ¦       40.png
+    ¦   ¦   ¦   ¦       50.png
+    ¦   ¦   ¦   ¦       60.png
+    ¦   ¦   ¦   ¦       70.png
+    ¦   ¦   ¦   ¦       
+    ¦   ¦   ¦   +---fall
+    ¦   ¦   ¦   ¦       00.png
+    ¦   ¦   ¦   ¦       10.png
+    ¦   ¦   ¦   ¦       
+    ¦   ¦   ¦   +---idle
+    ¦   ¦   ¦   ¦       00.png
+    ¦   ¦   ¦   ¦       10.png
+    ¦   ¦   ¦   ¦       20.png
+    ¦   ¦   ¦   ¦       30.png
+    ¦   ¦   ¦   ¦       40.png
+    ¦   ¦   ¦   ¦       50.png
+    ¦   ¦   ¦   ¦       60.png
+    ¦   ¦   ¦   ¦       70.png
+    ¦   ¦   ¦   ¦       
+    ¦   ¦   ¦   +---jump
+    ¦   ¦   ¦   ¦       00.png
+    ¦   ¦   ¦   ¦       10.png
+    ¦   ¦   ¦   ¦       
+    ¦   ¦   ¦   +---run
+    ¦   ¦   ¦   ¦       00.png
+    ¦   ¦   ¦   ¦       10.png
+    ¦   ¦   ¦   ¦       20.png
+    ¦   ¦   ¦   ¦       30.png
+    ¦   ¦   ¦   ¦       40.png
+    ¦   ¦   ¦   ¦       50.png
+    ¦   ¦   ¦   ¦       60.png
+    ¦   ¦   ¦   ¦       70.png
+    ¦   ¦   ¦   ¦       
+    ¦   ¦   ¦   +---takehit
+    ¦   ¦   ¦           00.png
+    ¦   ¦   ¦           10.png
+    ¦   ¦   ¦           20.png
+    ¦   ¦   ¦           
+    ¦   ¦   +---tank
+    ¦   ¦   ¦   +---tank_attack
+    ¦   ¦   ¦   ¦       frame_00_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_01_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_02_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_03_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_04_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_05_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_06_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_07_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_08_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_09_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_10_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_11_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_12_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_13_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_14_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_15_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_16_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_17_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_18_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_19_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_20_delay-0.1s.png
+    ¦   ¦   ¦   ¦       
+    ¦   ¦   ¦   +---tank_dead
+    ¦   ¦   ¦   ¦       frame_00_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_01_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_02_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_03_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_04_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_05_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_06_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_07_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_08_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_09_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_10_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_11_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_12_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_13_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_14_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_15_delay-0.1s.png
+    ¦   ¦   ¦   ¦       
+    ¦   ¦   ¦   +---tank_idle
+    ¦   ¦   ¦   ¦       frame_00_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_01_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_02_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_03_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_04_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_05_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_06_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_07_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_08_delay-0.1s.png
+    ¦   ¦   ¦   ¦       frame_09_delay-0.1s.png
+    ¦   ¦   ¦   ¦       
+    ¦   ¦   ¦   +---tank_walk
+    ¦   ¦   ¦           frame_0_delay-0.1s.png
+    ¦   ¦   ¦           frame_1_delay-0.1s.png
+    ¦   ¦   ¦           frame_2_delay-0.1s.png
+    ¦   ¦   ¦           frame_3_delay-0.1s.png
+    ¦   ¦   ¦           frame_4_delay-0.1s.png
+    ¦   ¦   ¦           frame_5_delay-0.1s.png
+    ¦   ¦   ¦           frame_6_delay-0.1s.png
+    ¦   ¦   ¦           frame_7_delay-0.1s.png
+    ¦   ¦   ¦           
+    ¦   ¦   +---thunderstrike
+    ¦   ¦       +---attack
+    ¦   ¦       ¦       00.png
+    ¦   ¦       ¦       10.png
+    ¦   ¦       ¦       20.png
+    ¦   ¦       ¦       30.png
+    ¦   ¦       ¦       
+    ¦   ¦       +---death
+    ¦   ¦       ¦       00.png
+    ¦   ¦       ¦       10.png
+    ¦   ¦       ¦       20.png
+    ¦   ¦       ¦       30.png
+    ¦   ¦       ¦       40.png
+    ¦   ¦       ¦       50.png
+    ¦   ¦       ¦       60.png
+    ¦   ¦       ¦       
+    ¦   ¦       +---idle
+    ¦   ¦       ¦       00.png
+    ¦   ¦       ¦       10.png
+    ¦   ¦       ¦       20.png
+    ¦   ¦       ¦       30.png
+    ¦   ¦       ¦       
+    ¦   ¦       +---walk
+    ¦   ¦               00.png
+    ¦   ¦               10.png
+    ¦   ¦               20.png
+    ¦   ¦               30.png
+    ¦   ¦               40.png
+    ¦   ¦               50.png
+    ¦   ¦               60.png
+    ¦   ¦               70.png
+    ¦   ¦               
+    ¦   +---images
+    ¦   ¦       bruiser_portrait.png
+    ¦   ¦       logo.png
+    ¦   ¦       mitsu_portrait.png
+    ¦   ¦       noya_portrait.png
+    ¦   ¦       tank_portrait.png
+    ¦   ¦       thunderstrike_portrait.png
+    ¦   ¦       
+    ¦   +---sounds
+    ¦           3-2-1 fight.wav
+    ¦           hit.wav
+    ¦           menu.wav
+    ¦           punch.wav
+    ¦           victory.wav
+    ¦           
+    +---config
+    ¦   ¦   fighters.py
+    ¦   ¦   settings.py
+    ¦   ¦   
+    ¦   +---__pycache__
+    ¦           fighters.cpython-312.pyc
+    ¦           settings.cpython-312.pyc
+    ¦           
+    +---core
+    ¦       .env
+    ¦       game.py
+    ¦       main.py
+    ¦       selector.py
+    ¦       
+    +---managers
+    ¦   ¦   position_manager.py
+    ¦   ¦   
+    ¦   +---__pycache__
+    ¦           position_manager.cpython-312.pyc
+    ¦           
+    +---scripts
+    ¦       particle_system.py
+    ¦       
+    +---utils
+    ¦       autoinstaller.py
+    ¦       
+    +---__pycache__
+            animations.cpython-312.pyc
+            particle_system.cpython-312.pyc
+            position_manager.cpython-312.pyc
+            

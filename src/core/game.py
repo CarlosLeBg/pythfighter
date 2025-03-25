@@ -74,19 +74,20 @@ def load_animation(path, action, frame_count, fighter_width, fighter_height):
 
         img = load_image(frame_path)
         if img:
-            # Force le redimensionnement de l'image à la taille de la hitbox
+            # Force le redimensionnement de l'image pour remplir la hitbox
             img = pygame.transform.scale(img, (fighter_width, fighter_height))
             frames.append(img)
-            logging.debug(f"Image loaded and resized successfully: {frame_path}")
+            logging.debug(f"Image loaded and resized to hitbox size: {frame_path}")
 
         frame_index += 1
 
     if not frames:
         logging.error(f"No frames loaded for action {action} in {animation_folder}")
     else:
-        logging.info(f"Animation '{action}' loaded and resized successfully: {len(frames)} frames")
+        logging.info(f"Animation '{action}' loaded and resized to hitbox size: {len(frames)} frames")
 
     return frames
+
 
 
 class Fighter:
@@ -113,9 +114,11 @@ class Fighter:
         self.ground_y = ground_y
         self.rect = pygame.Rect(x, y, self.fighter_width, self.fighter_height)
 
-        # Ajustez la hitbox en fonction de la nouvelle taille
-        self.hitbox = pygame.Rect(self.rect.x + self.rect.width // 8, self.rect.y + self.rect.height // 8,
-                                  self.rect.width * 3 // 4, self.rect.height * 3 // 4)
+        # Calculez une hitbox carrée centrée dans le rect du personnage
+        side = min(self.rect.width, self.rect.height) * 3 // 4
+        x = self.rect.x + (self.rect.width - side) // 2
+        y = self.rect.y + (self.rect.height - side) // 2
+        self.hitbox = pygame.Rect(x, y, side, side)
 
         self.on_ground = True
         self.attacking = False
@@ -165,7 +168,8 @@ class Fighter:
             self.special_attack_effect.set_alpha(effect_alpha)
             effect_x = self.rect.x - self.fighter_width // 2
             effect_y = self.rect.y - self.fighter_height // 4
-            surface.blit(self.special_attack_effect, (effect_x, effect_y))
+            effect_rect = self.special_attack_effect.get_rect(center=self.hitbox.center)
+            surface.blit(self.special_attack_effect, effect_rect)
             self.special_attack_effect_duration -= 1
 
         if self.animations and any(len(frames) > 0 for frames in self.animations.values()):
@@ -387,6 +391,13 @@ class Fighter:
                 pygame.draw.circle(effect_surface, (r, g, b, alpha), (effect_size // 2, effect_size // 2), size // 2)
 
             self.special_attack_effect = effect_surface
+            side_length = min(self.rect.width, self.rect.height)
+            self.hitbox = pygame.Rect(
+                self.rect.centerx - side_length // 2,
+                self.rect.centery - side_length // 2,
+                side_length,
+                side_length
+            )
             self.special_attack_effect_duration = 60
 
             return True
@@ -548,8 +559,10 @@ class Fighter:
 
         self.rect.x = int(self.pos_x)
         self.rect.y = int(self.pos_y)
-        self.hitbox.update(self.rect.x + self.rect.width // 8, self.rect.y + self.rect.height // 8,
-                           self.rect.width * 3 // 4, self.rect.height * 3 // 4)
+        side = min(self.rect.width, self.rect.height)
+        hitbox_x = self.rect.centerx - side // 2
+        hitbox_y = self.rect.centery - side // 2
+        self.hitbox.update(hitbox_x, hitbox_y, side, side)
 
         if self.invincibility_frames > 0:
             self.invincibility_frames -= 1
@@ -964,7 +977,16 @@ class Game:
         if self.fighters[0].hitbox.colliderect(self.fighters[1].hitbox):
             if self.fighters[0].attacking and not self.fighters[1].stunned:
                 if self.fighters[0].special_attack():
-                    self.fighters[1].take_damage(self.fighters[0].damage * SPECIAL_ATTACK_MULTIPLIER, time.time(), is_special=True)
+                    # Adjust the opponent's hitbox to be a square before applying the special attack damage
+                    opponent = self.fighters[1]
+                    side_length = min(opponent.rect.width, opponent.rect.height)
+                    opponent.hitbox = pygame.Rect(
+                        opponent.rect.centerx - side_length // 2,
+                        opponent.rect.centery - side_length // 2,
+                        side_length,
+                        side_length
+                    )
+                    opponent.take_damage(self.fighters[0].damage * SPECIAL_ATTACK_MULTIPLIER, time.time(), is_special=True)
                     self.fighters[0].apply_special_effect(self.fighters[1])  # Applique l'effet spécial
                 else:
                     self.fighters[1].take_damage(self.fighters[0].damage, time.time())

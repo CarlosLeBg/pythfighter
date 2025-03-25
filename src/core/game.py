@@ -567,7 +567,7 @@ class Game:
         pygame.display.set_caption("PythFighter")
 
         random.seed(time.time()*time.time())  # Ensure randomness by seeding with the current time
-        self.bg_selected = random.choice(["bg_2.png", "backg.png", "bgtree.png", "bg-ile.png", "bgjoconde.png"])
+        self.bg_selected = random.choice(["bg_2.png", "backg.png", "bgtree.png", "bg-ile.png", "bgjoconde.png", " bgmatrix.png","jard.png"])
 
         try:
             bg_path = os.path.join("src", "assets", "backgrounds", self.bg_selected)

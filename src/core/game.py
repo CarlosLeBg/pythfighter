@@ -51,6 +51,8 @@ def load_image(path):
             return None
     return image_cache[path]
 
+
+
 def load_animation(path, action, frame_count, fighter_width, fighter_height):
     frames = []
     animation_folder = os.path.join(path, action)
@@ -60,13 +62,15 @@ def load_animation(path, action, frame_count, fighter_width, fighter_height):
         logging.error(f"Animation folder not found - {animation_folder}")
         return frames
 
-    for i in range(frame_count):
-        frame_name = f"frame_{i:02}_delay-0.1s.png"
+    frame_index = 0
+    while True:
+        frame_name = f"frame_{frame_index:02}_delay-0.1s.png"
         frame_path = os.path.join(animation_folder, frame_name)
 
         if not os.path.exists(frame_path):
-            logging.error(f"File not found - {frame_path}")
-            continue
+            if frame_index == 0:
+                logging.error(f"No frames found in {animation_folder}")
+            break
 
         img = load_image(frame_path)
         if img:
@@ -74,12 +78,16 @@ def load_animation(path, action, frame_count, fighter_width, fighter_height):
             frames.append(img)
             logging.debug(f"Image loaded successfully: {frame_path}")
 
+        frame_index += 1
+
     if not frames:
         logging.error(f"No frames loaded for action {action} in {animation_folder}")
     else:
         logging.info(f"Animation '{action}' loaded successfully: {len(frames)} frames")
 
     return frames
+
+
 
 class Fighter:
     def __init__(self, player, x, y, fighter_data, ground_y):
@@ -97,18 +105,17 @@ class Fighter:
         self.vel_x = 0.0
         self.vel_y = 0.0
         self.direction = 1 if player == 1 else -1
-        self.stunned = False
 
-        # Ajustez la taille des personnages ici
-        self.fighter_width = VISIBLE_WIDTH // 16  # Réduit la taille
-        self.fighter_height = VISIBLE_HEIGHT // 4  # Réduit la taille
+        # Ajustez la taille des personnages pour utiliser la taille d'origine en 800x800
+        self.fighter_width = fighter_data.width
+        self.fighter_height = fighter_data.height
 
         self.ground_y = ground_y
         self.rect = pygame.Rect(x, y, self.fighter_width, self.fighter_height)
 
         # Ajustez la hitbox en fonction de la nouvelle taille
-        self.hitbox = pygame.Rect(x + self.fighter_width // 8, y + self.fighter_height // 8,
-                                  self.fighter_width * 3 // 4, self.fighter_height * 3 // 4)
+        self.hitbox = pygame.Rect(self.rect.x + self.rect.width // 8, self.rect.y + self.rect.height // 8,
+                                  self.rect.width * 3 // 4, self.rect.height * 3 // 4)
 
         self.on_ground = True
         self.attacking = False
@@ -128,22 +135,26 @@ class Fighter:
         self.special_attack_frames = 0
         self.special_attack_effect = None
         self.special_attack_effect_duration = 60
+        self.stunned = False  # Ajout de l'attribut stunned
 
         logging.info(f"Loading animations for {self.name}...")
-        base_path = os.path.join("src", "assets", "characters", self.name.lower())
+        base_path = os.path.join("src", "assets", "characters")
 
         if not os.path.exists(base_path):
             logging.error(f"Base folder for animations not found: {base_path}")
         else:
             logging.info(f"Base folder found: {base_path}")
             self.animations = {
-                "idle": load_animation(base_path, "idle", 10, self.fighter_width, self.fighter_height),
-                "walk": load_animation(base_path, "walk", 8, self.fighter_width, self.fighter_height),
-                "attack": load_animation(base_path, "attack", 21, self.fighter_width, self.fighter_height),
-                "dead": load_animation(base_path, "dead", 16, self.fighter_width, self.fighter_height),
-                "special_attack": load_animation(base_path, "special_attack", 15, self.fighter_width, self.fighter_height),
-                "block": load_animation(base_path, "block", 10, self.fighter_width, self.fighter_height),
+                "idle": load_animation(os.path.join(base_path, self.name.split()[0].lower()), f"{self.name.split()[0].lower()}_idle", -1, self.fighter_width, self.fighter_height),
+                "walk": load_animation(os.path.join(base_path, self.name.split()[0].lower()), f"{self.name.split()[0].lower()}_walk", -1, self.fighter_width, self.fighter_height),
+                "attack": load_animation(os.path.join(base_path, self.name.split()[0].lower()), f"{self.name.split()[0].lower()}_attack", -1, self.fighter_width, self.fighter_height),
+                "dead": load_animation(os.path.join(base_path, self.name.split()[0].lower()), f"{self.name.split()[0].lower()}_dead", -1, self.fighter_width, self.fighter_height),
             }
+
+            if self.name.lower() == "tank":
+                self.animations["special_attack"] = load_animation(base_path, f"{self.name.split()[0].lower()}_special_attack", -1, self.fighter_width, self.fighter_height)
+            elif self.name.lower() == "thunderstrike":
+                self.animations["special_attack"] = load_animation(base_path, "attack", -1, self.fighter_width, self.fighter_height)
 
             for anim_name, frames in self.animations.items():
                 logging.info(f"Animation '{anim_name}': {len(frames)} frames loaded")
@@ -503,8 +514,6 @@ class Fighter:
                 self.current_animation = "special_attack"
             elif self.attacking and "attack" in self.animations and len(self.animations["attack"]) > 0:
                 self.current_animation = "attack"
-            elif self.blocking and "block" in self.animations and len(self.animations["block"]) > 0:
-                self.current_animation = "block"
             elif not self.on_ground:
                 if "idle" in self.animations and len(self.animations["idle"]) > 0:
                     self.current_animation = "idle"
@@ -539,12 +548,15 @@ class Fighter:
 
         self.rect.x = int(self.pos_x)
         self.rect.y = int(self.pos_y)
-        self.hitbox.topleft = (self.rect.x + self.rect.width // 4, self.rect.y + self.rect.height // 4)
+        self.hitbox.update(self.rect.x + self.rect.width // 8, self.rect.y + self.rect.height // 8,
+                           self.rect.width * 3 // 4, self.rect.height * 3 // 4)
 
         if self.invincibility_frames > 0:
             self.invincibility_frames -= 1
 
         self.reset_attack()
+
+
 
 class Game:
     def __init__(self, player1_type="Mitsu", player2_type="Tank"):
@@ -582,9 +594,20 @@ class Game:
         if player1_type not in fighter_map:
             logging.warning(f"Invalid fighter type: {player1_type}, defaulting to Mitsu")
             player1_type = "Mitsu"
+            fighter_map[player1_type].width = VISIBLE_WIDTH // 16  # Adjust the width of the fighter
+            fighter_map[player1_type].height = VISIBLE_HEIGHT // 4  # Adjust the height of the fighter
         if player2_type not in fighter_map:
+            fighter_map[player1_type].width = VISIBLE_WIDTH // 16  # Adjust the width of the fighter
+            fighter_map[player1_type].height = VISIBLE_HEIGHT // 4  # Adjust the height of the fighter
             logging.warning(f"Invalid fighter type: {player2_type}, defaulting to Tank")
             player2_type = "Tank"
+
+        # Ensure the background image is properly scaled to fit the screen
+        if self.bg_image.get_width() != VISIBLE_WIDTH or self.bg_image.get_height() != VISIBLE_HEIGHT:
+            self.bg_image = pygame.transform.scale(self.bg_image, (VISIBLE_WIDTH, VISIBLE_HEIGHT))
+            logging.info("Background image resized to fit the screen dimensions.")
+
+        # The fighters will now use their original image dimensions (800x800)
 
         self.fighters = [
             Fighter(1, VISIBLE_WIDTH // 4, self.ground_y - fighter_height,
@@ -981,6 +1004,7 @@ class Game:
 
         while True:
             self.update()
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 2:

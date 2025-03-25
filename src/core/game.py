@@ -97,6 +97,7 @@ class Fighter:
         self.vel_x = 0.0
         self.vel_y = 0.0
         self.direction = 1 if player == 1 else -1
+        self.stunned = False
 
         # Ajustez la taille des personnages ici
         self.fighter_width = VISIBLE_WIDTH // 16  # Réduit la taille

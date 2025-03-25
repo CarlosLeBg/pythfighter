@@ -74,19 +74,19 @@ def load_animation(path, action, frame_count, fighter_width, fighter_height):
 
         img = load_image(frame_path)
         if img:
+            # Force le redimensionnement de l'image à la taille de la hitbox
             img = pygame.transform.scale(img, (fighter_width, fighter_height))
             frames.append(img)
-            logging.debug(f"Image loaded successfully: {frame_path}")
+            logging.debug(f"Image loaded and resized successfully: {frame_path}")
 
         frame_index += 1
 
     if not frames:
         logging.error(f"No frames loaded for action {action} in {animation_folder}")
     else:
-        logging.info(f"Animation '{action}' loaded successfully: {len(frames)} frames")
+        logging.info(f"Animation '{action}' loaded and resized successfully: {len(frames)} frames")
 
     return frames
-
 
 
 class Fighter:

@@ -50,7 +50,7 @@ class Noya(Fighter):
             abilities=["Flame Burst", "Inferno"],
             style="Burst", 
             stats={"Force": 5, "Défense": 6, "Vitesse": 6, "Vie": 100},  # Équilibré avec bonus aux DoT
-            description="Un moine du feu, infligeant des brûlures continues à ses ennemis.",
+            description=" Une guerrière possede une lance, infligeant des brûlures continues à ses ennemis.",
             combo=["Appliquez la brûlure avec Flame Burst, puis terminez avec Inferno."],
             lore="Maîtrisant les flammes, il privilégie les dégâts sur la durée.",
             color=(255, 165, 0),

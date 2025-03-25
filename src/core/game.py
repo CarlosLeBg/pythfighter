@@ -51,6 +51,8 @@ def load_image(path):
             return None
     return image_cache[path]
 
+
+
 def load_animation(path, action, frame_count, fighter_width, fighter_height):
     frames = []
     animation_folder = os.path.join(path, action)
@@ -60,13 +62,15 @@ def load_animation(path, action, frame_count, fighter_width, fighter_height):
         logging.error(f"Animation folder not found - {animation_folder}")
         return frames
 
-    for i in range(frame_count):
-        frame_name = f"frame_{i:02}_delay-0.1s.png"
+    frame_index = 0
+    while True:
+        frame_name = f"frame_{frame_index:02}_delay-0.1s.png"
         frame_path = os.path.join(animation_folder, frame_name)
 
         if not os.path.exists(frame_path):
-            logging.error(f"File not found - {frame_path}")
-            continue
+            if frame_index == 0:
+                logging.error(f"No frames found in {animation_folder}")
+            break
 
         img = load_image(frame_path)
         if img:
@@ -74,12 +78,16 @@ def load_animation(path, action, frame_count, fighter_width, fighter_height):
             frames.append(img)
             logging.debug(f"Image loaded successfully: {frame_path}")
 
+        frame_index += 1
+
     if not frames:
         logging.error(f"No frames loaded for action {action} in {animation_folder}")
     else:
         logging.info(f"Animation '{action}' loaded successfully: {len(frames)} frames")
 
     return frames
+
+
 
 class Fighter:
     def __init__(self, player, x, y, fighter_data, ground_y):
@@ -98,16 +106,16 @@ class Fighter:
         self.vel_y = 0.0
         self.direction = 1 if player == 1 else -1
 
-        # Ajustez la taille des personnages ici
-        self.fighter_width = VISIBLE_WIDTH // 16  # Réduit la taille
-        self.fighter_height = VISIBLE_HEIGHT // 4  # Réduit la taille
+        # Ajustez la taille des personnages pour utiliser la taille d'origine en 800x800
+        self.fighter_width = fighter_data.width
+        self.fighter_height = fighter_data.height
 
         self.ground_y = ground_y
         self.rect = pygame.Rect(x, y, self.fighter_width, self.fighter_height)
 
         # Ajustez la hitbox en fonction de la nouvelle taille
-        self.hitbox = pygame.Rect(x + self.fighter_width // 8, y + self.fighter_height // 8,
-                                  self.fighter_width * 3 // 4, self.fighter_height * 3 // 4)
+        self.hitbox = pygame.Rect(self.rect.x + self.rect.width // 8, self.rect.y + self.rect.height // 8,
+                                  self.rect.width * 3 // 4, self.rect.height * 3 // 4)
 
         self.on_ground = True
         self.attacking = False
@@ -127,26 +135,29 @@ class Fighter:
         self.special_attack_frames = 0
         self.special_attack_effect = None
         self.special_attack_effect_duration = 60
+        self.stunned = False  # Ajout de l'attribut stunned
 
         logging.info(f"Loading animations for {self.name}...")
-        base_path = os.path.join("src", "assets", "characters", self.name.lower())
+        base_path = os.path.join("src", "assets", "characters")
 
-        if self.name.lower() == "tank":
-            if not os.path.exists(base_path):
-                logging.error(f"Base folder for animations not found: {base_path}")
-            else:
-                logging.info(f"Base folder found: {base_path}")
-                self.animations = {
-                    "idle": load_animation(base_path, "idle", 10, self.fighter_width, self.fighter_height),
-                    "walk": load_animation(base_path, "walk", 8, self.fighter_width, self.fighter_height),
-                    "attack": load_animation(base_path, "attack", 21, self.fighter_width, self.fighter_height),
-                    "dead": load_animation(base_path, "dead", 16, self.fighter_width, self.fighter_height),
-                    "special_attack": load_animation(base_path, "special_attack", 15, self.fighter_width, self.fighter_height),
-                    "block": load_animation(base_path, "block", 10, self.fighter_width, self.fighter_height),
-                }
+        if not os.path.exists(base_path):
+            logging.error(f"Base folder for animations not found: {base_path}")
+        else:
+            logging.info(f"Base folder found: {base_path}")
+            self.animations = {
+                "idle": load_animation(os.path.join(base_path, self.name.split()[0].lower()), f"{self.name.split()[0].lower()}_idle", -1, self.fighter_width, self.fighter_height),
+                "walk": load_animation(os.path.join(base_path, self.name.split()[0].lower()), f"{self.name.split()[0].lower()}_walk", -1, self.fighter_width, self.fighter_height),
+                "attack": load_animation(os.path.join(base_path, self.name.split()[0].lower()), f"{self.name.split()[0].lower()}_attack", -1, self.fighter_width, self.fighter_height),
+                "dead": load_animation(os.path.join(base_path, self.name.split()[0].lower()), f"{self.name.split()[0].lower()}_dead", -1, self.fighter_width, self.fighter_height),
+            }
 
-                for anim_name, frames in self.animations.items():
-                    logging.info(f"Animation '{anim_name}': {len(frames)} frames loaded")
+            if self.name.lower() == "tank":
+                self.animations["special_attack"] = load_animation(base_path, f"{self.name.split()[0].lower()}_special_attack", -1, self.fighter_width, self.fighter_height)
+            elif self.name.lower() == "thunderstrike":
+                self.animations["special_attack"] = load_animation(base_path, "attack", -1, self.fighter_width, self.fighter_height)
+
+            for anim_name, frames in self.animations.items():
+                logging.info(f"Animation '{anim_name}': {len(frames)} frames loaded")
 
     def draw(self, surface):
         if self.special_attack_effect and self.special_attack_effect_duration > 0:
@@ -355,15 +366,17 @@ class Fighter:
         return False
 
     def special_attack(self):
+        """Effectue une attaque spéciale unique pour chaque personnage."""
         if self.special_attack_cooldown <= 0 and self.stamina >= 30 and not self.blocking:
             self.using_special_attack = True
             self.attacking = True
             self.can_attack = False
             self.current_animation = "special_attack"
             self.animation_frame = 0
-            self.special_attack_cooldown = 240
+            self.special_attack_cooldown = 240  # Cooldown de 4 secondes
             self.stamina -= 30
 
+            # Effet visuel pour l'attaque spéciale
             effect_size = self.fighter_width * 3
             effect_surface = pygame.Surface((effect_size, effect_size), pygame.SRCALPHA)
 
@@ -378,6 +391,80 @@ class Fighter:
 
             return True
         return False
+
+    def apply_special_effect(self, opponent):
+        """Applique l'effet spécial unique du personnage à l'adversaire."""
+        if self.name == "Mitsu":
+            # Mitsu : Réduit les dégâts subis pendant 3 secondes
+            self.invincibility_frames = 180  # 3 secondes d'invincibilité
+            logging.info(f"{self.name} active Esquive parfaite : invincibilité temporaire.")
+        elif self.name == "Tank (Carl)":
+            # Tank : Réduit les dégâts subis de moitié pendant 5 secondes
+            self.invincibility_frames = 300  # 5 secondes d'invincibilité
+            logging.info(f"{self.name} active Bouclier indestructible : réduction des dégâts.")
+        elif self.name == "Noya":
+            # Noya : Applique un effet de brûlure à l'adversaire
+            opponent.apply_burn(3, 3)  # 3 dégâts par seconde pendant 3 secondes
+            logging.info(f"{self.name} inflige Brûlure à {opponent.name}.")
+        elif self.name == "ThunderStrike":
+            # ThunderStrike : Chance d'étourdir l'adversaire
+            if random.random() < 0.2:  # 20% de chance
+                opponent.stun(90)  # Étourdit pendant 1.5 secondes
+                logging.info(f"{self.name} étourdit {opponent.name} avec Thunderstorm.")
+        elif self.name == "Bruiser":
+            # Bruiser : Augmente temporairement les dégâts ou la vitesse
+            self.boost_stat("damage", 1.15, 180)  # +15% de dégâts pendant 3 secondes
+            logging.info(f"{self.name} active Boost : augmentation des dégâts.")
+
+    def apply_burn(self, damage_per_second, duration):
+        """Applique un effet de brûlure au personnage."""
+        self.burn_damage = damage_per_second
+        self.burn_duration = duration
+        logging.info(f"{self.name} subit une brûlure : {damage_per_second} dégâts/s pendant {duration} secondes.")
+
+    def stun(self, duration):
+        """Étourdit le personnage pour une durée donnée."""
+        self.stunned = True
+        self.stun_duration = duration
+        logging.info(f"{self.name} est étourdi pendant {duration / 60:.2f} secondes.")
+
+    def boost_stat(self, stat, multiplier, duration):
+        """Augmente temporairement une statistique."""
+        if stat == "damage":
+            self.damage *= multiplier
+        elif stat == "speed":
+            self.speed *= multiplier
+        self.boost_duration = duration
+        self.boost_stat_name = stat
+        logging.info(f"{self.name} reçoit un boost de {stat} de {multiplier * 100 - 100:.0f}% pendant {duration / 60:.2f} secondes.")
+
+    def update_effects(self):
+        """Met à jour les effets spéciaux actifs."""
+        # Gestion de la brûlure
+        if hasattr(self, "burn_duration") and self.burn_duration > 0:
+            self.health -= self.burn_damage / 60  # Applique les dégâts par seconde
+            self.burn_duration -= 1
+            if self.burn_duration <= 0:
+                del self.burn_damage
+                del self.burn_duration
+
+        # Gestion de l'étourdissement
+        if hasattr(self, "stun_duration") and self.stun_duration > 0:
+            self.stun_duration -= 1
+            if self.stun_duration <= 0:
+                self.stunned = False
+                del self.stun_duration
+
+        # Gestion du boost
+        if hasattr(self, "boost_duration") and self.boost_duration > 0:
+            self.boost_duration -= 1
+            if self.boost_duration <= 0:
+                if self.boost_stat_name == "damage":
+                    self.damage /= 1.15
+                elif self.boost_stat_name == "speed":
+                    self.speed /= 1.15
+                del self.boost_duration
+                del self.boost_stat_name
 
     def reset_attack(self):
         if self.attack_cooldown > 0:
@@ -427,8 +514,6 @@ class Fighter:
                 self.current_animation = "special_attack"
             elif self.attacking and "attack" in self.animations and len(self.animations["attack"]) > 0:
                 self.current_animation = "attack"
-            elif self.blocking and "block" in self.animations and len(self.animations["block"]) > 0:
-                self.current_animation = "block"
             elif not self.on_ground:
                 if "idle" in self.animations and len(self.animations["idle"]) > 0:
                     self.current_animation = "idle"
@@ -463,12 +548,15 @@ class Fighter:
 
         self.rect.x = int(self.pos_x)
         self.rect.y = int(self.pos_y)
-        self.hitbox.topleft = (self.rect.x + self.rect.width // 4, self.rect.y + self.rect.height // 4)
+        self.hitbox.update(self.rect.x + self.rect.width // 8, self.rect.y + self.rect.height // 8,
+                           self.rect.width * 3 // 4, self.rect.height * 3 // 4)
 
         if self.invincibility_frames > 0:
             self.invincibility_frames -= 1
 
         self.reset_attack()
+
+
 
 class Game:
     def __init__(self, player1_type="Mitsu", player2_type="Tank"):
@@ -506,9 +594,20 @@ class Game:
         if player1_type not in fighter_map:
             logging.warning(f"Invalid fighter type: {player1_type}, defaulting to Mitsu")
             player1_type = "Mitsu"
+            fighter_map[player1_type].width = VISIBLE_WIDTH // 16  # Adjust the width of the fighter
+            fighter_map[player1_type].height = VISIBLE_HEIGHT // 4  # Adjust the height of the fighter
         if player2_type not in fighter_map:
+            fighter_map[player1_type].width = VISIBLE_WIDTH // 16  # Adjust the width of the fighter
+            fighter_map[player1_type].height = VISIBLE_HEIGHT // 4  # Adjust the height of the fighter
             logging.warning(f"Invalid fighter type: {player2_type}, defaulting to Tank")
             player2_type = "Tank"
+
+        # Ensure the background image is properly scaled to fit the screen
+        if self.bg_image.get_width() != VISIBLE_WIDTH or self.bg_image.get_height() != VISIBLE_HEIGHT:
+            self.bg_image = pygame.transform.scale(self.bg_image, (VISIBLE_WIDTH, VISIBLE_HEIGHT))
+            logging.info("Background image resized to fit the screen dimensions.")
+
+        # The fighters will now use their original image dimensions (800x800)
 
         self.fighters = [
             Fighter(1, VISIBLE_WIDTH // 4, self.ground_y - fighter_height,
@@ -863,13 +962,25 @@ class Game:
 
             self.handle_input(fighter, None, keys, current_time)
 
+            # Appliquer les effets spéciaux actifs
+            fighter.update_effects()
+
         if self.fighters[0].hitbox.colliderect(self.fighters[1].hitbox):
-            if self.fighters[0].attacking:
-                self.fighters[1].take_damage(self.fighters[0].damage, time.time())
+            if self.fighters[0].attacking and not self.fighters[1].stunned:
+                if self.fighters[0].special_attack():
+                    self.fighters[1].take_damage(self.fighters[0].damage * SPECIAL_ATTACK_MULTIPLIER, time.time(), is_special=True)
+                    self.fighters[0].apply_special_effect(self.fighters[1])  # Applique l'effet spécial
+                else:
+                    self.fighters[1].take_damage(self.fighters[0].damage, time.time())
                 if self.sounds_loaded:
                     self.hit_sound.play()
-            elif self.fighters[1].attacking:
-                self.fighters[0].take_damage(self.fighters[1].damage, time.time())
+
+            if self.fighters[1].attacking and not self.fighters[0].stunned:
+                if self.fighters[1].special_attack():
+                    self.fighters[0].take_damage(self.fighters[1].damage * SPECIAL_ATTACK_MULTIPLIER, time.time(), is_special=True)
+                    self.fighters[1].apply_special_effect(self.fighters[0])  # Applique l'effet spécial
+                else:
+                    self.fighters[0].take_damage(self.fighters[1].damage, time.time())
                 if self.sounds_loaded:
                     self.hit_sound.play()
 
@@ -893,6 +1004,7 @@ class Game:
 
         while True:
             self.update()
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 2:

@@ -1,3 +1,4 @@
+# importe toutes les librairies nécessaires
 import customtkinter as ctk
 from tkinter import messagebox
 from dotenv import load_dotenv
@@ -673,7 +674,7 @@ class LauncherPythFighter:
 
     def show_tutorial(self) -> None:
         """Displays an interactive, visually rich tutorial with Street Fighter style elements."""
-        # Create the tutorial window
+        # Crée la fenetre de tutoriel
         tutorial_window = ctk.CTkToplevel(self.root)
         tutorial_window.title("Tutoriel PythFighter")
         tutorial_window.attributes('-topmost', True)
@@ -686,19 +687,19 @@ class LauncherPythFighter:
         grid_color = "#223366"
         grid_spacing = 50
 
-        # Create background gradient
+        # Créer un dégradé d’arrière-plan
         for y in range(0, self.height, 4):
             darkness = int(25 + (y / self.height) * 30)
             color = f"#{darkness:02x}{darkness:02x}{darkness + 15:02x}"
             tutorial_canvas.create_line(0, y, self.width, y, fill=color)
 
-        # Add grid effect
+        # Ajouter un effet de grille
         for x in range(0, self.width + grid_spacing, grid_spacing):
             tutorial_canvas.create_line(x, 0, x, self.height, fill=grid_color, width=1)
         for y in range(0, self.height + grid_spacing, grid_spacing):
             tutorial_canvas.create_line(0, y, self.width, y, fill=grid_color, width=1)
 
-        # Create tutorial header
+        # Créer un en-tête de tutoriel
         tutorial_canvas.create_text(
             self.width // 2,
             80,
@@ -714,7 +715,7 @@ class LauncherPythFighter:
             fill="#121220"
         )
 
-        # Create sections for different tutorial elements
+        # Crée des sections pour les différents éléments du tutoriel
         sections = [
             {
                 "title": "COMMANDES DE BASE",
@@ -759,11 +760,11 @@ class LauncherPythFighter:
             }
         ]
 
-        # Variables for navigation
+        # Variables pour la navigation
         self.current_section = 0
         self.total_sections = len(sections)
 
-        # Function to display current section
+        # Fonction d’affichage de la section actuelle
         def display_section(index):
             # Clear previous content
             for item in tutorial_canvas.find_withtag("section_content"):
@@ -771,11 +772,11 @@ class LauncherPythFighter:
 
             section = sections[index]
 
-            # Create section title with shadow effect
+            # Créer un titre de section avec un effet d’ombre
             y_pos = 180
             shadow_offset = 3
 
-            # Shadow for title
+            # Ombre pour le titre
             tutorial_canvas.create_text(
                 self.width // 2 + shadow_offset,
                 y_pos + shadow_offset,
@@ -785,7 +786,7 @@ class LauncherPythFighter:
                 tags="section_content"
             )
 
-            # Title
+            # Titre
             tutorial_canvas.create_text(
                 self.width // 2,
                 y_pos,
@@ -798,12 +799,12 @@ class LauncherPythFighter:
             # Section icon
             icon_id = section["icon"](tutorial_canvas, self.width // 4, 300, tags="section_content")
 
-            # Content
+            # Contenu
             content_x = self.width // 2 + 100
             content_y = 250
 
     
-            # Add keyboard bindings for navigation
+            # Ajouter des raccourcis clavier pour la navigation
             tutorial_window.bind("<Left>", lambda e: prev_section())
             tutorial_window.bind("<Right>", lambda e: next_section())
             tutorial_window.bind("<Escape>", lambda e: tutorial_window.destroy())
@@ -820,7 +821,7 @@ class LauncherPythFighter:
                 )
                 content_y += 30
 
-            # Navigation indicators
+            # Indicateurs de navigation
             indicator_y = self.height - 100
             for i in range(self.total_sections):
                 color = "#E94560" if i == index else "#555555"
@@ -834,7 +835,7 @@ class LauncherPythFighter:
                     tags="section_content"
                 )
 
-            # Navigation instructions
+            # Instructions de navigation
             tutorial_canvas.create_text(
                 self.width // 2,
                 self.height - 60,
@@ -844,10 +845,10 @@ class LauncherPythFighter:
                 tags="section_content"
             )
 
-            # Add particle effects
+            # Ajouter des effets de particules
             self._add_tutorial_particles(tutorial_canvas)
 
-        # Create the icons for each section
+        # Créez les icônes pour chaque section
         def _create_controller_icon(canvas, x, y, tags=""):
             # Controller base
             canvas.create_rectangle(x-60, y, x+60, y+120, fill="#303030", outline="#000000", width=2, tags=tags)
@@ -857,7 +858,7 @@ class LauncherPythFighter:
             canvas.create_rectangle(x-40, y+130, x+40, y+210, fill="#303030", outline="#000000", width=2, tags=tags)
             canvas.create_polygon(x, y+140, x-30, y+170, x, y+200, x+30, y+170, fill="#404040", outline="#000000", width=2, tags=tags)
 
-            # Buttons
+            # Bouttons
             button_colors = ["#FF4444", "#44FF44", "#4444FF", "#FFFF44"]
             for i, color in enumerate(button_colors):
                 angle = i * math.pi/2
@@ -868,16 +869,16 @@ class LauncherPythFighter:
             return canvas.create_text(x, y-20, text="CONTRÔLES", font=("Arial Black", 14), fill="#FFFFFF", tags=tags)
 
         def _create_combo_icon(canvas, x, y, tags=""):
-            # Create a combo chart
+            # Créer un graphique combiné
             width, height = 120, 120
             canvas.create_rectangle(x-width//2, y, x+width//2, y+height, fill="#303030", outline="#E94560", width=3, tags=tags)
 
-            # Draw arrow sequence for a hadouken
+            # Dessiner une séquence de flèches pour un hadouken
             arrow_size = 15
             start_x = x - 45
             start_y = y + 30
 
-            # Down arrow
+            # fleche du bas
             canvas.create_polygon(
                 start_x, start_y,
                 start_x - arrow_size, start_y - arrow_size,
@@ -889,7 +890,7 @@ class LauncherPythFighter:
                 fill="#44AAFF", outline="#000000", width=1, tags=tags
             )
 
-            # Down-right arrow
+            # felche d'en bas à droite 
             start_x += 30
             canvas.create_polygon(
                 start_x, start_y,
@@ -902,7 +903,7 @@ class LauncherPythFighter:
                 fill="#44AAFF", outline="#000000", width=1, tags=tags
             )
 
-            # Right arrow
+            # fleche droite
             start_x += 30
             canvas.create_polygon(
                 start_x + arrow_size, start_y,
@@ -915,11 +916,11 @@ class LauncherPythFighter:
                 fill="#44AAFF", outline="#000000", width=1, tags=tags
             )
 
-            # Punch button
+            # boutton d'attaque
             canvas.create_oval(start_x + 30, start_y - 10, start_x + 50, start_y + 10, fill="#FF4444", outline="#000000", width=2, tags=tags)
             canvas.create_text(start_x + 40, start_y, text="P", font=("Arial Black", 10), fill="#FFFFFF", tags=tags)
 
-            # Fire effect
+            # effet de feu 
             for i in range(8):
                 angle = i * math.pi/4
                 radius = 20 + random.randint(0, 10)
@@ -938,25 +939,25 @@ class LauncherPythFighter:
             return canvas.create_text(x, y-20, text="COMBOS", font=("Arial Black", 14), fill="#FFFFFF", tags=tags)
 
         def _create_tips_icon(canvas, x, y, tags=""):
-            # Create a health and energy bar diagram
+            # Crée une barre de vie et d'énergie
             width, height = 120, 120
 
             # Background
             canvas.create_rectangle(x-width//2, y, x+width//2, y+height, fill="#303030", outline="#E94560", width=3, tags=tags)
 
-            # Health bar - P1
+            # barre de vie  - P1
             bar_width = 100
             canvas.create_rectangle(x-bar_width//2, y+20, x+bar_width//2, y+30, fill="#222222", outline="#000000", width=1, tags=tags)
             canvas.create_rectangle(x-bar_width//2, y+20, x-bar_width//2+70, y+30, fill="#FF4444", outline="", tags=tags)
 
-            # Health bar - P2
+            # barre de vie  - P2
             canvas.create_rectangle(x-bar_width//2, y+40, x+bar_width//2, y+50, fill="#222222", outline="#000000", width=1, tags=tags)
             canvas.create_rectangle(x-bar_width//2, y+40, x-bar_width//2+40, y+50, fill="#FF4444", outline="", tags=tags)
 
-            # Energy bar
+            # barre d'énergie 
             canvas.create_rectangle(x-bar_width//2, y+70, x+bar_width//2, y+85, fill="#222222", outline="#000000", width=1, tags=tags)
 
-            # Energy segments (flashing)
+            # Segments d’énergie (clignotants)
             segments = 5
             segment_width = bar_width / segments
 
@@ -972,20 +973,20 @@ class LauncherPythFighter:
                     fill=color, outline="#000000", width=1, tags=tags
                 )
 
-            # Combat icons
+            # Icônes de combat
             icon_y = y + 110
 
-            # Block icon
+            # Icône de bloque
             block_x = x - 40
             canvas.create_rectangle(block_x-10, icon_y-10, block_x+10, icon_y+10, fill="#4444FF", outline="#000000", width=1, tags=tags)
             canvas.create_text(block_x, icon_y, text="🛡️", font=("Arial", 12), tags=tags)
 
-            # Timing icon
+            # Icône de chronométrage
             time_x = x
             canvas.create_oval(time_x-10, icon_y-10, time_x+10, icon_y+10, fill="#44FF44", outline="#000000", width=1, tags=tags)
             canvas.create_text(time_x, icon_y, text="⏱️", font=("Arial", 12), tags=tags)
 
-            # Counter icon
+            # Icône du compteur
             counter_x = x + 40
             canvas.create_polygon(
                 counter_x, icon_y-10,
@@ -1009,7 +1010,7 @@ class LauncherPythFighter:
                 particle_system = ParticleSystem(canvas, x, y, color, count=15, lifetime=1.5)
                 self.particles.append(particle_system)
 
-            # Ensure navigation functions are properly bound
+            # s'assure que les fonctions de navigation sont correctement liées
         def next_section():
                 self.current_section = (self.current_section + 1) % self.total_sections
                 display_section(self.current_section)
@@ -1018,20 +1019,20 @@ class LauncherPythFighter:
                 self.current_section = (self.current_section - 1) % self.total_sections
                 display_section(self.current_section)
 
-        # Display first section
+        # Afficher la première section
         display_section(self.current_section)
 
 
-        # Add keyboard bindings for navigation
+        # Ajouter des raccourcis clavier pour la navigation
         tutorial_window.bind("<Left>", lambda e: prev_section())
         tutorial_window.bind("<Right>", lambda e: next_section())
         tutorial_window.bind("<Escape>", lambda e: tutorial_window.destroy())
 
-        # Add mouse wheel scrolling for navigation
+        # Ajouter le défilement de la molette de la souris pour la navigation
         def on_mouse_wheel(event):
-            if event.delta > 0:  # Scroll up
+            if event.delta > 0:  # monter
                 prev_section()
-            elif event.delta < 0:  # Scroll down
+            elif event.delta < 0:  # descendre
                 next_section()
 
         tutorial_window.bind("<MouseWheel>", on_mouse_wheel)
@@ -1039,7 +1040,7 @@ class LauncherPythFighter:
         tutorial_window.bind("<Right>", lambda e: next_section())
         tutorial_window.bind("<Escape>", lambda e: tutorial_window.destroy())
 
-        # Controller input checking
+        # Vérification de l’entrée du contrôleur
         def check_tutorial_controller():
             if not tutorial_window.winfo_exists():
                 return
@@ -1047,33 +1048,33 @@ class LauncherPythFighter:
             buttons, axes = self.controller_manager.get_primary_input()
             current_time = time.time()
 
-            # Navigation with axes
+            # Navigation à l’aide d’axes
             if current_time - self.last_nav_time > self.NAV_COOLDOWN:
                 if axes and len(axes) > 0:
-                    if axes[0] < -0.5:  # Left
+                    if axes[0] < -0.5:  # gauche 
                         prev_section()
                         self.last_nav_time = current_time
-                    elif axes[0] > 0.5:  # Right
+                    elif axes[0] > 0.5:  # droite
                         next_section()
                         self.last_nav_time = current_time
 
-            # Exit with button
+            # sortir avec le bouton 
             if buttons and len(buttons) > 0 and buttons[0]:
                 tutorial_window.destroy()
                 return
 
-            # Continue checking
+            # vérifie
             tutorial_window.after(100, check_tutorial_controller)
 
-        # Start checking for controller input
+        # commence à verifier
         tutorial_window.after(100, check_tutorial_controller)
 
-        # Animation update loop
+        # actualisation de l'image animée
         def update_animations():
             if not tutorial_window.winfo_exists():
                 return
 
-            # Update particles
+            # mettre à jour les particules
             active_particles = []
             for particle_system in self.particles:
                 if particle_system.update():
@@ -1081,7 +1082,7 @@ class LauncherPythFighter:
 
             self.particles = active_particles
 
-            # Continue animations
+            # Continuer les animations 
             tutorial_window.after(50, update_animations)
 
         update_animations()

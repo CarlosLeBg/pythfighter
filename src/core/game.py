@@ -147,10 +147,10 @@ class Fighter:
             }
         elif self.name == "Tank":
             frame_counts = {
-                "idle": 6,
-                "walk": 6,
-                "attack": 5,
-                "dead": 6,
+                "idle": 10,
+                "walk": 8,
+                "attack": 21,
+                "dead": 16,
                 "special_attack": 5
             }
         elif self.name == "Mitsu":

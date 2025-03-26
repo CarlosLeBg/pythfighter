@@ -34,6 +34,23 @@ class GameState(Enum):
     VICTORY = "victory"
     OPTIONS = "options"
 
+class Particle(pygame.sprite.Sprite):
+    def __init__(self, x, y, color, size, velocity, lifetime):
+        super().__init__()
+        self.image = pygame.Surface((size, size), pygame.SRCALPHA)
+        pygame.draw.circle(self.image, color, (size // 2, size // 2), size // 2)
+        self.rect = self.image.get_rect(center=(x, y))
+        self.velocity = velocity
+        self.lifetime = lifetime
+
+    def update(self):
+        self.rect.x += self.velocity[0]
+        self.rect.y += self.velocity[1]
+        self.lifetime -= 1
+        if self.lifetime <= 0:
+            self.kill()
+
+
 # Cache pour les images chargées
 image_cache = {}
 
@@ -101,6 +118,7 @@ def load_animation(base_path, action, frame_count, fighter_width, fighter_height
 
     return frames
 
+
 class Fighter:
     def __init__(self, player, x, y, fighter_data, ground_y):
         self.player = player
@@ -156,7 +174,8 @@ class Fighter:
 
             self.animations = {}
             for action, frame_count in frame_counts.items():
-                self.animations[action] = load_animation(base_path, action, frame_count, self.fighter_width, self.fighter_height)
+                folder_prefix = self.folder_name if self.folder_name == "tank" else None
+                self.animations[action] = load_animation(base_path, action, frame_count, self.fighter_width, self.fighter_height, folder_prefix)
 
             # Log des animations chargées
             for anim_name, frames in self.animations.items():
@@ -196,45 +215,51 @@ class Fighter:
             surface.blit(self.special_attack_effect, effect_rect)
             self.special_attack_effect_duration -= 1
 
-        if self.animations and any(len(frames) > 0 for frames in self.animations.values()):
-            current_anim = self.current_animation
+        # Ajout d'une ombre sous le personnage
+        shadow_surface = pygame.Surface((self.rect.width, self.rect.height // 4), pygame.SRCALPHA)
+        shadow_surface.fill((0, 0, 0, 100))
+        shadow_rect = shadow_surface.get_rect(centerx=self.rect.centerx, bottom=self.rect.bottom + 5)
+        surface.blit(shadow_surface, shadow_rect)
 
-            if current_anim not in self.animations or len(self.animations[current_anim]) == 0:
-                if "idle" in self.animations and len(self.animations["idle"]) > 0:
-                    current_anim = "idle"
-                else:
-                    if self.invincibility_frames % 4 < 2:
-                        pygame.draw.rect(surface, self.color, self.rect)
-                    pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
-                    self.draw_health_stamina_bars(surface)
-                    return
+        current_anim = self.current_animation
 
-            frame_idx = int(self.animation_frame) % len(self.animations[current_anim])
-            sprite = self.animations[current_anim][frame_idx]
+        if current_anim not in self.animations or len(self.animations[current_anim]) == 0:
+            if "idle" in self.animations and len(self.animations["idle"]) > 0:
+                current_anim = "idle"
+            else:
+                if self.invincibility_frames % 4 < 2:
+                    pygame.draw.rect(surface, self.color, self.rect)
+                pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
+                self.draw_health_stamina_bars(surface)
+                return
 
-            if self.direction == -1:
+        frame_idx = int(self.animation_frame) % len(self.animations[current_anim])
+        sprite = self.animations[current_anim][frame_idx]
+
+        if self.direction == -1:
                 sprite = pygame.transform.flip(sprite, True, False)
 
-            surface.blit(sprite, (self.rect.x, self.rect.y))
+        surface.blit(sprite, (self.rect.x, self.rect.y))
 
-            if current_anim == "special_attack":
+        if current_anim == "special_attack":
                 self.animation_frame = (self.animation_frame + 0.15) % len(self.animations[current_anim])
-            elif current_anim == "attack":
+        elif current_anim == "attack":
                 self.animation_frame = (self.animation_frame + 0.25) % len(self.animations[current_anim])
-            else:
+        else:
                 self.animation_frame = (self.animation_frame + self.animation_speed) % len(self.animations[current_anim])
 
-            if self.invincibility_frames > 0:
+        if self.invincibility_frames > 0:
                 glow_surface = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
                 glow_color = (255, 255, 255, 100 if self.invincibility_frames % 4 < 2 else 50)
                 glow_surface.fill(glow_color)
                 surface.blit(glow_surface, self.rect)
         else:
-            if self.invincibility_frames % 4 < 2:
-                pygame.draw.rect(surface, self.color, self.rect)
-            pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
+                if self.invincibility_frames % 4 < 2:
+                    pygame.draw.rect(surface, self.color, self.rect)
+                pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
 
         self.draw_health_stamina_bars(surface)
+
 
     def draw_health_stamina_bars(self, surface):
         bar_width = VISIBLE_WIDTH * 0.4
@@ -410,7 +435,7 @@ class Fighter:
             self.special_attack_cooldown = 240  # Cooldown de 4 secondes
             self.stamina -= 30
 
-            # Effet visuel pour l'attaque spéciale
+           # Effet visuel pour l'attaque spéciale
             effect_size = self.fighter_width * 3
             effect_surface = pygame.Surface((effect_size, effect_size), pygame.SRCALPHA)
 
@@ -423,8 +448,21 @@ class Fighter:
             self.special_attack_effect = effect_surface
             self.special_attack_effect_duration = 60
 
-            return True
-        return False
+            # Ajout d'effets de particules
+            particle_group = pygame.sprite.Group()
+            for _ in range(50):
+                particle = Particle(
+                    self.rect.centerx, self.rect.centery,
+                    self.color,
+                    random.randint(5, 10),
+                    (random.randint(-3, 3), random.randint(-3, 3)),
+                    random.randint(20, 40)
+                )
+                particle_group.add(particle)
+
+            return True, particle_group
+        return False, None
+
 
     def apply_special_effect(self, opponent):
         """Applique l'effet spécial unique du personnage à l'adversaire."""
@@ -985,15 +1023,20 @@ class Game:
         for i, fighter in enumerate(self.fighters):
             if i < len(self.controllers):
                 self.handle_input(fighter, self.controllers[i], None, current_time)
-
             self.handle_input(fighter, None, keys, current_time)
 
             # Appliquer les effets spéciaux actifs
             fighter.update_effects()
 
+            # Mettre à jour et dessiner les particules
+            if hasattr(fighter, 'particle_group'):
+                fighter.particle_group.update()
+                fighter.particle_group.draw(self.screen)
+
         if self.fighters[0].hitbox.colliderect(self.fighters[1].hitbox):
             if self.fighters[0].attacking and not self.fighters[1].stunned:
-                if self.fighters[0].special_attack():
+                special_attack, particle_group = self.fighters[0].special_attack()
+                if special_attack:
                     # Adjust the opponent's hitbox to be a square before applying the special attack damage
                     opponent = self.fighters[1]
                     side_length = min(opponent.rect.width, opponent.rect.height)
@@ -1004,14 +1047,17 @@ class Game:
                         side_length
                     )
                     opponent.take_damage(self.fighters[0].damage * SPECIAL_ATTACK_MULTIPLIER, time.time(), is_special=True)
+                    opponent.particle_group = particle_group
                 else:
                     self.fighters[1].take_damage(self.fighters[0].damage, time.time())
                 if self.sounds_loaded:
                     self.hit_sound.play()
 
             if self.fighters[1].attacking and not self.fighters[0].stunned:
-                if self.fighters[1].special_attack():
+                special_attack, particle_group = self.fighters[1].special_attack()
+                if special_attack:
                     self.fighters[0].take_damage(self.fighters[1].damage * SPECIAL_ATTACK_MULTIPLIER, time.time(), is_special=True)
+                    self.fighters[0].particle_group = particle_group
                 else:
                     self.fighters[0].take_damage(self.fighters[1].damage, time.time())
                 if self.sounds_loaded:
@@ -1027,6 +1073,8 @@ class Game:
 
         pygame.display.flip()
         self.clock.tick(60)
+
+
 
     def run(self):
         if self.game_state == GameState.COUNTDOWN:

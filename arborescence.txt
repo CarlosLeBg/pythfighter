@@ -3,7 +3,7 @@ Le numéro de série du volume est BCB4-CA7D
 C:.
 ¦   .env
 ¦   .gitignore
-¦   arbo.txt
+¦   arborescence.txt
 ¦   LANCER JEU.lnk
 ¦   launcher.log
 ¦   README.md

@@ -51,33 +51,53 @@ def load_image(path):
             return None
     return image_cache[path]
 
-def load_animation(path, action, frame_count, fighter_width, fighter_height):
+def load_animation(base_path, action, frame_count, fighter_width, fighter_height, folder_prefix=None):
+    """
+    Charge les animations en fonction des conventions de nommage des dossiers et fichiers.
+    """
     frames = []
-    animation_folder = os.path.join(path, action)
+
+    # Déterminer le dossier à utiliser
+    if folder_prefix:
+        animation_folder = os.path.join(base_path, f"{folder_prefix}_{action}")
+    else:
+        animation_folder = os.path.join(base_path, action)
 
     if not os.path.exists(animation_folder):
         logging.error(f"Animation folder not found - {animation_folder}")
         return frames
 
-    frame_index = 0
-    while True:
-        frame_name = f"frame_{frame_index:02}_delay-0.1s.png"
-        frame_path = os.path.join(animation_folder, frame_name)
+    # Charger les fichiers en fonction des deux formats possibles
+    for i in range(frame_count):
+        frame_path_format_1 = os.path.join(animation_folder, f"frame_{i:02}_delay-0.1s.png")
+        frame_path_format_2 = os.path.join(animation_folder, f"{i * 10:02}.png")
 
-        if not os.path.exists(frame_path):
-            break
+        if os.path.exists(frame_path_format_1):
+            frame_path = frame_path_format_1
+        elif os.path.exists(frame_path_format_2):
+            frame_path = frame_path_format_2
+        else:
+            logging.warning(f"Frame not found for action {action}: {frame_path_format_1} or {frame_path_format_2}")
+            continue
 
-        img = load_image(frame_path)
-        if img:
-            # Supprimer les espaces vides autour de l'image
-            img_rect = img.get_bounding_rect()
-            cropped_img = img.subsurface(img_rect)
+        try:
+            # Charger l'image
+            img = pygame.image.load(frame_path).convert_alpha()
 
-            # Redimensionner l'image à 600x800
+            # Recadrer pour enlever les bords vides
+            cropped_rect = img.get_bounding_rect()  # Obtenir le rectangle non transparent
+            cropped_img = img.subsurface(cropped_rect)  # Recadrer l'image
+
+            # Redimensionner à la taille du personnage
             resized_img = pygame.transform.scale(cropped_img, (fighter_width, fighter_height))
             frames.append(resized_img)
+        except Exception as e:
+            logging.error(f"Error loading frame {frame_path}: {e}")
 
-        frame_index += 1
+    if len(frames) == 0:
+        logging.error(f"No frames loaded for action {action} in {animation_folder}")
+    else:
+        logging.info(f"Loaded {len(frames)} frames for action {action} in {animation_folder}")
 
     return frames
 
@@ -99,18 +119,51 @@ class Fighter:
         self.direction = 1 if player == 1 else -1
 
         # Ajuster les dimensions des personnages
-        self.fighter_width = int(600 / 3.5)  # Largeur divisée par 3.5
-        self.fighter_height = int(800 / 3.5)  # Hauteur divisée par 3.5
+        self.fighter_width = int(600 / 3.5)
+        self.fighter_height = int(800 / 3.5)
 
         self.ground_y = ground_y
         self.rect = pygame.Rect(x, y, self.fighter_width, self.fighter_height)
 
         # Créer une hitbox légèrement plus fine
-        hitbox_width = int(self.fighter_width * 0.7)  # 70% de la largeur
-        hitbox_height = int(self.fighter_height * 0.85)  # 85% de la hauteur
+        hitbox_width = int(self.fighter_width * 0.7)
+        hitbox_height = int(self.fighter_height * 0.85)
         hitbox_x = self.rect.centerx - hitbox_width // 2
-        hitbox_y = self.rect.bottom - hitbox_height  # Alignée avec les pieds
+        hitbox_y = self.rect.bottom - hitbox_height
         self.hitbox = pygame.Rect(hitbox_x, hitbox_y, hitbox_width, hitbox_height)
+
+        # Standardiser les noms pour correspondre aux dossiers
+        character_name_map = {
+            "Tank (Carl)": "tank",
+            "Mitsu": "mitsu",
+            "ThunderStrike": "thunderstrike",
+            "Noya": "noya",
+            "Bruiser": "bruiser"
+        }
+        self.folder_name = character_name_map.get(self.name, self.name.lower())
+
+        # Définir le chemin de base pour les animations
+        base_path = os.path.join("src", "assets", "characters", self.folder_name)
+
+        # Charger les animations si le chemin est valide
+        if base_path and os.path.exists(base_path):
+            frame_counts = {
+                "idle": 10 if self.folder_name == "tank" else 4,
+                "walk": 8 if self.folder_name == "tank" else 6,
+                "attack": 21 if self.folder_name == "tank" else 4,
+                "dead": 16 if self.folder_name == "tank" else 5
+            }
+
+            self.animations = {}
+            for action, frame_count in frame_counts.items():
+                self.animations[action] = load_animation(base_path, action, frame_count, self.fighter_width, self.fighter_height)
+
+            # Log des animations chargées
+            for anim_name, frames in self.animations.items():
+                logging.info(f"Animation '{anim_name}' pour {self.name}: {len(frames)} frames chargées.")
+        else:
+            logging.error(f"Base folder not found for character: {self.name}")
+            self.animations = {}
 
         self.on_ground = True
         self.attacking = False
@@ -121,7 +174,6 @@ class Fighter:
         self.combo_count = 0
         self.last_hit_time = 0
         self.block_stamina_drain_timer = 0
-        self.animations = None
         self.current_animation = "idle"
         self.animation_frame = 0
         self.animation_speed = 0.3
@@ -133,66 +185,6 @@ class Fighter:
         self.stunned = False  # Ajout de l'attribut stunned
 
         logging.info(f"Loading animations for {self.name}...")
-        base_path = os.path.join("src", "assets", "characters", self.name.lower())
-        self.animations = {}
-
-        # Définir le nombre de frames pour chaque animation en fonction du personnage
-        if self.name == "ThunderStrike":
-            frame_counts = {
-                "idle": 4,
-                "walk": 8,
-                "attack": 4,
-                "dead": 7,
-                "special_attack": 4
-            }
-        elif self.name == "Tank":
-            frame_counts = {
-                "idle": 10,
-                "walk": 8,
-                "attack": 21,
-                "dead": 16,
-                "special_attack": 5
-            }
-        elif self.name == "Mitsu":
-            frame_counts = {
-                "idle": 5,
-                "walk": 6,
-                "attack": 4,
-                "dead": 5,
-                "special_attack": 4
-            }
-        elif self.name == "Noya":
-            frame_counts = {
-                "idle": 5,
-                "walk": 7,
-                "attack": 6,
-                "dead": 6,
-                "special_attack": 5
-            }
-        elif self.name == "Bruiser":
-            frame_counts = {
-                "idle": 6,
-                "walk": 6,
-                "attack": 5,
-                "dead": 6,
-                "special_attack": 5
-            }
-        else:
-            frame_counts = {
-                "idle": 4,
-                "walk": 4,
-                "attack": 4,
-                "dead": 4,
-                "special_attack": 4
-            }
-
-        # Charger les animations en fonction du nombre de frames défini
-        for action, frame_count in frame_counts.items():
-            self.animations[action] = load_animation(base_path, action, frame_count, self.fighter_width, self.fighter_height)
-
-        # Log des animations chargées
-        for anim_name, frames in self.animations.items():
-            logging.info(f"Animation '{anim_name}' pour {self.name}: {len(frames)} frames chargées.")
 
     def draw(self, surface):
         if self.special_attack_effect and self.special_attack_effect_duration > 0:
@@ -355,7 +347,10 @@ class Fighter:
 
     def take_damage(self, damage, current_time, is_special=False):
         if self.invincibility_frames <= 0:
-            damage_multiplier = SPECIAL_ATTACK_MULTIPLIER if is_special else 1.0
+            damage_multiplier = 1.0
+            if is_special:
+                damage_multiplier = 1.5  # Réduction des dégâts spéciaux à 1.5x au lieu de 2x ou plus
+
             actual_damage = damage * damage_multiplier
 
             if self.blocking and self.stamina > 0:
@@ -363,15 +358,18 @@ class Fighter:
                 self.stamina = max(0, self.stamina - 10)
                 self.show_block_effect()
 
+            # Appliquer les dégâts
             self.health = max(0, self.health - actual_damage)
             self.invincibility_frames = 30
 
+            # Gestion des combos
             if current_time - self.last_hit_time < 1.0:
                 self.combo_count += 1
             else:
                 self.combo_count = 1
             self.last_hit_time = current_time
 
+            # Knockback
             knockback_direction = -1 if self.direction == 1 else 1
             knockback_force = 3 if is_special else 1
             if not self.blocking:

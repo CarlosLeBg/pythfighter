@@ -34,23 +34,6 @@ class GameState(Enum):
     VICTORY = "victory"
     OPTIONS = "options"
 
-class Particle(pygame.sprite.Sprite):
-    def __init__(self, x, y, color, size, velocity, lifetime):
-        super().__init__()
-        self.image = pygame.Surface((size, size), pygame.SRCALPHA)
-        pygame.draw.circle(self.image, color, (size // 2, size // 2), size // 2)
-        self.rect = self.image.get_rect(center=(x, y))
-        self.velocity = velocity
-        self.lifetime = lifetime
-
-    def update(self):
-        self.rect.x += self.velocity[0]
-        self.rect.y += self.velocity[1]
-        self.lifetime -= 1
-        if self.lifetime <= 0:
-            self.kill()
-
-
 # Cache pour les images chargées
 image_cache = {}
 
@@ -68,56 +51,35 @@ def load_image(path):
             return None
     return image_cache[path]
 
-def load_animation(base_path, action, frame_count, fighter_width, fighter_height, folder_prefix=None):
-    """
-    Charge les animations en fonction des conventions de nommage des dossiers et fichiers.
-    """
+def load_animation(path, action, frame_count, fighter_width, fighter_height):
     frames = []
-
-    # Déterminer le dossier à utiliser
-    if folder_prefix:
-        animation_folder = os.path.join(base_path, f"{folder_prefix}_{action}")
-    else:
-        animation_folder = os.path.join(base_path, action)
+    animation_folder = os.path.join(path, action)
 
     if not os.path.exists(animation_folder):
         logging.error(f"Animation folder not found - {animation_folder}")
         return frames
 
-    # Charger les fichiers en fonction des deux formats possibles
-    for i in range(frame_count):
-        frame_path_format_1 = os.path.join(animation_folder, f"frame_{i:02}_delay-0.1s.png")
-        frame_path_format_2 = os.path.join(animation_folder, f"{i * 10:02}.png")
+    frame_index = 0
+    while True:
+        frame_name = f"frame_{frame_index:02}_delay-0.1s.png"
+        frame_path = os.path.join(animation_folder, frame_name)
 
-        if os.path.exists(frame_path_format_1):
-            frame_path = frame_path_format_1
-        elif os.path.exists(frame_path_format_2):
-            frame_path = frame_path_format_2
-        else:
-            logging.warning(f"Frame not found for action {action}: {frame_path_format_1} or {frame_path_format_2}")
-            continue
+        if not os.path.exists(frame_path):
+            break
 
-        try:
-            # Charger l'image
-            img = pygame.image.load(frame_path).convert_alpha()
+        img = load_image(frame_path)
+        if img:
+            # Supprimer les espaces vides autour de l'image
+            img_rect = img.get_bounding_rect()
+            cropped_img = img.subsurface(img_rect)
 
-            # Recadrer pour enlever les bords vides
-            cropped_rect = img.get_bounding_rect()  # Obtenir le rectangle non transparent
-            cropped_img = img.subsurface(cropped_rect)  # Recadrer l'image
-
-            # Redimensionner à la taille du personnage
+            # Redimensionner l'image à 600x800
             resized_img = pygame.transform.scale(cropped_img, (fighter_width, fighter_height))
             frames.append(resized_img)
-        except Exception as e:
-            logging.error(f"Error loading frame {frame_path}: {e}")
 
-    if len(frames) == 0:
-        logging.error(f"No frames loaded for action {action} in {animation_folder}")
-    else:
-        logging.info(f"Loaded {len(frames)} frames for action {action} in {animation_folder}")
+        frame_index += 1
 
     return frames
-
 
 class Fighter:
     def __init__(self, player, x, y, fighter_data, ground_y):
@@ -137,52 +99,18 @@ class Fighter:
         self.direction = 1 if player == 1 else -1
 
         # Ajuster les dimensions des personnages
-        self.fighter_width = int(600 / 3.5)
-        self.fighter_height = int(800 / 3.5)
+        self.fighter_width = int(600 / 3.5)  # Largeur divisée par 3.5
+        self.fighter_height = int(800 / 3.5)  # Hauteur divisée par 3.5
 
         self.ground_y = ground_y
         self.rect = pygame.Rect(x, y, self.fighter_width, self.fighter_height)
 
         # Créer une hitbox légèrement plus fine
-        hitbox_width = int(self.fighter_width * 0.7)
-        hitbox_height = int(self.fighter_height * 0.85)
+        hitbox_width = int(self.fighter_width * 0.7)  # 70% de la largeur
+        hitbox_height = int(self.fighter_height * 0.85)  # 85% de la hauteur
         hitbox_x = self.rect.centerx - hitbox_width // 2
-        hitbox_y = self.rect.bottom - hitbox_height
+        hitbox_y = self.rect.bottom - hitbox_height  # Alignée avec les pieds
         self.hitbox = pygame.Rect(hitbox_x, hitbox_y, hitbox_width, hitbox_height)
-
-        # Standardiser les noms pour correspondre aux dossiers
-        character_name_map = {
-            "Tank (Carl)": "tank",
-            "Mitsu": "mitsu",
-            "ThunderStrike": "thunderstrike",
-            "Noya": "noya",
-            "Bruiser": "bruiser"
-        }
-        self.folder_name = character_name_map.get(self.name, self.name.lower())
-
-        # Définir le chemin de base pour les animations
-        base_path = os.path.join("src", "assets", "characters", self.folder_name)
-
-        # Charger les animations si le chemin est valide
-        if base_path and os.path.exists(base_path):
-            frame_counts = {
-                "idle": 10 if self.folder_name == "tank" else 4,
-                "walk": 8 if self.folder_name == "tank" else 6,
-                "attack": 21 if self.folder_name == "tank" else 4,
-                "dead": 16 if self.folder_name == "tank" else 5
-            }
-
-            self.animations = {}
-            for action, frame_count in frame_counts.items():
-                folder_prefix = self.folder_name if self.folder_name == "tank" else None
-                self.animations[action] = load_animation(base_path, action, frame_count, self.fighter_width, self.fighter_height, folder_prefix)
-
-            # Log des animations chargées
-            for anim_name, frames in self.animations.items():
-                logging.info(f"Animation '{anim_name}' pour {self.name}: {len(frames)} frames chargées.")
-        else:
-            logging.error(f"Base folder not found for character: {self.name}")
-            self.animations = {}
 
         self.on_ground = True
         self.attacking = False
@@ -193,6 +121,7 @@ class Fighter:
         self.combo_count = 0
         self.last_hit_time = 0
         self.block_stamina_drain_timer = 0
+        self.animations = None
         self.current_animation = "idle"
         self.animation_frame = 0
         self.animation_speed = 0.3
@@ -204,6 +133,66 @@ class Fighter:
         self.stunned = False  # Ajout de l'attribut stunned
 
         logging.info(f"Loading animations for {self.name}...")
+        base_path = os.path.join("src", "assets", "characters", self.name.lower())
+        self.animations = {}
+
+        # Définir le nombre de frames pour chaque animation en fonction du personnage
+        if self.name == "ThunderStrike":
+            frame_counts = {
+                "idle": 4,
+                "walk": 8,
+                "attack": 4,
+                "dead": 7,
+                "special_attack": 4
+            }
+        elif self.name == "Tank":
+            frame_counts = {
+                "idle": 6,
+                "walk": 6,
+                "attack": 5,
+                "dead": 6,
+                "special_attack": 5
+            }
+        elif self.name == "Mitsu":
+            frame_counts = {
+                "idle": 5,
+                "walk": 6,
+                "attack": 4,
+                "dead": 5,
+                "special_attack": 4
+            }
+        elif self.name == "Noya":
+            frame_counts = {
+                "idle": 5,
+                "walk": 7,
+                "attack": 6,
+                "dead": 6,
+                "special_attack": 5
+            }
+        elif self.name == "Bruiser":
+            frame_counts = {
+                "idle": 6,
+                "walk": 6,
+                "attack": 5,
+                "dead": 6,
+                "special_attack": 5
+            }
+        else:
+            frame_counts = {
+                "idle": 4,
+                "walk": 4,
+                "attack": 4,
+                "dead": 4,
+                "special_attack": 4
+            }
+
+        # Charger les animations en fonction du nombre de frames défini
+        for action, frame_count in frame_counts.items():
+            self.animations[action] = load_animation(base_path, action, frame_count, self.fighter_width, self.fighter_height)
+
+        # Log des animations chargées
+        for anim_name, frames in self.animations.items():
+            logging.info(f"Animation '{anim_name}' pour {self.name}: {len(frames)} frames chargées.")
 
     def draw(self, surface):
         if self.special_attack_effect and self.special_attack_effect_duration > 0:
@@ -215,51 +204,45 @@ class Fighter:
             surface.blit(self.special_attack_effect, effect_rect)
             self.special_attack_effect_duration -= 1
 
-        # Ajout d'une ombre sous le personnage
-        shadow_surface = pygame.Surface((self.rect.width, self.rect.height // 4), pygame.SRCALPHA)
-        shadow_surface.fill((0, 0, 0, 100))
-        shadow_rect = shadow_surface.get_rect(centerx=self.rect.centerx, bottom=self.rect.bottom + 5)
-        surface.blit(shadow_surface, shadow_rect)
+        if self.animations and any(len(frames) > 0 for frames in self.animations.values()):
+            current_anim = self.current_animation
 
-        current_anim = self.current_animation
+            if current_anim not in self.animations or len(self.animations[current_anim]) == 0:
+                if "idle" in self.animations and len(self.animations["idle"]) > 0:
+                    current_anim = "idle"
+                else:
+                    if self.invincibility_frames % 4 < 2:
+                        pygame.draw.rect(surface, self.color, self.rect)
+                    pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
+                    self.draw_health_stamina_bars(surface)
+                    return
 
-        if current_anim not in self.animations or len(self.animations[current_anim]) == 0:
-            if "idle" in self.animations and len(self.animations["idle"]) > 0:
-                current_anim = "idle"
-            else:
-                if self.invincibility_frames % 4 < 2:
-                    pygame.draw.rect(surface, self.color, self.rect)
-                pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
-                self.draw_health_stamina_bars(surface)
-                return
+            frame_idx = int(self.animation_frame) % len(self.animations[current_anim])
+            sprite = self.animations[current_anim][frame_idx]
 
-        frame_idx = int(self.animation_frame) % len(self.animations[current_anim])
-        sprite = self.animations[current_anim][frame_idx]
-
-        if self.direction == -1:
+            if self.direction == -1:
                 sprite = pygame.transform.flip(sprite, True, False)
 
-        surface.blit(sprite, (self.rect.x, self.rect.y))
+            surface.blit(sprite, (self.rect.x, self.rect.y))
 
-        if current_anim == "special_attack":
+            if current_anim == "special_attack":
                 self.animation_frame = (self.animation_frame + 0.15) % len(self.animations[current_anim])
-        elif current_anim == "attack":
+            elif current_anim == "attack":
                 self.animation_frame = (self.animation_frame + 0.25) % len(self.animations[current_anim])
-        else:
+            else:
                 self.animation_frame = (self.animation_frame + self.animation_speed) % len(self.animations[current_anim])
 
-        if self.invincibility_frames > 0:
+            if self.invincibility_frames > 0:
                 glow_surface = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
                 glow_color = (255, 255, 255, 100 if self.invincibility_frames % 4 < 2 else 50)
                 glow_surface.fill(glow_color)
                 surface.blit(glow_surface, self.rect)
         else:
-                if self.invincibility_frames % 4 < 2:
-                    pygame.draw.rect(surface, self.color, self.rect)
-                pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
+            if self.invincibility_frames % 4 < 2:
+                pygame.draw.rect(surface, self.color, self.rect)
+            pygame.draw.rect(surface, (0, 0, 0), self.rect, 2)
 
         self.draw_health_stamina_bars(surface)
-
 
     def draw_health_stamina_bars(self, surface):
         bar_width = VISIBLE_WIDTH * 0.4
@@ -372,10 +355,7 @@ class Fighter:
 
     def take_damage(self, damage, current_time, is_special=False):
         if self.invincibility_frames <= 0:
-            damage_multiplier = 1.0
-            if is_special:
-                damage_multiplier = 1.5  # Réduction des dégâts spéciaux à 1.5x au lieu de 2x ou plus
-
+            damage_multiplier = SPECIAL_ATTACK_MULTIPLIER if is_special else 1.0
             actual_damage = damage * damage_multiplier
 
             if self.blocking and self.stamina > 0:
@@ -383,18 +363,15 @@ class Fighter:
                 self.stamina = max(0, self.stamina - 10)
                 self.show_block_effect()
 
-            # Appliquer les dégâts
             self.health = max(0, self.health - actual_damage)
             self.invincibility_frames = 30
 
-            # Gestion des combos
             if current_time - self.last_hit_time < 1.0:
                 self.combo_count += 1
             else:
                 self.combo_count = 1
             self.last_hit_time = current_time
 
-            # Knockback
             knockback_direction = -1 if self.direction == 1 else 1
             knockback_force = 3 if is_special else 1
             if not self.blocking:
@@ -435,7 +412,7 @@ class Fighter:
             self.special_attack_cooldown = 240  # Cooldown de 4 secondes
             self.stamina -= 30
 
-           # Effet visuel pour l'attaque spéciale
+            # Effet visuel pour l'attaque spéciale
             effect_size = self.fighter_width * 3
             effect_surface = pygame.Surface((effect_size, effect_size), pygame.SRCALPHA)
 
@@ -448,21 +425,8 @@ class Fighter:
             self.special_attack_effect = effect_surface
             self.special_attack_effect_duration = 60
 
-            # Ajout d'effets de particules
-            particle_group = pygame.sprite.Group()
-            for _ in range(50):
-                particle = Particle(
-                    self.rect.centerx, self.rect.centery,
-                    self.color,
-                    random.randint(5, 10),
-                    (random.randint(-3, 3), random.randint(-3, 3)),
-                    random.randint(20, 40)
-                )
-                particle_group.add(particle)
-
-            return True, particle_group
-        return False, None
-
+            return True
+        return False
 
     def apply_special_effect(self, opponent):
         """Applique l'effet spécial unique du personnage à l'adversaire."""
@@ -1023,20 +987,15 @@ class Game:
         for i, fighter in enumerate(self.fighters):
             if i < len(self.controllers):
                 self.handle_input(fighter, self.controllers[i], None, current_time)
+
             self.handle_input(fighter, None, keys, current_time)
 
             # Appliquer les effets spéciaux actifs
             fighter.update_effects()
 
-            # Mettre à jour et dessiner les particules
-            if hasattr(fighter, 'particle_group'):
-                fighter.particle_group.update()
-                fighter.particle_group.draw(self.screen)
-
         if self.fighters[0].hitbox.colliderect(self.fighters[1].hitbox):
             if self.fighters[0].attacking and not self.fighters[1].stunned:
-                special_attack, particle_group = self.fighters[0].special_attack()
-                if special_attack:
+                if self.fighters[0].special_attack():
                     # Adjust the opponent's hitbox to be a square before applying the special attack damage
                     opponent = self.fighters[1]
                     side_length = min(opponent.rect.width, opponent.rect.height)
@@ -1047,17 +1006,14 @@ class Game:
                         side_length
                     )
                     opponent.take_damage(self.fighters[0].damage * SPECIAL_ATTACK_MULTIPLIER, time.time(), is_special=True)
-                    opponent.particle_group = particle_group
                 else:
                     self.fighters[1].take_damage(self.fighters[0].damage, time.time())
                 if self.sounds_loaded:
                     self.hit_sound.play()
 
             if self.fighters[1].attacking and not self.fighters[0].stunned:
-                special_attack, particle_group = self.fighters[1].special_attack()
-                if special_attack:
+                if self.fighters[1].special_attack():
                     self.fighters[0].take_damage(self.fighters[1].damage * SPECIAL_ATTACK_MULTIPLIER, time.time(), is_special=True)
-                    self.fighters[0].particle_group = particle_group
                 else:
                     self.fighters[0].take_damage(self.fighters[1].damage, time.time())
                 if self.sounds_loaded:
@@ -1073,8 +1029,6 @@ class Game:
 
         pygame.display.flip()
         self.clock.tick(60)
-
-
 
     def run(self):
         if self.game_state == GameState.COUNTDOWN:

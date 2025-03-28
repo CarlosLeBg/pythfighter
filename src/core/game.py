@@ -596,6 +596,7 @@ class Fighter:
 
         self.reset_attack()
 
+
 class Game:
     def __init__(self, player1_type="Mitsu", player2_type="Tank"):
         pygame.init()

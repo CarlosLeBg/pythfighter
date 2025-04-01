@@ -184,6 +184,7 @@ def load_animation(path, action, frame_count, fighter_width, fighter_height):
 
     return frames
 
+
 class Fighter:
     def __init__(self, player, x, y, fighter_data, ground_y):
         self.player = player
@@ -242,10 +243,10 @@ class Fighter:
         # Définir le nombre de frames pour chaque animation en fonction du personnage
         if self.name == "ThunderStrike":
             frame_counts = {
-                "idle": 4,
+                "idle": 10,
                 "walk": 8,
-                "attack": 4,
-                "dead": 7,
+                "attack": 21,
+                "dead": 16,
                 "special_attack": 4
             }
         elif self.name == "Tank":

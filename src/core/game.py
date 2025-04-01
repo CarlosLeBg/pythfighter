@@ -154,6 +154,36 @@ def update(self):
     pygame.display.flip()
     self.clock.tick(60)
 
+def load_animation(path, action, frame_count, fighter_width, fighter_height):
+    frames = []
+    animation_folder = os.path.join(path, action)
+
+    if not os.path.exists(animation_folder):
+        logging.error(f"Animation folder not found - {animation_folder}")
+        return frames
+
+    frame_index = 0
+    while True:
+        frame_name = f"frame_{frame_index:02}_delay-0.1s.png"
+        frame_path = os.path.join(animation_folder, frame_name)
+
+        if not os.path.exists(frame_path):
+            break
+
+        img = load_image(frame_path)
+        if img:
+            # Supprimer les espaces vides autour de l'image
+            img_rect = img.get_bounding_rect()
+            cropped_img = img.subsurface(img_rect)
+
+            # Redimensionner l'image à 600x800
+            resized_img = pygame.transform.scale(cropped_img, (fighter_width, fighter_height))
+            frames.append(resized_img)
+
+        frame_index += 1
+
+    return frames
+
 class Fighter:
     def __init__(self, player, x, y, fighter_data, ground_y):
         self.player = player

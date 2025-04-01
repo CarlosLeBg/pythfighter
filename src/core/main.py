@@ -1,4 +1,4 @@
-# importe toutes les librairies nécessaires
+# Importe toutes les librairies nécessaires
 import customtkinter as ctk
 from tkinter import messagebox
 from dotenv import load_dotenv
@@ -381,7 +381,6 @@ class LauncherPythFighter:
         Audio:
         - Freesound.org
         - Design sonore
-
 
         Remerciements spéciaux:
         - Communauté Python
@@ -803,7 +802,6 @@ class LauncherPythFighter:
             content_x = self.width // 2 + 100
             content_y = 250
 
-    
             # Ajouter des raccourcis clavier pour la navigation
             tutorial_window.bind("<Left>", lambda e: prev_section())
             tutorial_window.bind("<Right>", lambda e: next_section())
@@ -890,7 +888,7 @@ class LauncherPythFighter:
                 fill="#44AAFF", outline="#000000", width=1, tags=tags
             )
 
-            # felche d'en bas à droite 
+            # felche d'en bas à droite
             start_x += 30
             canvas.create_polygon(
                 start_x, start_y,
@@ -920,7 +918,7 @@ class LauncherPythFighter:
             canvas.create_oval(start_x + 30, start_y - 10, start_x + 50, start_y + 10, fill="#FF4444", outline="#000000", width=2, tags=tags)
             canvas.create_text(start_x + 40, start_y, text="P", font=("Arial Black", 10), fill="#FFFFFF", tags=tags)
 
-            # effet de feu 
+            # effet de feu
             for i in range(8):
                 angle = i * math.pi/4
                 radius = 20 + random.randint(0, 10)
@@ -954,7 +952,7 @@ class LauncherPythFighter:
             canvas.create_rectangle(x-bar_width//2, y+40, x+bar_width//2, y+50, fill="#222222", outline="#000000", width=1, tags=tags)
             canvas.create_rectangle(x-bar_width//2, y+40, x-bar_width//2+40, y+50, fill="#FF4444", outline="", tags=tags)
 
-            # barre d'énergie 
+            # barre d'énergie
             canvas.create_rectangle(x-bar_width//2, y+70, x+bar_width//2, y+85, fill="#222222", outline="#000000", width=1, tags=tags)
 
             # Segments d’énergie (clignotants)
@@ -1014,14 +1012,13 @@ class LauncherPythFighter:
         def next_section():
                 self.current_section = (self.current_section + 1) % self.total_sections
                 display_section(self.current_section)
-    
+
         def prev_section():
                 self.current_section = (self.current_section - 1) % self.total_sections
                 display_section(self.current_section)
 
         # Afficher la première section
         display_section(self.current_section)
-
 
         # Ajouter des raccourcis clavier pour la navigation
         tutorial_window.bind("<Left>", lambda e: prev_section())
@@ -1051,14 +1048,14 @@ class LauncherPythFighter:
             # Navigation à l’aide d’axes
             if current_time - self.last_nav_time > self.NAV_COOLDOWN:
                 if axes and len(axes) > 0:
-                    if axes[0] < -0.5:  # gauche 
+                    if axes[0] < -0.5:  # gauche
                         prev_section()
                         self.last_nav_time = current_time
                     elif axes[0] > 0.5:  # droite
                         next_section()
                         self.last_nav_time = current_time
 
-            # sortir avec le bouton 
+            # sortir avec le bouton
             if buttons and len(buttons) > 0 and buttons[0]:
                 tutorial_window.destroy()
                 return
@@ -1082,7 +1079,7 @@ class LauncherPythFighter:
 
             self.particles = active_particles
 
-            # Continuer les animations 
+            # Continuer les animations
             tutorial_window.after(50, update_animations)
 
         update_animations()

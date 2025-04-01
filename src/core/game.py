@@ -51,35 +51,108 @@ def load_image(path):
             return None
     return image_cache[path]
 
-def load_animation(path, action, frame_count, fighter_width, fighter_height):
-    frames = []
-    animation_folder = os.path.join(path, action)
+def update(self):
+    current_time = time.time()
+    events = pygame.event.get()
 
-    if not os.path.exists(animation_folder):
-        logging.error(f"Animation folder not found - {animation_folder}")
-        return frames
+    for event in events:
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                # Toggle options menu instead of quitting
+                if self.game_state == GameState.PLAYING:
+                    self.game_state = GameState.OPTIONS
+                elif self.game_state == GameState.OPTIONS:
+                    self.game_state = GameState.PLAYING
+            elif self.game_state == GameState.VICTORY and event.key == pygame.K_r:
+                self.__init__()  # Réinitialiser le jeu
+                self.game_state = GameState.COUNTDOWN
+                return
 
-    frame_index = 0
-    while True:
-        frame_name = f"frame_{frame_index:02}_delay-0.1s.png"
-        frame_path = os.path.join(animation_folder, frame_name)
+    self.screen.fill((0, 0, 0))
+    self.screen.blit(self.bg_image, (0, 0))
 
-        if not os.path.exists(frame_path):
-            break
+    keys = pygame.key.get_pressed()
 
-        img = load_image(frame_path)
-        if img:
-            # Supprimer les espaces vides autour de l'image
-            img_rect = img.get_bounding_rect()
-            cropped_img = img.subsurface(img_rect)
+    if self.game_state == GameState.PAUSED:
+        for fighter in self.fighters:
+            fighter.draw(self.screen)
+        self.draw_pause_menu()
+        self.handle_menu_input(keys, events)
+        return
 
-            # Redimensionner l'image à 600x800
-            resized_img = pygame.transform.scale(cropped_img, (fighter_width, fighter_height))
-            frames.append(resized_img)
+    if self.game_state == GameState.VICTORY:
+        for fighter in self.fighters:
+            fighter.draw(self.screen)
+        self.draw_victory_screen()
+        if keys[pygame.K_RETURN]:
+            pygame.quit()
+            sys.exit()
+        return
 
-        frame_index += 1
+    if self.game_state == GameState.OPTIONS:
+        self.show_options_menu()
+        self.handle_menu_input(keys, events)
+        return
 
-    return frames
+    remaining_time = self.draw_timer()
+    if remaining_time <= 0:
+        health_percent_1 = self.fighters[0].health / self.fighters[0].max_health
+        health_percent_2 = self.fighters[1].health / self.fighters[1].max_health
+        self.winner = 1 if health_percent_1 >= health_percent_2 else 2
+        self.game_state = GameState.VICTORY
+        if self.sounds_loaded:
+            self.victory_sound.play()
+        return
+
+    for fighter in self.fighters:
+        fighter.update_physics()
+        fighter.recover_stamina()
+        fighter.draw(self.screen)
+
+    for i, fighter in enumerate(self.fighters):
+        if i < len(self.controllers):
+            self.handle_input(fighter, self.controllers[i], None, current_time)
+        self.handle_input(fighter, None, keys, current_time)
+        fighter.update_effects()
+
+    if self.fighters[0].hitbox.colliderect(self.fighters[1].hitbox):
+        if self.fighters[0].attacking and not self.fighters[1].stunned:
+            if self.fighters[0].special_attack():
+                opponent = self.fighters[1]
+                side_length = min(opponent.rect.width, opponent.rect.height)
+                opponent.hitbox = pygame.Rect(
+                    opponent.rect.centerx - side_length // 2,
+                    opponent.rect.centery - side_length // 2,
+                    side_length,
+                    side_length
+                )
+                opponent.take_damage(self.fighters[0].damage * SPECIAL_ATTACK_MULTIPLIER, time.time(), is_special=True)
+            else:
+                self.fighters[1].take_damage(self.fighters[0].damage, time.time())
+            if self.sounds_loaded:
+                self.hit_sound.play()
+
+        if self.fighters[1].attacking and not self.fighters[0].stunned:
+            if self.fighters[1].special_attack():
+                self.fighters[0].take_damage(self.fighters[1].damage * SPECIAL_ATTACK_MULTIPLIER, time.time(), is_special=True)
+            else:
+                self.fighters[0].take_damage(self.fighters[1].damage, time.time())
+            if self.sounds_loaded:
+                self.hit_sound.play()
+
+    for i, fighter in enumerate(self.fighters):
+        if fighter.health <= 0:
+            self.winner = 2 if i == 0 else 1
+            self.game_state = GameState.VICTORY
+            if self.sounds_loaded:
+                self.victory_sound.play()
+            return
+
+    pygame.display.flip()
+    self.clock.tick(60)
 
 class Fighter:
     def __init__(self, player, x, y, fighter_data, ground_y):

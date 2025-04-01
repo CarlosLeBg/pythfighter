@@ -679,6 +679,7 @@ class LauncherPythFighter:
         tutorial_window.attributes('-topmost', True)
         tutorial_window.geometry(f"{self.width}x{self.height}")
         tutorial_window.attributes('-fullscreen', True)
+        tutorial_window.focus_set()  # Forcer le focus pour capter les événements clavier
 
         tutorial_canvas = ctk.CTkCanvas(tutorial_window, bg=self.COLORS['background'], highlightthickness=0)
         tutorial_canvas.pack(fill=ctk.BOTH, expand=True)
@@ -718,6 +719,12 @@ class LauncherPythFighter:
             {
                 "title": "COMMANDES DE BASE",
                 "content": [
+                    "Petit bug, veuillez cliquer sur la page une fois pour avoir accès aux contrôles",
+                    "et aux conseils de combat.",
+                    "",
+                    "Utilisez les flèches pour naviguer dans le menu.",
+                    "Appuyez sur Échap pour quitter.",
+                    "",
                     "🎮 MANETTE PS4/PS5:",
                     "⬅️➡️ Joystick gauche: Se déplacer",
                     "🇽 Touche X: Sauter",
@@ -848,7 +855,7 @@ class LauncherPythFighter:
         tutorial_window.bind("<Right>", lambda e: next_section())
         tutorial_window.bind("<Escape>", lambda e: tutorial_window.destroy())
 
-        # Vérification de l’entrée du contrôleur
+        # Vérification de l’entrée du contrôleur (pour compléter si nécessaire)
         def check_tutorial_controller():
             if not tutorial_window.winfo_exists():
                 return
@@ -856,7 +863,6 @@ class LauncherPythFighter:
             buttons, axes = self.controller_manager.get_primary_input()
             current_time = time.time()
 
-            # Navigation à l’aide d’axes
             if current_time - self.last_nav_time > self.NAV_COOLDOWN:
                 if axes and len(axes) > 0:
                     if axes[0] < -0.5:  # Gauche
@@ -866,7 +872,7 @@ class LauncherPythFighter:
                         next_section()
                         self.last_nav_time = current_time
 
-            # Quitter avec le bouton
+            # Si le bouton principal est pressé, quitter (par exemple)
             if buttons and len(buttons) > 0 and buttons[0]:
                 tutorial_window.destroy()
                 return

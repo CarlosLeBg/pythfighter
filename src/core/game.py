@@ -244,19 +244,19 @@ class Fighter:
         # Définir le nombre de frames pour chaque animation en fonction du personnage
         if self.name == "ThunderStrike":
             frame_counts = {
+                "idle": 4,
+                "walk": 8,
+                "attack": 4,
+                "dead": 7,
+                "special_attack": 4
+            }
+        elif self.name == "Tank":
+            frame_counts = {
                 "idle": 10,
                 "walk": 8,
                 "attack": 21,
                 "dead": 16,
                 "special_attack": 4
-            }
-        elif self.name == "Tank":
-            frame_counts = {
-                "idle": 6,
-                "walk": 6,
-                "attack": 5,
-                "dead": 6,
-                "special_attack": 5
             }
         elif self.name == "Mitsu":
             frame_counts = {
@@ -301,7 +301,6 @@ class Fighter:
 
     def draw(self, surface):
         # Draw dynamic aura
-        self.draw_aura(surface)
 
         if self.special_attack_effect and self.special_attack_effect_duration > 0:
             effect_alpha = min(255, self.special_attack_effect_duration * 4)
@@ -768,7 +767,7 @@ class Game:
         pygame.display.set_caption("PythFighter")
 
         random.seed(time.time()*time.time())  # Ensure randomness by seeding with the current time
-        self.bg_selected = random.choice(["bg_2.png", "backg.png", "bgtree.png", "bg-ile.png", "bgjoconde.png", " bgmatrix.png","jard.png"])
+        self.bg_selected = random.choice(["bg_2.png", "backg.png", "bgtree.png", "bg-ile.png", "bgjoconde.png", "bgmatrix.png","jard.png"])
 
         try:
             bg_path = os.path.join("src", "assets", "backgrounds", self.bg_selected)

@@ -268,10 +268,10 @@ class CharacterSelect:
         for y in range(SCREEN_HEIGHT):
             progress = y / SCREEN_HEIGHT
             color = [
-                GRADIENT_TOP[i] + (GRADIENT_BOTTOM[i] - GRADIENT_TOP[i]) * progress
+                int(GRADIENT_TOP[i] + (GRADIENT_BOTTOM[i] - GRADIENT_TOP[i]) * progress)
                 for i in range(3)
             ]
-            wave_offset = sin(self.animation_time + y / 100) * 20
+            wave_offset = int(sin(self.animation_time + y / 100) * 20)
             pygame.draw.line(self.screen, color,
                              (max(0, wave_offset), y),
                              (SCREEN_WIDTH + min(0, wave_offset), y))
@@ -281,35 +281,28 @@ class CharacterSelect:
                                surface.get_height() + radius * 2),
                               pygame.SRCALPHA)
         for i in range(radius, 0, -1):
-            alpha = int(100 * (i / radius))
+            alpha = int(120 * (i / radius))
             pulse = sin(self.animation_time * 4) * 0.3 + 0.7
             color_pulse = tuple(int(c * pulse) for c in color)
             pygame.draw.rect(glow, (*color_pulse, alpha),
                              (radius - i, radius - i,
                               surface.get_width() + i * 2,
                               surface.get_height() + i * 2),
-                             border_radius=20)
+                             border_radius=24)
         return glow
 
     def draw_character_card(self, name, data):
         card_rect = self.position_manager.card_positions[name]
-
-        # Check if card is hovered by either player
         p1_hover = card_rect.collidepoint(self.cursor_positions["player1"])
         p2_hover = card_rect.collidepoint(self.cursor_positions["player2"])
-
-        # Update player hovered states
         if p1_hover:
             self.player_hovered["player1"] = name
         if p2_hover:
             self.player_hovered["player2"] = name
-
         hover = p1_hover or p2_hover
-
         y_offset = sin(self.animation_time * 3) * 5
-        x_offset = 0
+        x_offset = sin(self.animation_time * 8) * 3 if hover else 0
         if hover:
-            x_offset = sin(self.animation_time * 8) * 3
             self.hovered_character = name
             if pygame.time.get_ticks() % 5 == 0:
                 self.particles.create_particle(
@@ -323,77 +316,59 @@ class CharacterSelect:
                         card_rect.y + random.uniform(0, SETTINGS.CARD_HEIGHT)
                     )
                     self.particles.create_particle(edge_pos, data.color, 'sparkle')
-
-        card_surface = pygame.Surface((SETTINGS.CARD_WIDTH, SETTINGS.CARD_HEIGHT),
-                                      pygame.SRCALPHA)
-
+        card_surface = pygame.Surface((SETTINGS.CARD_WIDTH, SETTINGS.CARD_HEIGHT), pygame.SRCALPHA)
         shadow_offset = abs(sin(self.animation_time * 2)) * 4 + 4
         pygame.draw.rect(card_surface, CARD_SHADOW_COLOR,
                          (shadow_offset, shadow_offset,
                           SETTINGS.CARD_WIDTH, SETTINGS.CARD_HEIGHT),
-                         border_radius=20)
-
+                         border_radius=24)
         for y in range(SETTINGS.CARD_HEIGHT):
             progress = y / SETTINGS.CARD_HEIGHT
             wave = sin(self.animation_time * 2 + progress * 3) * 0.1
             color = [
-                max(0, min(255, data.color[i] * (1 - progress * 0.3 + wave)))
+                max(0, min(255, int(data.color[i] * (1 - progress * 0.3 + wave))))
                 for i in range(3)
             ]
-            alpha = 230 if hover else 200
+            alpha = 240 if hover else 200
             pygame.draw.line(card_surface, (*color, alpha),
                              (0, y), (SETTINGS.CARD_WIDTH, y))
-
         self._draw_card_content(card_surface, data, hover)
-
-        # Show selection glows for both players if selected
         if name == self.selected['player1']:
-            glow = self.create_card_glow(card_surface, SETTINGS.PLAYER1_COLOR, 10)
-            self.screen.blit(glow,
-                            (card_rect.x + x_offset - 10,
-                             card_rect.y + y_offset - 10))
-
+            glow = self.create_card_glow(card_surface, SETTINGS.PLAYER1_COLOR, 12)
+            self.screen.blit(glow, (card_rect.x + x_offset - 12, card_rect.y + y_offset - 12))
         if name == self.selected['player2']:
-            glow = self.create_card_glow(card_surface, SETTINGS.PLAYER2_COLOR, 10)
-            self.screen.blit(glow,
-                            (card_rect.x + x_offset - 10,
-                             card_rect.y + y_offset - 10))
-
-        self.screen.blit(card_surface,
-                         (card_rect.x + x_offset, card_rect.y + y_offset))
+            glow = self.create_card_glow(card_surface, SETTINGS.PLAYER2_COLOR, 12)
+            self.screen.blit(glow, (card_rect.x + x_offset - 12, card_rect.y + y_offset - 12))
+        self.screen.blit(card_surface, (card_rect.x + x_offset, card_rect.y + y_offset))
 
     def _draw_card_content(self, surface, data, hover):
-        y_content = 20
-        scale = 1 + sin(self.animation_time * 4) * 0.05 if hover else 1
+        y_content = 24
+        scale = 1 + sin(self.animation_time * 4) * 0.06 if hover else 1
         text = self.resource_manager.assets["fonts"]['subtitle'].render(data.name.split(" ")[0], True, TEXT_COLOR)
-        scaled_text = pygame.transform.scale(text,
+        scaled_text = pygame.transform.smoothscale(text,
                                              (int(text.get_width() * scale),
                                               int(text.get_height() * scale)))
         surface.blit(scaled_text,
                      (SETTINGS.CARD_WIDTH // 2 - scaled_text.get_width() // 2, y_content))
-        y_content += 50
-
+        y_content += 54
         style_color = (*TEXT_COLOR[:3], 255 if hover else 200)
         style = self.resource_manager.assets["fonts"]['normal'].render(f"Style: {data.style}", True, style_color)
         surface.blit(style,
                      (SETTINGS.CARD_WIDTH // 2 - style.get_width() // 2, y_content))
         y_content += 40
-
         for stat_name, value in list(data.stats.items())[:3]:
             stat_text = self.resource_manager.assets["fonts"]['small'].render(stat_name, True, TEXT_COLOR)
             surface.blit(stat_text, (20, y_content))
-
             bar_width = SETTINGS.CARD_WIDTH - 40
-            bg_height = 10 + sin(self.animation_time * 3) * 2 if hover else 10
+            bg_height = 12 + sin(self.animation_time * 3) * 2 if hover else 12
             pygame.draw.rect(surface, (50, 50, 50),
                              (20, y_content + 20, bar_width, bg_height))
-
             value_width = int(bar_width * (value / 10 if isinstance(value, (int, float)) else value / 120))
             for x in range(value_width):
                 progress = x / bar_width
                 wave = sin(self.animation_time * 4 + progress * 10) * 0.1 if hover else 0
                 color = [
-                    max(0, min(255, data.color[i] * (1 + progress * 0.5 + wave)))
+                    max(0, min(255, int(data.color[i] * (1 + progress * 0.5 + wave))))
                     for i in range(3)
                 ]
                 pygame.draw.line(surface, color,

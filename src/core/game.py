@@ -6,6 +6,7 @@ from enum import Enum
 import logging
 import random
 from threading import Thread
+import math
 
 # Configuration des logs
 logging.basicConfig(filename='launcher.log', level=logging.DEBUG,
@@ -299,6 +300,9 @@ class Fighter:
             logging.info(f"Animation '{anim_name}' pour {self.name}: {len(frames)} frames chargées.")
 
     def draw(self, surface):
+        # Draw dynamic aura
+        self.draw_aura(surface)
+
         if self.special_attack_effect and self.special_attack_effect_duration > 0:
             effect_alpha = min(255, self.special_attack_effect_duration * 4)
             self.special_attack_effect.set_alpha(effect_alpha)
@@ -348,6 +352,50 @@ class Fighter:
 
         self.draw_health_stamina_bars(surface)
 
+    def draw_aura(self, surface):
+        aura_radius = int(max(self.rect.width, self.rect.height) * 0.7)
+        aura_surface = pygame.Surface((aura_radius * 2, aura_radius * 2), pygame.SRCALPHA)
+        t = pygame.time.get_ticks() / 400.0
+        for i in range(8, 0, -1):
+            alpha = int(30 + 18 * i + 10 * abs(pygame.math.Vector2(1,0).rotate(t*40*i).x))
+            color = (
+                min(255, self.color[0] + 40),
+                min(255, self.color[1] + 40),
+                min(255, self.color[2] + 40),
+                alpha
+            )
+            pygame.draw.circle(
+                aura_surface,
+                color,
+                (aura_radius, aura_radius),
+                int(aura_radius * (i / 8) * (1.05 + 0.07 * sin(t + i))),
+                width=0
+            )
+        aura_pos = (self.rect.centerx - aura_radius, self.rect.centery - aura_radius)
+        surface.blit(aura_surface, aura_pos, special_flags=pygame.BLEND_ADD)
+
+    def draw_aura(self, surface):
+        aura_radius = int(max(self.rect.width, self.rect.height) * 0.7)
+        aura_surface = pygame.Surface((aura_radius * 2, aura_radius * 2), pygame.SRCALPHA)
+        t = pygame.time.get_ticks() / 400.0
+        for i in range(8, 0, -1):
+            alpha = int(30 + 18 * i + 10 * abs(pygame.math.Vector2(1,0).rotate(t*40*i).x))
+            color = (
+                min(255, self.color[0] + 40),
+                min(255, self.color[1] + 40),
+                min(255, self.color[2] + 40),
+                alpha
+            )
+            pygame.draw.circle(
+                aura_surface,
+                color,
+                (aura_radius, aura_radius),
+                int(aura_radius * (i / 8) * (1.05 + 0.07 * math.sin(t + i))),
+                width=0
+            )
+        aura_pos = (self.rect.centerx - aura_radius, self.rect.centery - aura_radius)
+        surface.blit(aura_surface, aura_pos, special_flags=pygame.BLEND_ADD)
+
     def draw_health_stamina_bars(self, surface):
         bar_width = VISIBLE_WIDTH * 0.4
         bar_height = 20
@@ -361,6 +409,11 @@ class Fighter:
             pygame.draw.line(surface, color, (bar_x + i, 10), (bar_x + i, 10 + bar_height))
 
         if health_percentage > 0:
+            # Glow effect under the health bar
+            glow_surface = pygame.Surface((int(bar_width), bar_height*2), pygame.SRCALPHA)
+            pygame.draw.ellipse(glow_surface, (health_color[0], health_color[1], health_color[2], 80), (0, bar_height//2, int(bar_width), bar_height))
+            surface.blit(glow_surface, (bar_x, 10 - bar_height//2), special_flags=pygame.BLEND_ADD)
+
             health_width = bar_width * health_percentage
             pygame.draw.rect(surface, health_color, (bar_x, 10, health_width, bar_height), border_radius=10)
             pygame.draw.rect(surface, (255, 255, 255), (bar_x, 10, health_width, bar_height), 1, border_radius=10)
@@ -480,6 +533,12 @@ class Fighter:
             knockback_force = 3 if is_special else 1
             if not self.blocking:
                 self.vel_x += knockback_direction * knockback_force
+
+            # Déclenche le tremblement d'écran lors d'un coup puissant ou d'un KO
+            if is_special or self.health <= 0:
+                if hasattr(self, 'game_ref'):
+                    self.game_ref.shake_timer = 20
+                    self.game_ref.shake_intensity = 12 if is_special else 8
 
             return True
         return False
@@ -752,6 +811,9 @@ class Game:
             Fighter(2, VISIBLE_WIDTH * 3 // 4 - 75, self.ground_y - fighter_height,  # Position ajustée pour le joueur 2
                     fighter_map[player2_type](), self.ground_y)
         ]
+        # Ajoute une référence au jeu pour chaque fighter
+        for fighter in self.fighters:
+            fighter.game_ref = self
 
         self.controllers = []
         for i in range(min(2, pygame.joystick.get_count())):
@@ -770,6 +832,8 @@ class Game:
         self.round_time = 99
         self.font = pygame.font.Font(None, 36)
         self.winner = None
+        self.shake_timer = 0
+        self.shake_intensity = 0
 
         self.menu_options = ["Resume", "Options", "Quit"]
         self.selected_option = 0
@@ -1035,6 +1099,12 @@ class Game:
         current_time = time.time()
         events = pygame.event.get()
 
+        shake_offset = [0, 0]
+        if self.shake_timer > 0:
+            self.shake_timer -= 1
+            shake_offset[0] = random.randint(-self.shake_intensity, self.shake_intensity)
+            shake_offset[1] = random.randint(-self.shake_intensity, self.shake_intensity)
+
         for event in events:
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -1049,7 +1119,7 @@ class Game:
                     return
 
         self.screen.fill((0, 0, 0))
-        self.screen.blit(self.bg_image, (0, 0))
+        self.screen.blit(self.bg_image, (shake_offset[0], shake_offset[1]))
 
         keys = pygame.key.get_pressed()
 

@@ -260,33 +260,33 @@ class Fighter:
             }
         elif self.name == "Mitsu":
             frame_counts = {
-                "idle": 5,
-                "walk": 6,
-                "attack": 4,
-                "dead": 5,
+                "idle": 8,
+                "walk": 8,
+                "attack": 6,
+                "dead": 6,
                 "special_attack": 4
             }
         elif self.name == "Noya":
             frame_counts = {
-                "idle": 5,
-                "walk": 7,
-                "attack": 6,
-                "dead": 6,
-                "special_attack": 5
+               "idle": 5,
+               "walk": 7,
+               "attack": 6,
+               "dead": 6,
+               "special_attack": 5
             }
         elif self.name == "Bruiser":
             frame_counts = {
-                "idle": 6,
-                "walk": 6,
-                "attack": 5,
+                "idle": 8,
+                "walk": 8,
+                "attack": 4,
                 "dead": 6,
                 "special_attack": 5
             }
         else:
             frame_counts = {
-                "idle": 4,
-                "walk": 4,
-                "attack": 4,
+                "id66": 4,
+                "wa6k": 4,
+                "atta5k": 4,
                 "dead": 4,
                 "special_attack": 4
             }
@@ -300,7 +300,14 @@ class Fighter:
             logging.info(f"Animation '{anim_name}' pour {self.name}: {len(frames)} frames chargées.")
 
     def draw(self, surface):
-        # Draw dynamic aura
+        # Animation d'entrée "slide" + effet de glow
+        t = pygame.time.get_ticks() / 700.0
+        slide_offset = int(80 * (1 - min(1, t)))
+        if self.player == 1:
+            self.rect.x -= slide_offset
+        else:
+            self.rect.x += slide_offset
+            
 
         if self.special_attack_effect and self.special_attack_effect_duration > 0:
             effect_alpha = min(255, self.special_attack_effect_duration * 4)
@@ -352,48 +359,27 @@ class Fighter:
         self.draw_health_stamina_bars(surface)
 
     def draw_aura(self, surface):
-        aura_radius = int(max(self.rect.width, self.rect.height) * 0.7)
+        aura_radius = int(max(self.rect.width, self.rect.height) * 0.8)
         aura_surface = pygame.Surface((aura_radius * 2, aura_radius * 2), pygame.SRCALPHA)
-        t = pygame.time.get_ticks() / 400.0
-        for i in range(8, 0, -1):
-            alpha = int(30 + 18 * i + 10 * abs(pygame.math.Vector2(1,0).rotate(t*40*i).x))
-            color = (
-                min(255, self.color[0] + 40),
-                min(255, self.color[1] + 40),
-                min(255, self.color[2] + 40),
-                alpha
-            )
+        t = pygame.time.get_ticks() / 350.0
+        base_color = pygame.Color(*self.color)
+        for i in range(10, 0, -1):
+            # Aura arc-en-ciel dynamique selon le combo
+            color = base_color.hsva
+            hue = (color[0] + (t*15 + i*15 + self.combo_count*20)) % 360
+            dynamic_color = pygame.Color(0)
+            dynamic_color.hsva = (hue, color[1], min(100, color[2]+i*2), 100)
+            alpha = int(18 + 14*i + 8*abs(math.sin(t + i)))
             pygame.draw.circle(
                 aura_surface,
-                color,
+                (*dynamic_color[:3], alpha),
                 (aura_radius, aura_radius),
-                int(aura_radius * (i / 8) * (1.05 + 0.07 * sin(t + i))),
+                int(aura_radius * (i / 10) * (1.05 + 0.08 * math.sin(t + i))),
                 width=0
             )
         aura_pos = (self.rect.centerx - aura_radius, self.rect.centery - aura_radius)
         surface.blit(aura_surface, aura_pos, special_flags=pygame.BLEND_ADD)
 
-    def draw_aura(self, surface):
-        aura_radius = int(max(self.rect.width, self.rect.height) * 0.7)
-        aura_surface = pygame.Surface((aura_radius * 2, aura_radius * 2), pygame.SRCALPHA)
-        t = pygame.time.get_ticks() / 400.0
-        for i in range(8, 0, -1):
-            alpha = int(30 + 18 * i + 10 * abs(pygame.math.Vector2(1,0).rotate(t*40*i).x))
-            color = (
-                min(255, self.color[0] + 40),
-                min(255, self.color[1] + 40),
-                min(255, self.color[2] + 40),
-                alpha
-            )
-            pygame.draw.circle(
-                aura_surface,
-                color,
-                (aura_radius, aura_radius),
-                int(aura_radius * (i / 8) * (1.05 + 0.07 * math.sin(t + i))),
-                width=0
-            )
-        aura_pos = (self.rect.centerx - aura_radius, self.rect.centery - aura_radius)
-        surface.blit(aura_surface, aura_pos, special_flags=pygame.BLEND_ADD)
 
     def draw_health_stamina_bars(self, surface):
         bar_width = VISIBLE_WIDTH * 0.4
@@ -402,21 +388,33 @@ class Fighter:
         health_color = (int(255 * (1 - health_percentage)), int(255 * health_percentage), 0)
         bar_x = 20 if self.player == 1 else VISIBLE_WIDTH - bar_width - 20
 
+        # Gradient background with animation
+        time_factor = pygame.time.get_ticks() * 0.001
         for i in range(int(bar_width)):
             ratio = i / bar_width
             color = (100 - int(50 * ratio), 0, 0)
-            pygame.draw.line(surface, color, (bar_x + i, 10), (bar_x + i, 10 + bar_height))
+            # Add subtle wave effect
+            wave_offset = math.sin(time_factor + i * 0.05) * 2
+            pygame.draw.line(surface, color, (bar_x + i, 10 + wave_offset), (bar_x + i, 10 + bar_height + wave_offset))
 
         if health_percentage > 0:
-            # Glow effect under the health bar
+            # Neon glow effect with animation
             glow_surface = pygame.Surface((int(bar_width), bar_height*2), pygame.SRCALPHA)
-            pygame.draw.ellipse(glow_surface, (health_color[0], health_color[1], health_color[2], 80), (0, bar_height//2, int(bar_width), bar_height))
+            glow_intensity = abs(math.sin(time_factor * 2)) * 0.5 + 0.5
+            glow_color = (health_color[0], health_color[1], health_color[2], int(80 * glow_intensity))
+            pygame.draw.ellipse(glow_surface, glow_color, (0, bar_height//2, int(bar_width), bar_height))
             surface.blit(glow_surface, (bar_x, 10 - bar_height//2), special_flags=pygame.BLEND_ADD)
 
             health_width = bar_width * health_percentage
-            pygame.draw.rect(surface, health_color, (bar_x, 10, health_width, bar_height), border_radius=10)
-            pygame.draw.rect(surface, (255, 255, 255), (bar_x, 10, health_width, bar_height), 1, border_radius=10)
+            # Add metallic gradient effect
+            gradient_surface = pygame.Surface((int(health_width), bar_height), pygame.SRCALPHA)
+            for i in range(int(health_width)):
+                ratio = i / health_width
+                color = (int(255 * (1 - ratio)), int(255 * ratio), 0, 255)
+                pygame.draw.line(gradient_surface, color, (i, 0), (i, bar_height))
+            surface.blit(gradient_surface, (bar_x, 10))
 
+            # Add animated highlight
             highlight_height = bar_height // 3
             highlight_surface = pygame.Surface((int(health_width), highlight_height), pygame.SRCALPHA)
             highlight_color = (255, 255, 255, 100)

@@ -47,9 +47,9 @@ class ResourceManager:
             "fonts": {}
         }
         self.paths = {
-            "images": os.path.join(base_path, "images"),
-            "sounds": os.path.join(base_path, "sounds"),
-            "fonts": os.path.join(base_path, "fonts")
+            "images": os.path.join(os.path.dirname(__file__), '..', 'assets', 'images'),
+            "sounds": os.path.join(os.path.dirname(__file__), '..', 'assets', 'sounds'),
+            "fonts": os.path.join(os.path.dirname(__file__), '..', 'assets', 'fonts')
         }
         self.load_resources()
 
@@ -215,7 +215,7 @@ class CharacterSelect:
 
     def load_character_portraits(self):
         """Charge les portraits des personnages pour l'écran versus"""
-        TARGET_SIZE = (200, 250)  # Taille cible désirée
+        TARGET_SIZE = (400, 500)  # Taille cible désirée
         VALID_EXTENSIONS = [".png", ".jpg", ".jpeg"]
         for fighter_name in FIGHTERS.keys():
             try:

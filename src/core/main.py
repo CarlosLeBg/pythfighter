@@ -310,8 +310,7 @@ class LauncherPythFighter:
             subprocess.Popen([sys.executable, game_path])
             self.root.quit()
         except Exception as e:
-            messagebox.showerror("Erreur de lancement", f"Impossible de lancer le jeu:\n{str(e)}")
-
+            messagebox.showerror("Erreur de lancement", f"Impossible de lancer le jeu:\n{str(e)}") 
     def show_credits(self) -> None:
         """Affiche les crédits en version très simplifiée."""
         credits_window = ctk.CTkToplevel(self.root)

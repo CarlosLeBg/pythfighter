@@ -1,5 +1,6 @@
 # Importe toutes les librairies nécessaires
 import customtkinter as ctk
+from PIL import Image
 from tkinter import messagebox
 from dotenv import load_dotenv
 import os
@@ -9,6 +10,7 @@ import pygame
 import time
 import random
 import math
+from datetime import datetime
 
 class ControllerManager:
     """Gère les entrées des manettes."""
@@ -96,6 +98,7 @@ class ParticleSystem:
 class LauncherPythFighter:
     """Launcher principal pour le jeu PythFighter avec une interface graphique améliorée."""
 
+    VERSION = "1.0.0"
     COLORS = {
         'background': '#1A1A2E',
         'primary': '#E94560',
@@ -104,7 +107,12 @@ class LauncherPythFighter:
         'hover': '#FF6B6B',
         'shadow': '#121220',
         'highlight': '#FFA500',
-        'button_border': '#FF4500'
+        'button_border': '#FF4500',
+        'accent': '#00FF7F',
+        'card_background': '#1E1E2E',
+        'primary_hover': '#D13B50',
+        'text_button': '#FFFFFF',
+        'text_muted': '#B0B0B0'
     }
 
     FONTS = {
@@ -249,7 +257,8 @@ class LauncherPythFighter:
 
     def _create_version_info(self) -> None:
         """Ajoute les informations de version en bas de l'écran."""
-        version_text = "Version 2.0.0 - © 2025 PythFighter Team"
+        VERSION = "1.0.0"
+        version_text = "Version 1.0.0 - © 2025 Equipe de dev de PythFighter"
         self.canvas.create_text(
             10, self.root.winfo_screenheight() - 10,
             text=version_text,
@@ -312,41 +321,175 @@ class LauncherPythFighter:
         except Exception as e:
             messagebox.showerror("Erreur de lancement", f"Impossible de lancer le jeu:\n{str(e)}") 
     def show_credits(self) -> None:
-        """Affiche les crédits en version très simplifiée."""
+        """Affiche les crédits avec une interface moderne et interactive."""
         credits_window = ctk.CTkToplevel(self.root)
-        credits_window.title("Crédits")
+        credits_window.title("Crédits - PythFighter")
         credits_window.attributes('-topmost', True)
-        credits_window.geometry("600x400")
-        credits_window.configure(bg=self.COLORS['background'])
-
-        # Conteneur principal
-        main_frame = ctk.CTkFrame(credits_window, bg_color=self.COLORS['background'])
-        main_frame.pack(fill=ctk.BOTH, expand=True)
-
-        # Texte des crédits simple
-        credits_label = ctk.CTkLabel(
-            main_frame,
-            text=self._get_credits_text(),
-            font=self.FONTS['credits'],
-            bg_color=self.COLORS['background'],
-            text_color=self.COLORS['primary'],
-            justify=ctk.CENTER
+        credits_window.geometry("700x500")
+        credits_window.configure(bg_color=self.COLORS['background'])
+        credits_window.resizable(False, False)
+        
+        # Image de titre (à remplacer par votre logo)
+        try:
+            logo_img = ctk.CTkImage(
+                light_image=Image.open("assets/images/logo.png"),
+                dark_image=Image.open("assets/images/logo.png"),
+                size=(200, 100)
+            )
+            logo_label = ctk.CTkLabel(
+                credits_window,
+                image=logo_img,
+                text="",
+                bg_color=self.COLORS['background']
+            )
+            logo_label.pack(pady=(20, 10))
+        except Exception:
+            # Si pas de logo, afficher un titre
+            title_label = ctk.CTkLabel(
+                credits_window,
+                text="PYTHFIGHTER",
+                font=ctk.CTkFont(family="Impact", size=42, weight="bold"),
+                text_color=self.COLORS['accent'],
+                bg_color=self.COLORS['background']
+            )
+            title_label.pack(pady=(20, 10))
+        
+        subtitle_label = ctk.CTkLabel(
+            credits_window,
+            text="Un jeu de combat révolutionnaire",
+            font=ctk.CTkFont(family="Arial", size=16, slant="italic"),
+            text_color=self.COLORS['secondary'],
+            bg_color=self.COLORS['background']
         )
-        credits_label.pack(pady=50, expand=True)
-
+        subtitle_label.pack(pady=(0, 20))
+        
+        # Créer un frame pour le contenu principal
+        main_frame = ctk.CTkFrame(
+            credits_window,
+            fg_color=self.COLORS['card_background'],
+            corner_radius=15,
+            border_width=2,
+            border_color=self.COLORS['accent']
+        )
+        main_frame.pack(fill=ctk.BOTH, expand=True, padx=40, pady=(0, 30))
+        
+        # Tableau d'onglets
+        credits_sections = {
+            "Équipe": self._get_team_credits(),
+            "Design & Assets": self._get_design_credits(),
+            "Audio": self._get_audio_credits(),
+            "Remerciements": self._get_special_thanks()
+        }
+        
+        # Créer les onglets
+        tabview = ctk.CTkTabview(
+            main_frame,
+            fg_color=self.COLORS['card_background'],
+            segmented_button_fg_color=self.COLORS['accent'],
+            segmented_button_selected_color=self.COLORS['primary'],
+            segmented_button_selected_hover_color=self.COLORS['primary_hover'],
+            segmented_button_unselected_color=self.COLORS['card_background'],
+            segmented_button_unselected_hover_color=self.COLORS['secondary'],
+            text_color=self.COLORS['text']
+        )
+        tabview.pack(fill=ctk.BOTH, expand=True, padx=20, pady=20)
+        
+        # Ajouter les sections
+        for section_name, section_content in credits_sections.items():
+            tab = tabview.add(section_name)
+            
+            # Créer un cadre défilable pour chaque section
+            scroll_frame = ctk.CTkScrollableFrame(
+                tab,
+                fg_color="transparent",
+                scrollbar_fg_color=self.COLORS['secondary'],
+                scrollbar_button_color=self.COLORS['primary'],
+                scrollbar_button_hover_color=self.COLORS['primary_hover']
+            )
+            scroll_frame.pack(fill=ctk.BOTH, expand=True, padx=10, pady=10)
+            
+            # Remplir chaque section avec son contenu formaté
+            for item in section_content:
+                if isinstance(item, dict):
+                    # Style pour les titres
+                    title = ctk.CTkLabel(
+                        scroll_frame,
+                        text=item['title'],
+                        font=ctk.CTkFont(family="Arial", size=18, weight="bold"),
+                        text_color=self.COLORS['accent'],
+                        anchor="w"
+                    )
+                    title.pack(fill=ctk.X, pady=(10, 5), padx=5)
+                    
+                    # Style pour les membres/éléments sous chaque titre
+                    for member in item['members']:
+                        member_frame = ctk.CTkFrame(
+                            scroll_frame,
+                            fg_color=self.COLORS['background'],
+                            corner_radius=8
+                        )
+                        member_frame.pack(fill=ctk.X, pady=3, padx=15)
+                        
+                        member_label = ctk.CTkLabel(
+                            member_frame,
+                            text=f"• {member}",
+                            font=ctk.CTkFont(family="Arial", size=14),
+                            text_color=self.COLORS['text'],
+                            anchor="w",
+                            padx=10,
+                            pady=5
+                        )
+                        member_label.pack(fill=ctk.X)
+                else:
+                    # Pour les éléments simples textuels
+                    text_label = ctk.CTkLabel(
+                        scroll_frame,
+                        text=item,
+                        font=ctk.CTkFont(family="Arial", size=14, slant="italic"),
+                        text_color=self.COLORS['secondary'],
+                        anchor="w",
+                        wraplength=500
+                    )
+                    text_label.pack(fill=ctk.X, pady=10, padx=5)
+        
+        # Définir l'onglet actif par défaut
+        tabview.set("Équipe")
+        
+        # Bouton de fermeture
+        close_button = ctk.CTkButton(
+            credits_window,
+            text="Fermer",
+            font=ctk.CTkFont(family="Arial", size=16),
+            fg_color=self.COLORS['primary'],
+            hover_color=self.COLORS['primary_hover'],
+            text_color=self.COLORS['text_button'],
+            corner_radius=10,
+            command=credits_window.destroy,
+            width=120
+        )
+        close_button.pack(side=ctk.BOTTOM, pady=(0, 15))
+        
         # Instruction
         instruction = ctk.CTkLabel(
             credits_window,
             text="Appuyez sur Échap ou Croix/A pour revenir",
-            font=("Arial", 16),
-            bg_color=self.COLORS['background'],
-            text_color=self.COLORS['text']
+            font=ctk.CTkFont(family="Arial", size=14),
+            text_color=self.COLORS['text_muted'],
+            bg_color=self.COLORS['background']
         )
-        instruction.pack(side=ctk.BOTTOM, pady=20)
-
+        instruction.pack(side=ctk.BOTTOM, pady=(0, 5))
+        
+        # Ajouter une animation simple d'entrée
+        credits_window.withdraw()
+        credits_window.update_idletasks()
+        x = (credits_window.winfo_screenwidth() - credits_window.winfo_reqwidth()) // 2
+        y = (credits_window.winfo_screenheight() - credits_window.winfo_reqheight()) // 2
+        credits_window.geometry(f"+{x}+{y}")
+        credits_window.deiconify()
+        
         # Gestion des touches clavier
         credits_window.bind("<Escape>", lambda _: credits_window.destroy())
-
+        
         # Vérification du contrôleur
         def check_credits_input():
             if not credits_window.winfo_exists():
@@ -361,35 +504,61 @@ class LauncherPythFighter:
 
         credits_window.after(100, check_credits_input)
 
-    def _get_credits_text(self) -> str:
-        """Retourne le texte des crédits."""
-        return """
-        PythFighter - Un jeu de combat révolutionnaire
+    def _get_team_credits(self) -> list:
+        """Retourne la liste formatée de l'équipe de développement."""
+        return [
+            {"title": "Programmation", "members": [
+                "Direction du développement: Équipe PythFighter",
+                "Lead Developer: Carl-Albert LIEVAL",
+                "Développeurs: Rémi POLVERINI, Timtohé PICHOT"
+            ]},
+            {"title": "Direction du Projet", "members": [
+                "Production: Moinécha SCHULTZE",
+                "Conception du jeu: toute l'équipe PythFighter"
+            ]},
+            "Développé avec passion par l'équipe PythFighter"
+        ]
 
-        Développé avec passion par l'équipe PythFighter
+    def _get_design_credits(self) -> list:
+        """Retourne la liste formatée des crédits design."""
+        return [
+            {"title": "Direction Artistique", "members": [
+                "Direction artistique: [Nom du directeur artistique]",
+                "Interface utilisateur: [Nom du designer UI]"
+            ]},
+            {"title": "Graphismes", "members": [
+                "Conception des personnages: Moinécha SCHULTZE, Benjamin COURAM, site itch.io",
+                "Environnements: Moinécha SCHULTZE",
+                "Animation et effets visuels: Moinécha SCHULTZE, Carl-Albert LIEVAL"
+            ]}
+        ]
 
-        Programmation:
-        - Équipe de développement principale
-        - Contributeurs de la communauté
+    def _get_audio_credits(self) -> list:
+        """Retourne la liste formatée des crédits audio."""
+        return [
+            {"title": "Musique", "members": [
+                "Composition originale: trouvée par Moinécha SCHULTZE",
+            ]},
+            {"title": "Design Sonore", "members": [
+                "Bibliothèques sonores: Freesound.org"
+            ]}
+        ]
 
-        Design et Assets:
-        - Direction artistique
-        - Conception des personnages
-        - Animation et effets visuels
-
-        Audio:
-        - Freesound.org
-        - Design sonore
-
-        Remerciements spéciaux:
-        - Communauté Python
-        - Nos testeurs dévoués
-        - Tous nos joueurs
-        - "Coding with Russ" et ses sources
-
-        PythFighter utilise des technologies open source.
-        Merci à tous les contributeurs !
-        """
+    def _get_special_thanks(self) -> list:
+        """Retourne la liste formatée des remerciements spéciaux."""
+        return [
+            {"title": "Remerciements Spéciaux", "members": [
+                "Communauté Python",
+                "\"Coding with Russ\" et ses sources"
+            ]},
+            {"title": "Technologies", "members": [
+                "CustomTkinter",
+                "Pygame",
+                "Pillow"
+            ]},
+            "PythFighter utilise des technologies open source.\nMerci à tous les contributeurs !",
+            f"Version {self.VERSION} © {datetime.now().year} PythFighter Team"
+        ]
 
     def show_options(self) -> None:
         """Affiche le menu des options avec prise en charge de la manette."""

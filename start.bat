@@ -6,7 +6,7 @@ color 0B
 echo ============================================================
 echo                Bienvenue dans l'application NSI
 echo          Créée par les développeurs et designers de
-echo              Première NSI : un travail d'équipe
+echo              Première NSI : un travail d'équipe !
 echo ============================================================
 echo.
 

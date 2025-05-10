@@ -915,23 +915,48 @@ class Game:
             try:
                 x_axis = controller.get_axis(0)
                 if abs(x_axis) > deadzone:
-                    fighter.vel_x = fighter.speed * 2 * x_axis
+                    fighter.vel_x = fighter.speed * (x_axis / abs(x_axis))
                     fighter.direction = 1 if x_axis > 0 else -1
+                    fighter.current_animation = "walk"
+                else:
+                    fighter.vel_x = 0
+                    if not fighter.attacking and not fighter.using_special_attack:
+                        fighter.current_animation = "idle"
 
-                if controller.get_button(0) and fighter.on_ground:
-                    fighter.vel_y = -10
+                if controller.get_button(0) and fighter.on_ground:  # Bouton A/X
+                    fighter.vel_y = -MAX_JUMP_HEIGHT * 0.15
                     fighter.on_ground = False
 
                 if controller.get_button(2):
-                    fighter.block()
+                    fighter.blocking = True
+                    fighter.stamina = max(0, fighter.stamina - BLOCK_STAMINA_DRAIN * 3)
                 else:
-                    fighter.stop_blocking()
+                    fighter.blocking = False
+                
+                if fighter.blocking:
+                    fighter.attacking = False
+                    fighter.can_attack = False
+                    fighter.current_animation = "block"
+                else:
+                    fighter.current_animation = "idle"
 
-                if controller.get_button(1):
+
+                if controller.get_button(1) and fighter.can_attack:  # Bouton B/O
+                    fighter.attacking = True
+                    fighter.can_attack = False
+                    fighter.attack_cooldown = 20
+                    fighter.current_animation = "attack"
                     fighter.attack(self.fighters[1 if fighter.player == 1 else 0].rect.centerx)
 
                 if controller.get_button(3):
-                    fighter.special_attack()
+                    if not fighter.using_special_attack and fighter.special_attack_cooldown <= 0:
+                      # Bouton Y/Triangle
+                        fighter.special_attack()
+                        fighter.current_animation = "special_attack"
+                        fighter.using_special_attack = True
+                        fighter.special_attack_cooldown = 180
+                elif not controller.get_button(3):
+                    fighter.using_special_attack = False
 
                 if self.game_state in [GameState.PAUSED, GameState.VICTORY]:
                     if controller.get_button(7):
@@ -1185,9 +1210,14 @@ class Game:
 
             if self.fighters[1].attacking and not self.fighters[0].stunned:
                 if self.fighters[1].special_attack():
+                    if not self.fighters[0].blocking:
+                        # Adjust the opponent's hitbox to be a square before applying the special attack damage
+                        opponent = self.fighters[0]
+                        side_length = min(opponent.rect.width, opponent.rect.height)
                     self.fighters[0].take_damage(self.fighters[1].damage * SPECIAL_ATTACK_MULTIPLIER, time.time(), is_special=True)
                 else:
-                    self.fighters[0].take_damage(self.fighters[1].damage, time.time())
+                    if not self.fighters[0].blocking:
+                        self.fighters[0].take_damage(self.fighters[1].damage, time.time())
                 if self.sounds_loaded:
                     self.hit_sound.play()
 

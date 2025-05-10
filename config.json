@@ -1,0 +1,8 @@
+{
+    "token": "",
+    "message": "Salut !",
+    "delay": 2,
+    "max_retries": 3,
+    "send_friend": false,
+    "theme": "cyan"
+}

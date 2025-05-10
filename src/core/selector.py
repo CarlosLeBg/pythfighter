@@ -215,7 +215,7 @@ class CharacterSelect:
 
     def load_character_portraits(self):
         """Charge les portraits des personnages pour l'écran versus"""
-        TARGET_SIZE = (400, 500)  # Taille cible désirée
+        TARGET_SIZE = (600, 600)  # Taille cible désirée
         VALID_EXTENSIONS = [".png", ".jpg", ".jpeg"]
         for fighter_name in FIGHTERS.keys():
             try:

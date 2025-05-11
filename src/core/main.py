@@ -11,6 +11,8 @@ import time
 import random
 import math
 from datetime import datetime
+# Add import for CharacterSelect
+from selector import CharacterSelect
 
 class ControllerManager:
     """Gère les entrées des manettes."""
@@ -226,6 +228,7 @@ class LauncherPythFighter:
         """Crée les boutons du menu principal avec effets de survol."""
         menu_items = [
             ("Démarrer", self.launch_game),
+            ("Multijoueur", self.show_multiplayer_menu),  # Nouveau bouton pour le multijoueur
             ("Crédits", self.show_credits),
             ("Options", self.show_options),
             ("Tutoriel", self.show_tutorial),
@@ -319,7 +322,331 @@ class LauncherPythFighter:
             subprocess.Popen([sys.executable, game_path])
             self.root.quit()
         except Exception as e:
-            messagebox.showerror("Erreur de lancement", f"Impossible de lancer le jeu:\n{str(e)}") 
+            messagebox.showerror("Erreur de lancement", f"Impossible de lancer le jeu:\n{str(e)}")
+    def show_multiplayer_menu(self) -> None:
+        """Affiche le menu multijoueur."""
+        # Clear the current interface
+        for widget in self.root.winfo_children():
+            if widget != self.canvas:
+                widget.destroy()
+
+        # Create a frame for the multiplayer menu
+        frame = ctk.CTkFrame(self.root, fg_color="transparent")
+        frame.place(relx=0.5, rely=0.5, anchor="center")
+
+        # Title
+        title_label = ctk.CTkLabel(
+            frame,
+            text="Mode Multijoueur",
+            font=self.FONTS['subtitle'],
+            text_color=self.COLORS['primary']
+        )
+        title_label.pack(pady=(0, 30))
+
+        # Create Game button
+        create_button = ctk.CTkButton(
+            frame,
+            text="Créer une partie",
+            font=self.FONTS['button'],
+            fg_color=self.COLORS['secondary'],
+            hover_color=self.COLORS['hover'],
+            command=self.create_game,
+            width=300,
+            height=60
+        )
+        create_button.pack(pady=10)
+
+        # Join Game button
+        join_button = ctk.CTkButton(
+            frame,
+            text="Rejoindre une partie",
+            font=self.FONTS['button'],
+            fg_color=self.COLORS['secondary'],
+            hover_color=self.COLORS['hover'],
+            command=self.join_game,
+            width=300,
+            height=60
+        )
+        join_button.pack(pady=10)
+
+        # Back button
+        back_button = ctk.CTkButton(
+            frame,
+            text="Retour",
+            font=self.FONTS['button'],
+            fg_color=self.COLORS['secondary'],
+            hover_color=self.COLORS['hover'],
+            command=self.return_to_main_menu,
+            width=300,
+            height=60
+        )
+        back_button.pack(pady=10)
+
+        self.check_multiplayer_controller()
+
+    def check_multiplayer_controller(self) -> None:
+        """Vérifie si des manettes sont connectées pour le mode multijoueur."""
+        pygame.joystick.init()
+        controller_count = pygame.joystick.get_count()
+        
+        if controller_count == 0:
+            messagebox.showinfo("Information", "Aucune manette détectée. Le mode clavier sera utilisé par défaut.")
+        else:
+            messagebox.showinfo("Information", f"{controller_count} manette(s) détectée(s).")
+            
+    def join_game(self) -> None:
+        """Affiche un menu pour rejoindre un salon."""
+        join_window = ctk.CTkToplevel(self.root)
+        join_window.title("Rejoindre un salon")
+        join_window.attributes('-topmost', True)
+        join_window.geometry("400x300")
+        join_window.configure(bg=self.COLORS['background'])
+
+        # Centrer la fenêtre
+        join_window.geometry("+{}+{}".format(
+            int(self.root.winfo_screenwidth() / 2 - 200),
+            int(self.root.winfo_screenheight() / 2 - 150)
+        ))
+
+        ctk.CTkLabel(
+            join_window,
+            text="Rejoindre un salon",
+            font=self.FONTS['button'],
+            bg_color=self.COLORS['background'],
+            text_color=self.COLORS['primary']
+        ).pack(pady=10)
+
+        ctk.CTkLabel(
+            join_window,
+            text="Serveur: 194.9.172.146:25568",
+            font=("Arial", 12),
+            bg_color=self.COLORS['background'],
+            text_color=self.COLORS['text']
+        ).pack(pady=5)
+
+        # ID du salon
+        room_frame = ctk.CTkFrame(
+            join_window,
+            fg_color=self.COLORS['background']
+        )
+        room_frame.pack(pady=5)
+        
+        ctk.CTkLabel(
+            room_frame,
+            text="ID du salon:",
+            font=("Arial", 12),
+            bg_color=self.COLORS['background'],
+            text_color=self.COLORS['text']
+        ).pack(side=ctk.LEFT, padx=5)
+        
+        room_id_var = ctk.StringVar()
+        room_id_entry = ctk.CTkEntry(
+            room_frame,
+            textvariable=room_id_var,
+            font=("Arial", 12),
+            fg_color=self.COLORS['secondary'],
+            text_color=self.COLORS['text'],
+            border_color=self.COLORS['button_border']
+        )
+        room_id_entry.pack(side=ctk.LEFT, padx=5)
+        
+        # Sélection du personnage
+        fighter_frame = ctk.CTkFrame(
+            join_window,
+            fg_color=self.COLORS['background']
+        )
+        fighter_frame.pack(pady=5)
+        
+        ctk.CTkLabel(
+            fighter_frame,
+            text="Personnage:",
+            font=("Arial", 12),
+            bg_color=self.COLORS['background'],
+            text_color=self.COLORS['text']
+        ).pack(side=ctk.LEFT, padx=5)
+        
+        fighter_var = ctk.StringVar(value="Tank")
+        fighter_dropdown = ctk.CTkComboBox(
+            fighter_frame,
+            values=["Mitsu", "Tank", "Noya", "ThunderStrike", "Bruiser"],
+            variable=fighter_var,
+            font=("Arial", 12),
+            fg_color=self.COLORS['secondary'],
+            text_color=self.COLORS['text'],
+            button_color=self.COLORS['button_border'],
+            dropdown_fg_color=self.COLORS['secondary']
+        )
+        fighter_dropdown.pack(side=ctk.LEFT, padx=5)
+
+        # Nom du joueur
+        player_frame = ctk.CTkFrame(
+            join_window,
+            fg_color=self.COLORS['background']
+        )
+        player_frame.pack(pady=5)
+        
+        ctk.CTkLabel(
+            player_frame,
+            text="Nom:",
+            font=("Arial", 12),
+            bg_color=self.COLORS['background'],
+            text_color=self.COLORS['text']
+        ).pack(side=ctk.LEFT, padx=5)
+        
+        player_name_var = ctk.StringVar(value="Joueur")
+        player_name_entry = ctk.CTkEntry(
+            player_frame,
+            textvariable=player_name_var,
+            font=("Arial", 12),
+            fg_color=self.COLORS['secondary'],
+            text_color=self.COLORS['text'],
+            border_color=self.COLORS['button_border']
+        )
+        player_name_entry.pack(side=ctk.LEFT, padx=5)
+
+        def join_existing_room():
+            room_id = room_id_var.get()
+            player_name = player_name_var.get()
+            fighter_type = fighter_var.get()
+            
+            if not room_id:
+                messagebox.showerror("Erreur", "Veuillez entrer un ID de salon valide.")
+                return
+            
+            from core.game_multi import MultiplayerGame
+            game = MultiplayerGame(player_name=player_name, fighter_type=fighter_type, room_id=room_id)
+            join_window.destroy()
+            self.root.withdraw()  # Cacher la fenêtre principale
+            
+            # Lancer le jeu
+            game.run()
+            self.root.deiconify()  # Réafficher la fenêtre principale après la partie
+
+        join_button = ctk.CTkButton(
+            join_window,
+            text="Rejoindre le salon",
+            font=("Arial", 12),
+            fg_color=self.COLORS['secondary'],
+            text_color=self.COLORS['text'],
+            hover_color=self.COLORS['hover'],
+            command=join_existing_room,
+            corner_radius=10,
+            border_width=2,
+            border_color=self.COLORS['button_border']
+        )
+        join_button.pack(pady=10)
+
+    def create_game(self) -> None:
+        """Affiche un menu pour créer un salon."""
+        create_window = ctk.CTkToplevel(self.root)
+        create_window.title("Créer un salon")
+        create_window.attributes('-topmost', True)
+        create_window.geometry("400x250")
+        create_window.configure(bg=self.COLORS['background'])
+
+        # Centrer la fenêtre
+        create_window.geometry("+{}+{}".format(
+            int(self.root.winfo_screenwidth() / 2 - 200),
+            int(self.root.winfo_screenheight() / 2 - 125)
+        ))
+
+        ctk.CTkLabel(
+            create_window,
+            text="Créer un salon",
+            font=self.FONTS['button'],
+            bg_color=self.COLORS['background'],
+            text_color=self.COLORS['primary']
+        ).pack(pady=10)
+
+        ctk.CTkLabel(
+            create_window,
+            text="Serveur: 194.9.172.146:25568",
+            font=("Arial", 12),
+            bg_color=self.COLORS['background'],
+            text_color=self.COLORS['text']
+        ).pack(pady=5)
+        
+        # Sélection du personnage
+        fighter_frame = ctk.CTkFrame(
+            create_window,
+            fg_color=self.COLORS['background']
+        )
+        fighter_frame.pack(pady=5)
+        
+        ctk.CTkLabel(
+            fighter_frame,
+            text="Personnage:",
+            font=("Arial", 12),
+            bg_color=self.COLORS['background'],
+            text_color=self.COLORS['text']
+        ).pack(side=ctk.LEFT, padx=5)
+        
+        fighter_var = ctk.StringVar(value="Mitsu")
+        fighter_dropdown = ctk.CTkComboBox(
+            fighter_frame,
+            values=["Mitsu", "Tank", "Noya", "ThunderStrike", "Bruiser"],
+            variable=fighter_var,
+            font=("Arial", 12),
+            fg_color=self.COLORS['secondary'],
+            text_color=self.COLORS['text'],
+            button_color=self.COLORS['button_border'],
+            dropdown_fg_color=self.COLORS['secondary']
+        )
+        fighter_dropdown.pack(side=ctk.LEFT, padx=5)
+
+        # Nom du joueur
+        player_frame = ctk.CTkFrame(
+            create_window,
+            fg_color=self.COLORS['background']
+        )
+        player_frame.pack(pady=5)
+        
+        ctk.CTkLabel(
+            player_frame,
+            text="Nom:",
+            font=("Arial", 12),
+            bg_color=self.COLORS['background'],
+            text_color=self.COLORS['text']
+        ).pack(side=ctk.LEFT, padx=5)
+        
+        player_name_var = ctk.StringVar(value="Joueur")
+        player_name_entry = ctk.CTkEntry(
+            player_frame,
+            textvariable=player_name_var,
+            font=("Arial", 12),
+            fg_color=self.COLORS['secondary'],
+            text_color=self.COLORS['text'],
+            border_color=self.COLORS['button_border']
+        )
+        player_name_entry.pack(side=ctk.LEFT, padx=5)
+
+        def create_new_room():
+            player_name = player_name_var.get()
+            fighter_type = fighter_var.get()
+            
+            from core.game_multi import MultiplayerGame
+            game = MultiplayerGame(player_name=player_name, fighter_type=fighter_type)
+            create_window.destroy()
+            self.root.withdraw()  # Cacher la fenêtre principale
+            
+            # Lancer le jeu
+            game.run()
+            self.root.deiconify()  # Réafficher la fenêtre principale après la partie
+
+        create_button = ctk.CTkButton(
+            create_window,
+            text="Créer le salon",
+            font=("Arial", 12),
+            fg_color=self.COLORS['secondary'],
+            text_color=self.COLORS['text'],
+            hover_color=self.COLORS['hover'],
+            command=create_new_room,
+            corner_radius=10,
+            border_width=2,
+            border_color=self.COLORS['button_border']
+        )
+        create_button.pack(pady=10)
+
     def show_credits(self) -> None:
         """Affiche les crédits avec une interface moderne et interactive."""
         credits_window = ctk.CTkToplevel(self.root)
@@ -328,7 +655,7 @@ class LauncherPythFighter:
         credits_window.geometry("700x500")
         credits_window.configure(bg_color=self.COLORS['background'])
         credits_window.resizable(False, False)
-        
+
         # Image de titre (à remplacer par votre logo)
         try:
             logo_img = ctk.CTkImage(
@@ -353,7 +680,7 @@ class LauncherPythFighter:
                 bg_color=self.COLORS['background']
             )
             title_label.pack(pady=(20, 10))
-        
+
         subtitle_label = ctk.CTkLabel(
             credits_window,
             text="Un jeu de combat révolutionnaire",
@@ -362,7 +689,7 @@ class LauncherPythFighter:
             bg_color=self.COLORS['background']
         )
         subtitle_label.pack(pady=(0, 20))
-        
+
         # Créer un frame pour le contenu principal
         main_frame = ctk.CTkFrame(
             credits_window,
@@ -372,7 +699,7 @@ class LauncherPythFighter:
             border_color=self.COLORS['accent']
         )
         main_frame.pack(fill=ctk.BOTH, expand=True, padx=40, pady=(0, 30))
-        
+
         # Tableau d'onglets
         credits_sections = {
             "Équipe": self._get_team_credits(),
@@ -380,7 +707,7 @@ class LauncherPythFighter:
             "Audio": self._get_audio_credits(),
             "Remerciements": self._get_special_thanks()
         }
-        
+
         # Créer les onglets
         tabview = ctk.CTkTabview(
             main_frame,
@@ -393,11 +720,11 @@ class LauncherPythFighter:
             text_color=self.COLORS['text']
         )
         tabview.pack(fill=ctk.BOTH, expand=True, padx=20, pady=20)
-        
+
         # Ajouter les sections
         for section_name, section_content in credits_sections.items():
             tab = tabview.add(section_name)
-            
+
             # Créer un cadre défilable pour chaque section
             scroll_frame = ctk.CTkScrollableFrame(
                 tab,
@@ -407,7 +734,7 @@ class LauncherPythFighter:
                 scrollbar_button_hover_color=self.COLORS['primary_hover']
             )
             scroll_frame.pack(fill=ctk.BOTH, expand=True, padx=10, pady=10)
-            
+
             # Remplir chaque section avec son contenu formaté
             for item in section_content:
                 if isinstance(item, dict):
@@ -420,7 +747,7 @@ class LauncherPythFighter:
                         anchor="w"
                     )
                     title.pack(fill=ctk.X, pady=(10, 5), padx=5)
-                    
+
                     # Style pour les membres/éléments sous chaque titre
                     for member in item['members']:
                         member_frame = ctk.CTkFrame(
@@ -429,7 +756,7 @@ class LauncherPythFighter:
                             corner_radius=8
                         )
                         member_frame.pack(fill=ctk.X, pady=3, padx=15)
-                        
+
                         member_label = ctk.CTkLabel(
                             member_frame,
                             text=f"• {member}",
@@ -451,10 +778,10 @@ class LauncherPythFighter:
                         wraplength=500
                     )
                     text_label.pack(fill=ctk.X, pady=10, padx=5)
-        
+
         # Définir l'onglet actif par défaut
         tabview.set("Équipe")
-        
+
         # Bouton de fermeture
         close_button = ctk.CTkButton(
             credits_window,
@@ -468,7 +795,7 @@ class LauncherPythFighter:
             width=120
         )
         close_button.pack(side=ctk.BOTTOM, pady=(0, 15))
-        
+
         # Instruction
         instruction = ctk.CTkLabel(
             credits_window,
@@ -478,7 +805,7 @@ class LauncherPythFighter:
             bg_color=self.COLORS['background']
         )
         instruction.pack(side=ctk.BOTTOM, pady=(0, 5))
-        
+
         # Ajouter une animation simple d'entrée
         credits_window.withdraw()
         credits_window.update_idletasks()
@@ -486,10 +813,10 @@ class LauncherPythFighter:
         y = (credits_window.winfo_screenheight() - credits_window.winfo_reqheight()) // 2
         credits_window.geometry(f"+{x}+{y}")
         credits_window.deiconify()
-        
+
         # Gestion des touches clavier
         credits_window.bind("<Escape>", lambda _: credits_window.destroy())
-        
+
         # Vérification du contrôleur
         def check_credits_input():
             if not credits_window.winfo_exists():
@@ -1049,6 +1376,11 @@ class LauncherPythFighter:
 
         tutorial_window.after(100, check_tutorial_controller)
 
+    def return_to_main_menu(self) -> None:
+        """Retourne au menu principal."""
+        # Recréer l'interface principale
+        self.create_interface()
+        
     def run(self) -> None:
         """Lance le launcher."""
         self.root.mainloop()

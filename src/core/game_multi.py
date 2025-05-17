@@ -344,6 +344,15 @@ class Fighter:
 
 class MultiplayerGame:
     def __init__(self, player_name="Player", fighter_type="Mitsu", room_id=None):
+        self.player_name = player_name
+        self.fighter_type = fighter_type
+        self.room_id = room_id
+        self.is_host = room_id is None
+        self.mp_manager = MultiplayerManager()
+        self.connected = False
+        self.opponent_fighter = None
+        self.host_uuid = None
+        self.status_message = ""
         pygame.init()
         pygame.joystick.init()
         self.screen = pygame.display.set_mode((VISIBLE_WIDTH, VISIBLE_HEIGHT))
@@ -463,20 +472,29 @@ class MultiplayerGame:
                 
                 # Créer ou rejoindre une salle
                 if self.is_host:
-                    data = {
-                        "action": "CREATE_ROOM",
-                        "client_id": self.client_id,
-                        "player_name": self.player_name,
-                        "fighter_type": self.fighter_type
-                    }
+                    created_room = self.mp_manager.create_room(self.player_name, self.fighter_type)
+                    if created_room:
+                        self.room_id = created_room
+                        self.connected = True
+                        self.status_message = f"Salle créée avec succès. ID: {self.room_id}"
+                    else:
+                        self.status_message = "Erreur lors de la création de la salle."
                 else:
-                    data = {
-                        "action": "JOIN_ROOM",
-                        "room_id": self.room_id,
-                        "client_id": self.client_id,
-                        "player_name": self.player_name,
-                        "fighter_type": self.fighter_type
-                    }
+                    joined = self.mp_manager.join_room(self.room_id, self.player_name, self.fighter_type)
+                    if joined:
+                        self.connected = True
+                        self.status_message = f"Connecté à la salle {self.room_id}"
+                    else:
+                        self.status_message = "Salle non trouvée ou erreur de connexion."
+                
+                data = {
+                    "action": "JOIN_ROOM",
+                    "room_id": self.room_id,
+                    "client_id": self.client_id,
+                    "player_name": self.player_name,
+                    "fighter_type": self.fighter_type,
+                    "player_uuid": self.client_id  # Utiliser le même UUID pour l'identification
+                }
                 
                 s.sendall(json.dumps(data).encode('utf-8'))
                 response = s.recv(1024).decode('utf-8')
@@ -492,8 +510,9 @@ class MultiplayerGame:
                         else:
                             # Mettre à jour le type de combattant de l'adversaire
                             opponent_fighter = response_data.get("host_fighter_type", "Tank")
+                            host_uuid = response_data.get("host_uuid")
                             self._update_opponent_fighter(opponent_fighter)
-                            logging.info(f"Joined room {self.room_id} with opponent fighter: {opponent_fighter}")
+                            logging.info(f"Joined room {self.room_id} with opponent fighter: {opponent_fighter} (UUID: {host_uuid})")
                         
                         # Indiquer que le joueur est prêt
                         self._set_ready(True)
@@ -635,7 +654,8 @@ class MultiplayerGame:
                 data = {
                     "action": "GET_OPPONENT_STATE",
                     "room_id": self.room_id,
-                    "client_id": self.client_id
+                    "client_id": self.client_id,
+                    "player_uuid": self.client_id  # Ajouter l'UUID pour cohérence
                 }
                 
                 s.sendall(json.dumps(data).encode('utf-8'))
@@ -647,13 +667,19 @@ class MultiplayerGame:
                         opponent_state = response_data.get("opponent_state")
                         if opponent_state:
                             self.opponent_connected = True
+                            logging.info(f"État de l'adversaire reçu: {opponent_state.get('health', 'N/A')} PV")
                             return opponent_state
+                        else:
+                            logging.info("Aucun état d'adversaire disponible")
+                    else:
+                        error_msg = response_data.get("message", "Erreur inconnue")
+                        logging.error(f"Échec de récupération de l'état de l'adversaire: {error_msg}")
                 except json.JSONDecodeError:
-                    logging.error(f"Invalid server response: {response}")
+                    logging.error(f"Réponse serveur invalide: {response}")
             
             return None
         except Exception as e:
-            logging.error(f"Connection error when getting opponent state: {e}")
+            logging.error(f"Erreur de connexion lors de la récupération de l'état de l'adversaire: {e}")
             return None
     
     def _update_remote_fighter(self, state):
@@ -704,9 +730,15 @@ class MultiplayerGame:
                 # Vérifier si l'adversaire est prêt
                 if self.game_state == GameState.WAITING:
                     opponent_ready = self._check_opponent_ready()
+                    logging.info(f"Vérification si l'adversaire est prêt: {opponent_ready}")
                     if opponent_ready:
                         self.game_state = GameState.COUNTDOWN
                         self.start_time = time.time()
+                        self.opponent_connected = True
+                        logging.info(f"Adversaire prêt! Début du compte à rebours.")
+                    else:
+                        # Attendre un peu avant de vérifier à nouveau
+                        time.sleep(1)
                 
                 # Synchroniser l'état du jeu
                 if self.game_state in [GameState.COUNTDOWN, GameState.PLAYING]:
@@ -720,13 +752,16 @@ class MultiplayerGame:
                         opponent_state = self._get_opponent_state()
                         if opponent_state:
                             self._update_remote_fighter(opponent_state)
+                            if not self.opponent_connected:
+                                self.opponent_connected = True
+                                logging.info("Connexion avec l'adversaire établie")
                         
                         self.last_sync_time = current_time
             except Exception as e:
-                logging.error(f"Failed to set ready status: {e}")
-                self.server_connected = False
-# ... existing code ...
-
+                logging.error(f"Erreur dans la boucle réseau: {e}")
+                # Ne pas déconnecter immédiatement, essayer de se reconnecter
+                time.sleep(1)
+    
     def _set_ready(self, ready=True):
         """Indique au serveur que le joueur est prêt."""
         try:
@@ -738,6 +773,7 @@ class MultiplayerGame:
                     "action": "SET_READY",
                     "room_id": self.room_id,
                     "client_id": self.client_id,
+                    "player_uuid": self.client_id,  # Ajouter l'UUID pour cohérence
                     "ready": ready
                 }
                 
@@ -747,14 +783,22 @@ class MultiplayerGame:
                 try:
                     response_data = json.loads(response)
                     if response_data.get("status") == "success":
-                        logging.info(f"Player ready status set to {ready}")
+                        logging.info(f"Statut 'prêt' défini à {ready}")
+                        # Vérifier immédiatement si l'adversaire est prêt
+                        if ready:
+                            time.sleep(0.5)  # Petit délai pour laisser le serveur traiter
+                            opponent_ready = self._check_opponent_ready()
+                            logging.info(f"Vérification immédiate si l'adversaire est prêt: {opponent_ready}")
                     else:
                         error_msg = response_data.get("message", "Unknown error")
-                        logging.error(f"Failed to set ready status: {error_msg}")
+                        logging.error(f"Échec de définition du statut 'prêt': {error_msg}")
                 except json.JSONDecodeError:
-                    logging.error(f"Invalid server response: {response}")
+                    logging.error(f"Réponse serveur invalide: {response}")
         except Exception as e:
-            logging.error(f"Connection error in set_ready: {e}")
+            logging.error(f"Erreur de connexion dans set_ready: {e}")
+            # Réessayer après un court délai
+            time.sleep(1)
+            self._set_ready(ready)
     
     def _check_opponent_ready(self):
         """Vérifie si l'adversaire est prêt."""
@@ -775,7 +819,8 @@ class MultiplayerGame:
                 try:
                     response_data = json.loads(response)
                     if response_data.get("status") == "success":
-                        return response_data.get("ready", False)
+                        # Correction: utiliser la clé correcte 'opponent_ready' au lieu de 'ready'
+                        return response_data.get("opponent_ready", False)
                     else:
                         error_msg = response_data.get("message", "Unknown error")
                         logging.error(f"Failed to check opponent ready: {error_msg}")
@@ -794,10 +839,15 @@ class MultiplayerGame:
                 # Vérifier si l'adversaire est connecté
                 if self.server_connected and not self.opponent_connected:
                     opponent_ready = self._check_opponent_ready()
+                    logging.info(f"Vérification si l'adversaire est prêt: {opponent_ready}")
                     if opponent_ready:
                         self.opponent_connected = True
                         self.game_state = GameState.COUNTDOWN
                         self.start_time = time.time()
+                        logging.info(f"Adversaire prêt! Début du compte à rebours.")
+                    else:
+                        # Attendre un peu avant de vérifier à nouveau
+                        time.sleep(1)
                         logging.info("Opponent connected and ready, starting countdown")
                 
                 # Synchroniser l'état du jeu

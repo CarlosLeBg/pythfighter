@@ -837,7 +837,7 @@ class LauncherPythFighter:
             {"title": "Programmation", "members": [
                 "Direction du développement: Équipe PythFighter",
                 "Lead Developer: Carl-Albert LIEVAL",
-                "Développeurs: Rémi POLVERINI, Timtohé PICHOT"
+                "Développeurs: Rémi POLVERINI, Timothé PICHOT"
             ]},
             {"title": "Direction du Projet", "members": [
                 "Production: Moinécha SCHULTZE",

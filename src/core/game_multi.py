@@ -32,9 +32,16 @@ BLOCK_STAMINA_DRAIN = 0.2
 SPECIAL_ATTACK_MULTIPLIER = 2.5
 
 # Configuration du serveur
-SERVER_HOST = '194.9.172.146'
+# Utiliser une variable d'environnement ou une valeur par défaut
+SERVER_HOST = os.environ.get('SERVER_HOST', '194.9.172.146')
 SERVER_PORT = 25568
 PING_PORT = 25569
+
+# Fonction pour définir l'adresse du serveur
+def set_server_address(host):
+    global SERVER_HOST
+    SERVER_HOST = host
+    return SERVER_HOST
 
 class GameState(Enum):
     WAITING = "waiting"

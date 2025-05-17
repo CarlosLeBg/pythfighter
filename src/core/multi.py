@@ -5,11 +5,19 @@ import time
 import logging
 import pygame
 import random
+import os
+import uuid
 
 # Configuration des adresses
-HOST = '194.9.172.146'  # Adresse IP du serveur
+HOST = os.environ.get('SERVER_HOST', '194.9.172.146')  # Adresse IP du serveur, configurable via variable d'environnement
 PORT = 25568            # Port pour les connexions
 PING_PORT = 25569       # Port pour les pings
+
+# Fonction pour définir l'adresse du serveur
+def set_server_address(host):
+    global HOST
+    HOST = host
+    return HOST
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -21,6 +29,8 @@ class MultiplayerManager:
         self.connected = False
         self.room_id = None
         self.player_id = None
+        self.player_uuid = None  # Identifiant unique du joueur
+        self.opponent_uuid = None  # Identifiant unique de l'adversaire
         self.opponent_data = {}
         self.last_ping_time = 0
         self.ping_value = 0
@@ -60,10 +70,14 @@ class MultiplayerManager:
                 return False
         
         try:
+            # Générer un UUID unique pour ce joueur
+            self.player_uuid = str(uuid.uuid4())
+            
             data = {
                 "action": "CREATE_ROOM",
                 "player_name": player_name,
-                "fighter_type": fighter_type
+                "fighter_type": fighter_type,
+                "player_uuid": self.player_uuid  # Ajouter l'UUID unique
             }
             
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -80,7 +94,7 @@ class MultiplayerManager:
                         self.is_host = True
                         self.match_data["player1_type"] = fighter_type
                         self._start_ping_thread()
-                        logging.info(f"Salle créée avec succès. ID: {self.room_id}")
+                        logging.info(f"Salle créée avec succès. ID: {self.room_id}, UUID: {self.player_uuid}")
                         return self.room_id
                     else:
                         logging.error(f"Échec de création de salle: {response}")
@@ -99,11 +113,15 @@ class MultiplayerManager:
                 return False
         
         try:
+            # Générer un UUID unique pour ce joueur
+            self.player_uuid = str(uuid.uuid4())
+            
             data = {
                 "action": "JOIN_ROOM",
                 "room_id": room_id,
                 "player_name": player_name,
-                "fighter_type": fighter_type
+                "fighter_type": fighter_type,
+                "player_uuid": self.player_uuid  # Ajouter l'UUID unique
             }
             
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -117,11 +135,12 @@ class MultiplayerManager:
                     if response_data.get("status") == "success":
                         self.room_id = room_id
                         self.player_id = response_data.get("player_id")
+                        self.opponent_uuid = response_data.get("host_uuid")  # Récupérer l'UUID de l'hôte
                         self.is_host = False
                         self.match_data["player2_type"] = fighter_type
                         self.match_data["player1_type"] = response_data.get("host_fighter_type", "Mitsu")
                         self._start_ping_thread()
-                        logging.info(f"Salle rejointe avec succès. ID: {self.room_id}")
+                        logging.info(f"Salle rejointe avec succès. ID: {self.room_id}, UUID: {self.player_uuid}")
                         return True
                     else:
                         logging.error(f"Échec pour rejoindre la salle: {response}")

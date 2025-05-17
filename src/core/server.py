@@ -93,6 +93,7 @@ class Room:
                 "ready": False,
                 "last_active": time.time(),
                 "ip_address": None,
+                "uuid": str(uuid.uuid4()),  # Identifiant unique pour chaque joueur
                 "score": 0
             }
         }
@@ -104,9 +105,9 @@ class Room:
         self.status = "waiting"  # waiting, playing, finished
         
         stats.total_rooms_created += 1
-        logging.info(f"Nouvelle salle créée: {self.id} par {host_name}")
+        logging.info(f"Nouvelle salle créée: {self.id} par {host_name} avec UUID {self.players[host_id]['uuid']}")
     
-    def add_player(self, player_id, player_name, fighter_type, ip_address=None):
+    def add_player(self, player_id, player_name, fighter_type, ip_address=None, player_uuid=None):
         if len(self.players) >= 2:
             return False
         
@@ -116,6 +117,7 @@ class Room:
             "ready": False,
             "last_active": time.time(),
             "ip_address": ip_address,
+            "uuid": player_uuid or str(uuid.uuid4()),  # Utiliser l'UUID fourni ou en générer un nouveau
             "score": 0
         }
         self.last_activity = time.time()
@@ -172,6 +174,9 @@ class Room:
     
     def get_host_fighter_type(self):
         return self.players[self.host_id]["fighter_type"]
+    
+    def get_host_uuid(self):
+        return self.players[self.host_id]["uuid"]
     
     def record_match_result(self, winner_id, loser_id, match_duration):
         """Enregistre le résultat d'un match."""
@@ -250,6 +255,11 @@ def handle_client(client_socket, client_address):
             # Ajouter l'adresse IP à la requête
             request["ip_address"] = client_address[0]
             
+            # Vérifier si un UUID est fourni, sinon en générer un
+            if "player_uuid" not in request and action in ["CREATE_ROOM", "JOIN_ROOM"]:
+                request["player_uuid"] = str(uuid.uuid4())
+                logging.info(f"UUID généré pour le client {client_address[0]}: {request['player_uuid']}")
+            
             if action == "CREATE_ROOM":
                 response = create_room(request)
             elif action == "JOIN_ROOM":
@@ -301,12 +311,13 @@ def create_room(request):
     player_name = request.get("player_name", "Joueur")
     fighter_type = request.get("fighter_type", "Mitsu")
     ip_address = request.get("ip_address")
+    player_uuid = request.get("player_uuid", str(uuid.uuid4()))
     
-    # Vérifier si le joueur a déjà créé trop de salles
+    # Vérifier si le joueur a déjà créé trop de salles (en utilisant UUID au lieu de l'IP)
     existing_rooms = 0
     for room in rooms.values():
         for player in room.players.values():
-            if player.get("ip_address") == ip_address:
+            if player.get("uuid") == player_uuid:
                 existing_rooms += 1
     
     if existing_rooms >= 3:
@@ -315,8 +326,9 @@ def create_room(request):
     player_id = str(uuid.uuid4())
     room = Room(player_id, player_name, fighter_type)
     
-    # Ajouter l'adresse IP
+    # Ajouter l'adresse IP et l'UUID
     room.players[player_id]["ip_address"] = ip_address
+    room.players[player_id]["uuid"] = player_uuid
     
     rooms[room.id] = room
     
@@ -332,6 +344,7 @@ def join_room(request):
     player_name = request.get("player_name", "Joueur")
     fighter_type = request.get("fighter_type", "Tank")
     ip_address = request.get("ip_address")
+    player_uuid = request.get("player_uuid", str(uuid.uuid4()))
     
     if not room_id or room_id not in rooms:
         return {"status": "error", "message": "Salle introuvable"}
@@ -341,20 +354,21 @@ def join_room(request):
     if len(room.players) >= 2:
         return {"status": "error", "message": "Salle pleine"}
     
-    # Vérifier si le joueur est déjà dans la salle (même IP)
+    # Vérifier si le joueur est déjà dans la salle (même UUID)
     for player in room.players.values():
-        if player.get("ip_address") == ip_address:
+        if player.get("uuid") == player_uuid:
             return {"status": "error", "message": "Vous ne pouvez pas rejoindre votre propre salle"}
     
     player_id = str(uuid.uuid4())
-    success = room.add_player(player_id, player_name, fighter_type, ip_address)
+    success = room.add_player(player_id, player_name, fighter_type, ip_address, player_uuid)
     
     if success:
-        logging.info(f"Joueur {player_name} a rejoint la salle {room_id}")
+        logging.info(f"Joueur {player_name} a rejoint la salle {room_id} avec UUID {player_uuid}")
         return {
             "status": "success",
             "player_id": player_id,
-            "host_fighter_type": room.get_host_fighter_type()
+            "host_fighter_type": room.get_host_fighter_type(),
+            "host_uuid": room.get_host_uuid()
         }
     else:
         return {"status": "error", "message": "Impossible de rejoindre la salle"}

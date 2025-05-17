@@ -491,6 +491,9 @@ class Lobby:
             return
         
         try:
+            # Générer un UUID unique pour cette session
+            self.player_uuid = str(uuid.uuid4())
+            
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.bind(('0.0.0.0', 5555))
             self.socket.listen(1)
@@ -509,16 +512,18 @@ class Lobby:
             client, addr = self.socket.accept()
             self.connected = True
             
-            # Envoyer les informations du joueur
+            # Envoyer les informations du joueur avec UUID
             player_data = {
                 "name": self.player_name,
-                "fighter": self.selected_fighter.name
+                "fighter": self.selected_fighter.name,
+                "uuid": self.player_uuid  # Envoyer l'UUID unique
             }
             client.send(json.dumps(player_data).encode())
             
             # Recevoir les informations de l'adversaire
             opponent_data = json.loads(client.recv(1024).decode())
             self.opponent_name = opponent_data.get("name", "Adversaire")
+            self.opponent_uuid = opponent_data.get("uuid", str(uuid.uuid4()))  # Récupérer l'UUID de l'adversaire
             
             # Trouver le combattant de l'adversaire
             fighter_name = opponent_data.get("fighter", "")
@@ -540,19 +545,26 @@ class Lobby:
         self.is_host = False
         
         try:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.connect(('localhost', 5555))  # À remplacer par l'adresse du serveur
+            # Générer un UUID unique pour cette session
+            self.player_uuid = str(uuid.uuid4())
             
-            # Envoyer les informations du joueur
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # Utiliser l'adresse IP du serveur ou localhost pour les tests
+            server_address = os.environ.get('SERVER_HOST', 'localhost')
+            self.socket.connect((server_address, 5555))  # Utilise l'adresse du serveur configurée
+            
+            # Envoyer les informations du joueur avec UUID
             player_data = {
                 "name": self.player_name,
-                "fighter": self.selected_fighter.name
+                "fighter": self.selected_fighter.name,
+                "uuid": self.player_uuid  # Envoyer l'UUID unique
             }
             self.socket.send(json.dumps(player_data).encode())
             
             # Recevoir les informations de l'adversaire
             opponent_data = json.loads(self.socket.recv(1024).decode())
             self.opponent_name = opponent_data.get("name", "Hôte")
+            self.opponent_uuid = opponent_data.get("uuid", str(uuid.uuid4()))  # Récupérer l'UUID de l'adversaire
             
             # Trouver le combattant de l'adversaire
             fighter_name = opponent_data.get("fighter", "")
